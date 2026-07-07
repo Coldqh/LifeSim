@@ -3,7 +3,7 @@ import { cities } from '../../data/cities/moscow';
 import { moscowDistricts } from '../../data/districts/moscowDistricts';
 import { moscowLocations } from '../../data/locations/moscowLocations';
 import type { LifeAction } from '../../types/actions';
-import type { CityId, DistrictId, LocationId } from '../../types/ids';
+import type { CityId, DistrictId, JobId, LocationId } from '../../types/ids';
 import type { City, District, Location } from '../../types/location';
 
 export function getCityById(cityId: CityId): City | undefined {
@@ -30,6 +30,10 @@ export function getLocationsForDistrict(districtId: DistrictId): Location[] {
 
 export function getDefaultLocationForDistrict(districtId: DistrictId): Location | undefined {
   return getLocationsForDistrict(districtId)[0];
+}
+
+export function getJobIdsForLocation(locationId: LocationId | undefined): JobId[] {
+  return getLocationById(locationId)?.jobIds ?? [];
 }
 
 export function getActionsForLocation(locationId: LocationId | undefined): LifeAction[] {

@@ -18,6 +18,7 @@ export type Player = {
   inventory: InventoryItem[];
   currentJobId?: JobId;
   completedShifts: Partial<Record<JobId, number>>;
+  jobExperience: Partial<Record<JobId, number>>;
   housingId: HousingId;
   rentDebt: number;
   daysUntilRent: number;

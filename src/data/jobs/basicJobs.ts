@@ -14,10 +14,12 @@ export const basicJobs: Job[] = [
     id: jobId('job_barista_trainee'),
     title: 'Бариста-стажёр',
     category: 'service',
-    locationId: locationId('msk_presnya_coffee_spot'),
-    description: 'Короткие смены в кофейне. Денег немного, зато вход простой.',
+    locationId: locationId('msk_danilovsky_metro_cafe'),
+    description: 'Barista trainee.',
     wagePerShift: 1800,
     shiftDurationMinutes: 240,
+    experiencePerShift: 12,
+    promotionThreshold: 100,
     requirements: {
       minEnergy: 20
     },
@@ -32,13 +34,61 @@ export const basicJobs: Job[] = [
     }
   },
   {
+    id: jobId('job_grocery_assistant'),
+    title: 'Продавец продуктов',
+    category: 'retail',
+    locationId: locationId('msk_danilovsky_grocery'),
+    description: 'Grocery retail assistant.',
+    wagePerShift: 2000,
+    shiftDurationMinutes: 240,
+    experiencePerShift: 11,
+    promotionThreshold: 100,
+    requirements: {
+      minEnergy: 24
+    },
+    effects: {
+      moneyDelta: 2000,
+      needsDelta: {
+        energy: -26,
+        hunger: -20,
+        thirst: -22,
+        mood: -2
+      }
+    }
+  },
+  {
+    id: jobId('job_warehouse_helper'),
+    title: 'Помощник на складе',
+    category: 'warehouse',
+    locationId: locationId('msk_danilovsky_small_warehouse'),
+    description: 'Warehouse helper.',
+    wagePerShift: 2800,
+    shiftDurationMinutes: 300,
+    experiencePerShift: 14,
+    promotionThreshold: 110,
+    requirements: {
+      minEnergy: 40
+    },
+    effects: {
+      moneyDelta: 2800,
+      needsDelta: {
+        energy: -42,
+        hunger: -28,
+        thirst: -30,
+        mood: -4
+      }
+    }
+  },
+  {
     id: jobId('job_office_part_time_assistant'),
     title: 'Офисный помощник на подработке',
     category: 'office',
     locationId: locationId('msk_presnya_part_time_office'),
-    description: 'Базовая офисная подработка. Нормальный стартовый доход за смену.',
+    description: 'Office part-time assistant.',
     wagePerShift: 2500,
     shiftDurationMinutes: 240,
+    experiencePerShift: 12,
+    promotionThreshold: 100,
     requirements: {
       minEnergy: 25
     },
@@ -57,9 +107,11 @@ export const basicJobs: Job[] = [
     title: 'Помощник в бизнес-центре',
     category: 'assistant',
     locationId: locationId('msk_presnya_business_center'),
-    description: 'Длиннее и тяжелее, но доход выше. Нужны силы на смену.',
+    description: 'Business center helper.',
     wagePerShift: 4200,
     shiftDurationMinutes: 360,
+    experiencePerShift: 16,
+    promotionThreshold: 120,
     requirements: {
       minEnergy: 45
     },
@@ -70,6 +122,121 @@ export const basicJobs: Job[] = [
         hunger: -30,
         thirst: -30,
         mood: -5
+      }
+    }
+  },
+  {
+    id: jobId('job_salon_administrator'),
+    title: 'Администратор салона',
+    category: 'service',
+    locationId: locationId('msk_danilovsky_hair_salon'),
+    description: 'Salon administrator.',
+    wagePerShift: 2300,
+    shiftDurationMinutes: 240,
+    experiencePerShift: 12,
+    promotionThreshold: 100,
+    requirements: {
+      minEnergy: 25
+    },
+    effects: {
+      moneyDelta: 2300,
+      needsDelta: {
+        energy: -24,
+        hunger: -18,
+        thirst: -20,
+        mood: -2
+      }
+    }
+  },
+  {
+    id: jobId('job_phone_shop_consultant'),
+    title: 'Продавец-консультант',
+    category: 'retail',
+    locationId: locationId('msk_presnya_phone_shop'),
+    description: 'Retail consultant.',
+    wagePerShift: 2600,
+    shiftDurationMinutes: 300,
+    experiencePerShift: 13,
+    promotionThreshold: 110,
+    requirements: {
+      minEnergy: 30
+    },
+    effects: {
+      moneyDelta: 2600,
+      needsDelta: {
+        energy: -32,
+        hunger: -24,
+        thirst: -24,
+        mood: -3
+      }
+    }
+  },
+  {
+    id: jobId('job_fitness_assistant'),
+    title: 'Помощник в фитнес-зале',
+    category: 'fitness',
+    locationId: locationId('msk_khamovniki_fitness_club'),
+    description: 'Fitness hall assistant.',
+    wagePerShift: 2400,
+    shiftDurationMinutes: 240,
+    experiencePerShift: 13,
+    promotionThreshold: 100,
+    requirements: {
+      minEnergy: 35
+    },
+    effects: {
+      moneyDelta: 2400,
+      needsDelta: {
+        energy: -36,
+        hunger: -25,
+        thirst: -28,
+        mood: -2
+      }
+    }
+  },
+  {
+    id: jobId('job_coworking_assistant'),
+    title: 'Ассистент в коворкинге',
+    category: 'assistant',
+    locationId: locationId('msk_presnya_coworking'),
+    description: 'Coworking assistant.',
+    wagePerShift: 3000,
+    shiftDurationMinutes: 300,
+    experiencePerShift: 14,
+    promotionThreshold: 110,
+    requirements: {
+      minEnergy: 30
+    },
+    effects: {
+      moneyDelta: 3000,
+      needsDelta: {
+        energy: -32,
+        hunger: -24,
+        thirst: -24,
+        mood: -2
+      }
+    }
+  },
+  {
+    id: jobId('job_bookstore_assistant'),
+    title: 'Помощник в книжном магазине',
+    category: 'retail',
+    locationId: locationId('msk_tverskoy_bookstore'),
+    description: 'Bookstore assistant.',
+    wagePerShift: 2100,
+    shiftDurationMinutes: 240,
+    experiencePerShift: 11,
+    promotionThreshold: 100,
+    requirements: {
+      minEnergy: 22
+    },
+    effects: {
+      moneyDelta: 2100,
+      needsDelta: {
+        energy: -23,
+        hunger: -18,
+        thirst: -18,
+        mood: -1
       }
     }
   }

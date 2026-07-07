@@ -1,10 +1,27 @@
 import { useState } from 'react';
-import type { DistrictId, LocationId } from '../../types/ids';
+import { formatRubles } from '../../core/economy';
+import type { Job } from '../../types/job';
+import type { DistrictId, JobId, LocationId } from '../../types/ids';
 import type { TravelModeId } from '../../types/transport';
 import type { City, District, Location } from '../../types/location';
 import type { DistrictTravelOption, LocationTravelOption } from '../../types/travel';
 import { LocationTravelModal } from './LocationTravelModal';
 import { TransportOptionCard } from './TransportOptionCard';
+import { createNeedsEffectItems, EffectList, type EffectListItem } from './EffectList';
+
+type LocationJobView = {
+  job: Job;
+  location?: Location;
+  district?: District;
+  isCurrentJob: boolean;
+  completedShifts: number;
+  jobExperience: number;
+  experienceRemaining: number;
+  canApply: boolean;
+  applicationFailure?: string;
+  canWorkShift: boolean;
+  shiftFailure?: string;
+};
 
 type LocationPanelProps = {
   city?: City;
@@ -12,9 +29,45 @@ type LocationPanelProps = {
   location?: Location;
   districtTravelOptions: DistrictTravelOption[];
   locationTravelOptions: LocationTravelOption[];
+  locationJobs: LocationJobView[];
   onMoveDistrict: (districtId: DistrictId, modeId: TravelModeId) => void;
   onMoveLocation: (locationId: LocationId, modeId: TravelModeId) => void;
+  onApplyForJob: (jobId: JobId) => void;
 };
+
+function formatDuration(minutes: number): string {
+  const hours = Math.floor(minutes / 60);
+  const restMinutes = minutes % 60;
+
+  if (hours > 0 && restMinutes > 0) return `${hours} ч ${restMinutes} мин`;
+  if (hours > 0) return `${hours} ч`;
+
+  return `${restMinutes} мин`;
+}
+
+function getVacancyEffects(job: Job): EffectListItem[] {
+  return [
+    {
+      label: 'Деньги',
+      value: job.effects.moneyDelta,
+      unit: '₽',
+      tone: 'positive'
+    },
+    {
+      label: 'Опыт',
+      value: job.experiencePerShift,
+      unit: 'XP',
+      tone: 'positive'
+    },
+    {
+      label: 'Время',
+      value: -job.shiftDurationMinutes,
+      unit: 'мин',
+      tone: 'negative'
+    },
+    ...createNeedsEffectItems(job.effects.needsDelta)
+  ];
+}
 
 export function LocationPanel({
   city,
@@ -22,8 +75,10 @@ export function LocationPanel({
   location,
   districtTravelOptions,
   locationTravelOptions,
+  locationJobs,
   onMoveDistrict,
-  onMoveLocation
+  onMoveLocation,
+  onApplyForJob
 }: LocationPanelProps) {
   const [isDistrictPickerOpen, setIsDistrictPickerOpen] = useState(false);
   const [isLocationPickerOpen, setIsLocationPickerOpen] = useState(false);
@@ -69,6 +124,52 @@ export function LocationPanel({
           <strong>{location?.name ?? 'Место не найдено'}</strong>
         </div>
       </div>
+
+      {locationJobs.length > 0 ? (
+        <div className="location-panel__block">
+          <h3>Вакансии здесь</h3>
+          <div className="job-list location-job-list">
+            {locationJobs.map((view) => (
+              <article className={`job-card ${view.isCurrentJob ? 'job-card--active' : ''}`} key={view.job.id}>
+                <div>
+                  <p className="panel__eyebrow">{view.location?.name ?? 'Место не найдено'}</p>
+                  <h3>{view.job.title}</h3>
+                </div>
+
+                <dl className="job-card__meta">
+                  <div>
+                    <dt>Смена</dt>
+                    <dd>{formatDuration(view.job.shiftDurationMinutes)}</dd>
+                  </div>
+                  <div>
+                    <dt>Оплата</dt>
+                    <dd>{formatRubles(view.job.wagePerShift)}</dd>
+                  </div>
+                  <div>
+                    <dt>Опыт</dt>
+                    <dd>+{view.job.experiencePerShift} XP</dd>
+                  </div>
+                </dl>
+
+                <EffectList items={getVacancyEffects(view.job)} />
+
+                <div className="job-card__actions">
+                  <button
+                    className="secondary-button"
+                    disabled={view.isCurrentJob || !view.canApply}
+                    type="button"
+                    onClick={() => onApplyForJob(view.job.id)}
+                  >
+                    {view.isCurrentJob ? 'Текущая работа' : 'Устроиться'}
+                  </button>
+                </div>
+
+                {!view.canApply && !view.isCurrentJob ? <p className="job-card__warning">{view.applicationFailure}</p> : null}
+              </article>
+            ))}
+          </div>
+        </div>
+      ) : null}
 
       {isDistrictPickerOpen ? (
         <div className="modal-backdrop" role="presentation">

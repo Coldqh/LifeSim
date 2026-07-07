@@ -786,3 +786,32 @@ button:disabled {
     min-height: auto;
   }
 }
+
+.work-progress {
+  height: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  overflow: hidden;
+}
+
+.work-progress__bar {
+  height: 100%;
+  background: var(--brand);
+}
+
+.current-job-card--workplace {
+  border-color: var(--brand);
+}
+
+.current-job-card small {
+  color: var(--muted);
+  font-weight: 850;
+}
+
+.location-job-list {
+  margin-top: 8px;
+}
+
+.workplace-meta {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}

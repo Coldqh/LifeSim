@@ -103,8 +103,10 @@ export function applyJobShift(input: ApplyJobShiftInput): ApplyJobShiftOutput {
   const nextNeeds = applyNeedsDelta(player.needs, job.effects.needsDelta);
   const nextMoney = applyMoneyDelta(player.money, job.effects.moneyDelta);
   const completedCount = (player.completedShifts[job.id] ?? 0) + 1;
+  const currentExperience = player.jobExperience[job.id] ?? 0;
+  const nextExperience = currentExperience + job.experiencePerShift;
   const warning = getNeedWarning(nextNeeds);
-  const baseMessage = `Смена завершена: ${job.title}. Получено ${job.wagePerShift} ₽.`;
+  const baseMessage = `Смена завершена: ${job.title}. Получено ${job.wagePerShift} ₽. Опыт +${job.experiencePerShift}.`;
   const messages = warning ? [baseMessage, warning] : [baseMessage];
 
   return {
@@ -115,6 +117,10 @@ export function applyJobShift(input: ApplyJobShiftInput): ApplyJobShiftOutput {
       completedShifts: {
         ...player.completedShifts,
         [job.id]: completedCount
+      },
+      jobExperience: {
+        ...player.jobExperience,
+        [job.id]: nextExperience
       }
     },
     time: nextTime,
@@ -124,6 +130,7 @@ export function applyJobShift(input: ApplyJobShiftInput): ApplyJobShiftOutput {
       jobTitle: job.title,
       timeDeltaMinutes: job.shiftDurationMinutes,
       moneyDelta: job.effects.moneyDelta,
+      experienceDelta: job.experiencePerShift,
       needsDelta: job.effects.needsDelta,
       messages
     }
@@ -131,3 +138,8 @@ export function applyJobShift(input: ApplyJobShiftInput): ApplyJobShiftOutput {
 }
 
 export type { Job, JobApplicationResult, JobShiftResult };
+
+export function getJobExperienceRemaining(player: Player, job: Job): number {
+  const currentExperience = player.jobExperience[job.id] ?? 0;
+  return Math.max(0, job.promotionThreshold - currentExperience);
+}

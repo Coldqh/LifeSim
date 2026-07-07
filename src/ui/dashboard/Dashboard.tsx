@@ -27,8 +27,11 @@ type DashboardTab = 'character' | 'city' | 'jobs' | 'log';
 type JobView = {
   job: Job;
   location?: Location;
+  district?: District;
   isCurrentJob: boolean;
   completedShifts: number;
+  jobExperience: number;
+  experienceRemaining: number;
   canApply: boolean;
   applicationFailure?: string;
   canWorkShift: boolean;
@@ -52,6 +55,8 @@ type DashboardProps = {
   jobState: {
     jobs: JobView[];
     currentJob?: Job;
+    currentJobView?: JobView;
+    currentLocationJobs: JobView[];
   };
   onPerformAction: (actionId: ActionId) => void;
   onMoveDistrict: (districtId: DistrictId, modeId: TravelModeId) => void;
@@ -194,8 +199,10 @@ export function Dashboard({
               location={locationState.location}
               districtTravelOptions={locationState.districtTravelOptions}
               locationTravelOptions={locationState.locationTravelOptions}
+              locationJobs={jobState.currentLocationJobs}
               onMoveDistrict={onMoveDistrict}
               onMoveLocation={onMoveLocation}
+              onApplyForJob={onApplyForJob}
             />
 
             <ShopPanel shop={locationState.shop} products={locationState.shopProducts} onBuyProduct={onBuyProduct} />
@@ -220,12 +227,7 @@ export function Dashboard({
         ) : null}
 
         {activeTab === 'jobs' ? (
-          <JobPanel
-            currentJob={jobState.currentJob}
-            jobs={jobState.jobs}
-            onApplyForJob={onApplyForJob}
-            onWorkShift={onWorkShift}
-          />
+          <JobPanel currentJobView={jobState.currentJobView} onWorkShift={onWorkShift} />
         ) : null}
 
         {activeTab === 'log' ? <LifeLog entries={gameState.lifeLog} /> : null}

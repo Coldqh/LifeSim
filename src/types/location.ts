@@ -1,4 +1,4 @@
-import type { ActionId, CityId, CountryId, DistrictId, LocationId, ShopId } from './ids';
+import type { ActionId, CityId, CountryId, DistrictId, JobId, LocationId, ShopId } from './ids';
 
 export type City = {
   id: CityId;
@@ -25,6 +25,10 @@ export type LocationType =
   | 'park'
   | 'sport_ground'
   | 'service'
+  | 'warehouse'
+  | 'fitness'
+  | 'coworking'
+  | 'clinic'
   | 'other';
 
 export type Location = {
@@ -36,4 +40,5 @@ export type Location = {
   description: string;
   availableActionIds: ActionId[];
   shopId?: ShopId;
+  jobIds?: JobId[];
 };

@@ -2,7 +2,13 @@ import { useEffect, useMemo, useState } from 'react';
 import { applyLifeAction } from '../core/actions';
 import { applyHousingDayChanges } from '../core/housing';
 import { applyMoneyDelta, canAfford } from '../core/economy';
-import { applyForJob as applyJob, applyJobShift, getJobApplicationFailure, getJobShiftFailure } from '../core/jobs';
+import {
+  applyForJob as applyJob,
+  applyJobShift,
+  getJobApplicationFailure,
+  getJobExperienceRemaining,
+  getJobShiftFailure
+} from '../core/jobs';
 import { addInventoryItem, hasInventoryItem, removeInventoryItem } from '../core/inventory';
 import {
   getActionsForLocation,
@@ -25,7 +31,7 @@ import {
 } from '../core/travel';
 import { getLifeAction } from '../data';
 import { getHousingById } from '../data/housing/basicHousing';
-import { basicJobs, getJobById } from '../data/jobs/basicJobs';
+import { basicJobs, getJobById, getJobsForLocation } from '../data/jobs/basicJobs';
 import { getProductById } from '../data/products/basicProducts';
 import type { ActionId, DistrictId, JobId, LocationId, ProductId } from '../types/ids';
 import type { TravelModeId } from '../types/transport';
@@ -169,26 +175,38 @@ export function useGameController() {
 
   const jobState = useMemo(() => {
     const currentJob = getJobById(gameState.player.currentJobId);
-    const jobs = basicJobs.map((job) => {
+
+    function buildJobView(job: import('../types/job').Job) {
       const location = getLocationById(job.locationId);
+      const district = location ? getDistrictById(location.districtId) : undefined;
       const applicationFailure = getJobApplicationFailure(gameState.player, job);
       const shiftFailure = getJobShiftFailure(gameState.player, job);
+      const jobExperience = gameState.player.jobExperience[job.id] ?? 0;
 
       return {
         job,
         location,
+        district,
         isCurrentJob: gameState.player.currentJobId === job.id,
         completedShifts: gameState.player.completedShifts[job.id] ?? 0,
+        jobExperience,
+        experienceRemaining: getJobExperienceRemaining(gameState.player, job),
         canApply: !applicationFailure,
         applicationFailure,
         canWorkShift: !shiftFailure,
         shiftFailure
       };
-    });
+    }
+
+    const jobs = basicJobs.map(buildJobView);
+    const currentJobView = currentJob ? buildJobView(currentJob) : undefined;
+    const currentLocationJobs = getJobsForLocation(gameState.player.locationId).map(buildJobView);
 
     return {
       jobs,
-      currentJob
+      currentJob,
+      currentJobView,
+      currentLocationJobs
     };
   }, [gameState.player]);
 

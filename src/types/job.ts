@@ -1,7 +1,7 @@
 import type { JobId, LocationId } from './ids';
 import type { NeedsState } from './needs';
 
-export type JobCategory = 'service' | 'office' | 'assistant';
+export type JobCategory = 'service' | 'office' | 'assistant' | 'retail' | 'warehouse' | 'fitness';
 
 export type JobRequirements = {
   minEnergy?: number;
@@ -20,6 +20,8 @@ export type Job = {
   description: string;
   wagePerShift: number;
   shiftDurationMinutes: number;
+  experiencePerShift: number;
+  promotionThreshold: number;
   requirements?: JobRequirements;
   effects: JobShiftEffects;
 };
@@ -37,6 +39,7 @@ export type JobShiftResult = {
   jobTitle: string;
   timeDeltaMinutes: number;
   moneyDelta: number;
+  experienceDelta?: number;
   needsDelta?: Partial<NeedsState>;
   messages: string[];
 };

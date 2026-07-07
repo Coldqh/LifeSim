@@ -5,7 +5,7 @@ import type { HousingId } from '../types/housing';
 import type { GameTime } from '../types/time';
 import { createInitialTime, formatGameTime } from '../core/time';
 
-export const GAME_STATE_STORAGE_KEY = 'lifesim.gameState.v6';
+export const GAME_STATE_STORAGE_KEY = 'lifesim.gameState.v7';
 
 export type LifeLogEntry = {
   id: string;
@@ -61,6 +61,7 @@ export function createInitialPlayer(): Player {
     skills: {},
     inventory: [],
     completedShifts: {},
+    jobExperience: {},
     housingId: housingId('housing_room_danilovsky'),
     rentDebt: 0,
     daysUntilRent: 7
