@@ -29,6 +29,18 @@ export type LocationType =
   | 'fitness'
   | 'coworking'
   | 'clinic'
+  | 'pharmacy'
+  | 'restaurant'
+  | 'food_court'
+  | 'pickup_point'
+  | 'mall'
+  | 'electronics_store'
+  | 'clothing_store'
+  | 'bank'
+  | 'education_center'
+  | 'sports_store'
+  | 'boxing_gym'
+  | 'pool'
   | 'other';
 
 export type Location = {
