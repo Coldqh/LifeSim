@@ -1,22 +1,12 @@
 import { getProductById } from '../../data/products/basicProducts';
 import type { InventoryItem } from '../../types/inventory';
 import type { ProductId } from '../../types/ids';
+import { createNeedsEffectItems, EffectList } from './EffectList';
 
 type InventoryPanelProps = {
   inventory: InventoryItem[];
   onUseInventoryItem: (productId: ProductId) => void;
 };
-
-function formatEffects(productId: ProductId): string {
-  const product = getProductById(productId);
-  if (!product) return 'товар не найден';
-
-  const effects = Object.entries(product.effects)
-    .filter(([, value]) => value !== undefined && value !== 0)
-    .map(([key, value]) => `${key} ${value && value > 0 ? '+' : ''}${value}`);
-
-  return effects.length > 0 ? effects.join(' · ') : 'без эффекта';
-}
 
 export function InventoryPanel({ inventory, onUseInventoryItem }: InventoryPanelProps) {
   return (
@@ -33,10 +23,10 @@ export function InventoryPanel({ inventory, onUseInventoryItem }: InventoryPanel
 
             return (
               <article className="inventory-item" key={item.productId}>
-                <div>
+                <div className="inventory-item__main">
                   <strong>{product?.name ?? 'Неизвестный предмет'}</strong>
                   <p>Количество: {item.quantity}</p>
-                  <small>{formatEffects(item.productId)}</small>
+                  <EffectList items={createNeedsEffectItems(product?.effects)} />
                 </div>
                 <button type="button" onClick={() => onUseInventoryItem(item.productId)}>
                   Использовать

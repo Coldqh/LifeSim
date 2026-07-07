@@ -27,13 +27,9 @@ export type ApplyJobShiftOutput = {
   result: JobShiftResult;
 };
 
-export function getJobApplicationFailure(player: Player, job: Job): string | undefined {
-  const minEnergy = job.requirements?.minEnergy;
-
-  if (minEnergy !== undefined && player.needs.energy < minEnergy) {
-    return `Нужно больше энергии: минимум ${minEnergy}.`;
-  }
-
+export function getJobApplicationFailure(_player: Player, _job: Job): string | undefined {
+  // MVP rule: applying for a job should stay open.
+  // Energy requirements are checked only when the player works a shift.
   return undefined;
 }
 

@@ -837,3 +837,227 @@ button {
     width: 100%;
   }
 }
+
+/* BUGFIX patch: theme variables and effect visibility */
+:root {
+  color-scheme: dark;
+  --bg: #05070a;
+  --surface: #0f172a;
+  --surface-soft: #111827;
+  --surface-muted: #1e293b;
+  --border: #243244;
+  --text: #e5e7eb;
+  --muted: #94a3b8;
+  --muted-strong: #cbd5e1;
+  --brand: #60a5fa;
+  --brand-soft: rgba(96, 165, 250, 0.14);
+  --good: #22c55e;
+  --good-bg: rgba(34, 197, 94, 0.14);
+  --good-border: rgba(34, 197, 94, 0.36);
+  --bad: #ef4444;
+  --bad-bg: rgba(239, 68, 68, 0.14);
+  --bad-border: rgba(239, 68, 68, 0.36);
+  --neutral-bg: rgba(148, 163, 184, 0.14);
+  --neutral-border: rgba(148, 163, 184, 0.3);
+  --shadow: 0 22px 60px rgba(0, 0, 0, 0.28);
+}
+
+:root[data-theme='light'] {
+  color-scheme: light;
+  --bg: #f8fafc;
+  --surface: #ffffff;
+  --surface-soft: #f8fafc;
+  --surface-muted: #f1f5f9;
+  --border: #e5e7eb;
+  --text: #111827;
+  --muted: #64748b;
+  --muted-strong: #334155;
+  --brand: #2563eb;
+  --brand-soft: #eff6ff;
+  --good: #15803d;
+  --good-bg: #f0fdf4;
+  --good-border: #bbf7d0;
+  --bad: #dc2626;
+  --bad-bg: #fef2f2;
+  --bad-border: #fecaca;
+  --neutral-bg: #f1f5f9;
+  --neutral-border: #e2e8f0;
+  --shadow: 0 18px 50px rgba(15, 23, 42, 0.06);
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+}
+
+.side-panel,
+.hero-panel,
+.panel,
+.result-panel,
+.stat-card,
+.action-card,
+.current-job-card,
+.job-card,
+.shop-item,
+.inventory-item,
+.current-location-card,
+.district-modal,
+.transport-card,
+.location-card,
+.location-chip {
+  border-color: var(--border);
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: var(--shadow);
+}
+
+.side-panel {
+  background: var(--surface-soft);
+}
+
+.side-panel__brand {
+  background: linear-gradient(135deg, #020617, #172554);
+  color: #ffffff;
+}
+
+.hero-panel__eyebrow,
+.panel__eyebrow,
+.result-panel__eyebrow,
+.action-card__category,
+.stat-card__label,
+.side-tab small,
+.hero-panel__text,
+.panel__text,
+.stat-card__helper,
+.action-card__text,
+.location-panel__current,
+.current-location-card span,
+.job-card p,
+.shop-item p,
+.inventory-item p,
+.transport-card small,
+.empty-state {
+  color: var(--muted);
+}
+
+.side-tab,
+.reset-button,
+.secondary-button,
+.theme-toggle {
+  border-color: var(--border);
+  background: var(--surface-muted);
+  color: var(--text);
+}
+
+.side-tab--active,
+.location-card--active,
+.location-chip--active {
+  border-color: var(--brand);
+  background: var(--brand-soft);
+}
+
+.result-panel--ok,
+.stat-card--good,
+.job-card--active {
+  border-color: var(--good-border);
+  background: var(--good-bg);
+}
+
+.result-panel--fail,
+.stat-card--warning,
+.job-card__warning {
+  border-color: var(--bad-border);
+  background: var(--bad-bg);
+}
+
+.theme-toggle {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 12px 14px;
+  text-align: left;
+}
+
+.theme-toggle span,
+.theme-toggle small {
+  display: block;
+}
+
+.theme-toggle span {
+  font-weight: 900;
+}
+
+.theme-toggle small {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.effect-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.effect-list--empty {
+  margin: 12px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.effect-chip {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+  border: 1px solid var(--neutral-border);
+  border-radius: 999px;
+  padding: 6px 10px;
+  background: var(--neutral-bg);
+  color: var(--muted-strong);
+  font-size: 12px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.effect-chip strong {
+  font-weight: 950;
+}
+
+.effect-chip--positive {
+  border-color: var(--good-border);
+  background: var(--good-bg);
+  color: var(--good);
+}
+
+.effect-chip--negative {
+  border-color: var(--bad-border);
+  background: var(--bad-bg);
+  color: var(--bad);
+}
+
+.effect-chip--neutral {
+  color: var(--muted-strong);
+}
+
+.action-card__money {
+  display: block;
+  margin-top: 10px;
+  color: var(--muted);
+  font-weight: 800;
+}
+
+.shop-item__main,
+.inventory-item__main {
+  min-width: 0;
+}
+
+.job-card__warning {
+  border: 1px solid var(--bad-border);
+  border-radius: 14px;
+  padding: 10px 12px;
+  color: var(--bad);
+  font-weight: 800;
+}

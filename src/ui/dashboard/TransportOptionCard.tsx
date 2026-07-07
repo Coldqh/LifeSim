@@ -1,21 +1,31 @@
 import type { TransportOption } from '../../types/travel';
 import type { TravelModeId } from '../../types/transport';
+import { createNeedsEffectItems, EffectList, type EffectListItem } from './EffectList';
 
 type TransportOptionCardProps = {
   option: TransportOption;
   onSelect: (modeId: TravelModeId) => void;
 };
 
-function formatNeedsDelta(option: TransportOption): string | undefined {
-  const energy = option.needsDelta?.energy;
-  if (!energy) return undefined;
-
-  return `Энергия ${energy}`;
+function getTransportEffects(option: TransportOption): EffectListItem[] {
+  return [
+    {
+      label: 'Время',
+      value: -option.durationMinutes,
+      unit: 'мин',
+      tone: 'negative'
+    },
+    {
+      label: 'Деньги',
+      value: -option.moneyCost,
+      unit: '₽',
+      tone: option.moneyCost > 0 ? 'negative' : 'neutral'
+    },
+    ...createNeedsEffectItems(option.needsDelta)
+  ];
 }
 
 export function TransportOptionCard({ option, onSelect }: TransportOptionCardProps) {
-  const needsText = formatNeedsDelta(option);
-
   return (
     <button
       className={`transport-card ${!option.available ? 'transport-card--disabled' : ''}`}
@@ -25,22 +35,7 @@ export function TransportOptionCard({ option, onSelect }: TransportOptionCardPro
     >
       <span className="transport-card__name">{option.name}</span>
       <small>{option.description}</small>
-      <dl className="transport-card__meta">
-        <div>
-          <dt>Время</dt>
-          <dd>{option.durationMinutes} мин</dd>
-        </div>
-        <div>
-          <dt>Цена</dt>
-          <dd>{option.moneyCost > 0 ? `${option.moneyCost} ₽` : '0 ₽'}</dd>
-        </div>
-        {needsText ? (
-          <div>
-            <dt>Состояние</dt>
-            <dd>{needsText}</dd>
-          </div>
-        ) : null}
-      </dl>
+      <EffectList items={getTransportEffects(option)} />
       {option.available ? <strong>Выбрать</strong> : <strong>{option.unavailableReason ?? 'Недоступно'}</strong>}
     </button>
   );

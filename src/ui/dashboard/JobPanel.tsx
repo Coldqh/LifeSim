@@ -2,6 +2,7 @@ import { formatRubles } from '../../core/economy';
 import type { Job } from '../../types/job';
 import type { JobId } from '../../types/ids';
 import type { Location } from '../../types/location';
+import { createNeedsEffectItems, EffectList, type EffectListItem } from './EffectList';
 
 type JobView = {
   job: Job;
@@ -31,10 +32,22 @@ function formatDuration(minutes: number): string {
   return `${restMinutes} мин`;
 }
 
-function formatNeedDelta(value: number | undefined): string {
-  if (value === undefined || value === 0) return '0';
-
-  return value > 0 ? `+${value}` : String(value);
+function getJobShiftEffects(job: Job): EffectListItem[] {
+  return [
+    {
+      label: 'Деньги',
+      value: job.effects.moneyDelta,
+      unit: '₽',
+      tone: 'positive'
+    },
+    {
+      label: 'Время',
+      value: -job.shiftDurationMinutes,
+      unit: 'мин',
+      tone: 'negative'
+    },
+    ...createNeedsEffectItems(job.effects.needsDelta)
+  ];
 }
 
 export function JobPanel({ currentJob, jobs, onApplyForJob, onWorkShift }: JobPanelProps) {
@@ -70,14 +83,12 @@ export function JobPanel({ currentJob, jobs, onApplyForJob, onWorkShift }: JobPa
                 <dd>{formatRubles(view.job.wagePerShift)}</dd>
               </div>
               <div>
-                <dt>Энергия</dt>
-                <dd>{formatNeedDelta(view.job.effects.needsDelta.energy)}</dd>
-              </div>
-              <div>
                 <dt>Смены</dt>
                 <dd>{view.completedShifts}</dd>
               </div>
             </dl>
+
+            <EffectList items={getJobShiftEffects(view.job)} />
 
             <div className="job-card__actions">
               <button

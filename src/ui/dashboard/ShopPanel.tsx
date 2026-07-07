@@ -1,6 +1,7 @@
 import { formatRubles } from '../../core/economy';
 import type { Product, Shop } from '../../types/product';
 import type { ProductId } from '../../types/ids';
+import { createNeedsEffectItems, EffectList, type EffectListItem } from './EffectList';
 
 type ShopPanelProps = {
   shop?: Shop;
@@ -8,12 +9,16 @@ type ShopPanelProps = {
   onBuyProduct: (productId: ProductId) => void;
 };
 
-function formatEffects(product: Product): string {
-  const effects = Object.entries(product.effects)
-    .filter(([, value]) => value !== undefined && value !== 0)
-    .map(([key, value]) => `${key} ${value && value > 0 ? '+' : ''}${value}`);
-
-  return effects.length > 0 ? effects.join(' · ') : 'без эффекта';
+function getProductPurchaseEffects(product: Product): EffectListItem[] {
+  return [
+    {
+      label: 'Деньги',
+      value: -product.price,
+      unit: '₽',
+      tone: 'negative'
+    },
+    ...createNeedsEffectItems(product.effects)
+  ];
 }
 
 export function ShopPanel({ shop, products, onBuyProduct }: ShopPanelProps) {
@@ -30,10 +35,10 @@ export function ShopPanel({ shop, products, onBuyProduct }: ShopPanelProps) {
       <div className="shop-list">
         {products.map((product) => (
           <article className="shop-item" key={product.id}>
-            <div>
+            <div className="shop-item__main">
               <strong>{product.name}</strong>
               <p>{product.description}</p>
-              <small>{formatEffects(product)}</small>
+              <EffectList items={getProductPurchaseEffects(product)} />
             </div>
             <div className="shop-item__side">
               <span>{formatRubles(product.price)}</span>

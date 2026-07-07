@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useUiTheme } from '../../state';
 import { formatRubles } from '../../core/economy';
 import { formatGameTime, formatWeekday } from '../../core/time';
 import type { GameState } from '../../state';
@@ -85,6 +86,7 @@ export function Dashboard({
 }: DashboardProps) {
   const { player, time, lastResult } = gameState;
   const [activeTab, setActiveTab] = useState<DashboardTab>('character');
+  const { theme, toggleTheme } = useUiTheme();
 
   return (
     <main className="app-layout">
@@ -93,6 +95,11 @@ export function Dashboard({
           <span>LifeSim</span>
           <small>Москва MVP</small>
         </div>
+
+        <button className="theme-toggle" type="button" onClick={toggleTheme}>
+          <span>{theme === 'dark' ? 'Тёмная тема' : 'Светлая тема'}</span>
+          <small>Переключить на {theme === 'dark' ? 'светлую' : 'тёмную'}</small>
+        </button>
 
         <nav className="side-tabs" aria-label="Основные вкладки">
           <button className={getTabClassName('character', activeTab)} type="button" onClick={() => setActiveTab('character')}>

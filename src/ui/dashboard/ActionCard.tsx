@@ -1,25 +1,30 @@
+import { formatRubles } from '../../core/economy';
 import type { LifeAction } from '../../types/actions';
 import type { ActionId } from '../../types/ids';
-import { formatRubles } from '../../core/economy';
+import { createNeedsEffectItems, EffectList, type EffectListItem } from './EffectList';
 
 type ActionCardProps = {
   action: LifeAction;
   onPerform: (actionId: ActionId) => void;
 };
 
-function formatDuration(minutes: number): string {
-  if (minutes < 60) return `${minutes} мин`;
-
-  const hours = Math.floor(minutes / 60);
-  const restMinutes = minutes % 60;
-
-  return restMinutes > 0 ? `${hours} ч ${restMinutes} мин` : `${hours} ч`;
-}
-
-function formatMoneyDelta(delta?: number): string {
-  if (!delta) return '0 ₽';
-
-  return `${delta > 0 ? '+' : ''}${formatRubles(delta)}`;
+function getActionEffects(action: LifeAction): EffectListItem[] {
+  return [
+    {
+      label: 'Время',
+      value: -action.durationMinutes,
+      unit: 'мин',
+      tone: 'negative'
+    },
+    action.moneyDelta
+      ? {
+          label: 'Деньги',
+          value: action.moneyDelta,
+          unit: '₽'
+        }
+      : undefined,
+    ...createNeedsEffectItems(action.needsDelta)
+  ].filter((item): item is EffectListItem => Boolean(item));
 }
 
 export function ActionCard({ action, onPerform }: ActionCardProps) {
@@ -31,16 +36,9 @@ export function ActionCard({ action, onPerform }: ActionCardProps) {
         <p className="action-card__text">{action.description}</p>
       </div>
 
-      <dl className="action-card__meta">
-        <div>
-          <dt>Время</dt>
-          <dd>{formatDuration(action.durationMinutes)}</dd>
-        </div>
-        <div>
-          <dt>Деньги</dt>
-          <dd>{formatMoneyDelta(action.moneyDelta)}</dd>
-        </div>
-      </dl>
+      <EffectList items={getActionEffects(action)} />
+
+      {action.moneyDelta ? <small className="action-card__money">Итог по деньгам: {formatRubles(action.moneyDelta)}</small> : null}
 
       <button className="action-card__button" type="button" onClick={() => onPerform(action.id)}>
         Выполнить

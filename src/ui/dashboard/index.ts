@@ -8,3 +8,4 @@ export * from './LocationTravelModal';
 export * from './TransportOptionCard';
 export * from './ShopPanel';
 export * from './StatCard';
+export * from './EffectList';
