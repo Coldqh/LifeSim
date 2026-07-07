@@ -94,12 +94,18 @@ export function Dashboard({
   const { theme, toggleTheme } = useUiTheme();
   const activeHourDecayItems = createNeedsEffectItems(getNeedsDecayDelta(60, 'active'));
 
+  function handleResetClick(): void {
+    if (window.confirm('Сбросить сохранение LifeSim?')) {
+      onReset();
+    }
+  }
+
   return (
     <main className="app-layout">
       <aside className="side-panel" aria-label="Навигация LifeSim">
         <div className="side-panel__brand">
           <span>LifeSim</span>
-          <small>Москва MVP</small>
+          <small>management sim</small>
         </div>
 
         <button className="theme-toggle" type="button" onClick={toggleTheme}>
@@ -110,25 +116,27 @@ export function Dashboard({
         <nav className="side-tabs" aria-label="Основные вкладки">
           <button className={getTabClassName('character', activeTab)} type="button" onClick={() => setActiveTab('character')}>
             <span>Персонаж</span>
-            <small>статы и инвентарь</small>
+            <small>state</small>
           </button>
           <button className={getTabClassName('city', activeTab)} type="button" onClick={() => setActiveTab('city')}>
             <span>Город</span>
-            <small>места и действия</small>
+            <small>city</small>
           </button>
           <button className={getTabClassName('jobs', activeTab)} type="button" onClick={() => setActiveTab('jobs')}>
             <span>Работа</span>
-            <small>вакансии и смены</small>
+            <small>jobs</small>
           </button>
           <button className={getTabClassName('log', activeTab)} type="button" onClick={() => setActiveTab('log')}>
             <span>Лог</span>
-            <small>архив жизни</small>
+            <small>log</small>
           </button>
         </nav>
 
-        <button className="reset-button reset-button--wide" type="button" onClick={onReset}>
-          Сбросить
-        </button>
+        <div className="side-panel__footer">
+          <button className="reset-button reset-button--wide" type="button" onClick={handleResetClick}>
+            Сбросить сохранение
+          </button>
+        </div>
       </aside>
 
       <section className="dashboard-shell">
@@ -138,9 +146,6 @@ export function Dashboard({
             <h1 className="hero-panel__title">
               {locationState.city?.name ?? 'Город'} · {locationState.district?.name ?? 'Район'}
             </h1>
-            <p className="hero-panel__text">
-              Текущее место: {locationState.location?.name ?? 'не найдено'}. Работа теперь проходит через вакансии, места и смены.
-            </p>
           </div>
         </section>
 
@@ -170,9 +175,8 @@ export function Dashboard({
             <section className="panel needs-decay-panel">
               <div className="panel__header">
                 <p className="panel__eyebrow">Ритм дня</p>
-                <h2 className="panel__title">Потребности падают от времени</h2>
+                <h2 className="panel__title">Расход за активный час</h2>
               </div>
-              <p className="panel__text">Любое действие, смена или дорога двигают часы. За каждый активный час город съедает часть еды, воды и энергии.</p>
               <EffectList items={activeHourDecayItems} />
             </section>
 
@@ -209,7 +213,7 @@ export function Dashboard({
                   ))}
                 </div>
               ) : (
-                <p className="empty-state">В этом месте нет обычных действий. Если это магазин, кафе или работа — смотри соответствующую вкладку.</p>
+                <p className="empty-state">Нет доступных действий в этой локации.</p>
               )}
             </section>
           </>

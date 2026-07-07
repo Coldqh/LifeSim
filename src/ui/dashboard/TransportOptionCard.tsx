@@ -34,7 +34,6 @@ export function TransportOptionCard({ option, onSelect }: TransportOptionCardPro
       onClick={() => onSelect(option.modeId)}
     >
       <span className="transport-card__name">{option.name}</span>
-      <small>{option.description}</small>
       <EffectList items={getTransportEffects(option)} />
       {option.available ? <strong>Выбрать</strong> : <strong>{option.unavailableReason ?? 'Недоступно'}</strong>}
     </button>

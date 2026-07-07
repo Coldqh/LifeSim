@@ -44,7 +44,6 @@ export function LocationTravelModal({ options, onMoveLocation, onClose }: Locati
               onClick={() => setSelectedLocationId(option.location.id)}
             >
               <span>{option.location.name}</span>
-              <small>{option.location.description}</small>
               <strong>{option.isCurrent ? 'Ты здесь' : `от ${option.durationMinutes} мин`}</strong>
             </button>
           ))}

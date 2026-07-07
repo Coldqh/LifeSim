@@ -29,7 +29,6 @@ export function ShopPanel({ shop, products, onBuyProduct }: ShopPanelProps) {
       <div className="panel__header">
         <p className="panel__eyebrow">Магазин</p>
         <h2 className="panel__title">{shop.name}</h2>
-        <p className="panel__text">{shop.description}</p>
       </div>
 
       <div className="shop-list">
@@ -37,7 +36,6 @@ export function ShopPanel({ shop, products, onBuyProduct }: ShopPanelProps) {
           <article className="shop-item" key={product.id}>
             <div className="shop-item__main">
               <strong>{product.name}</strong>
-              <p>{product.description}</p>
               <EffectList items={getProductPurchaseEffects(product)} />
             </div>
             <div className="shop-item__side">

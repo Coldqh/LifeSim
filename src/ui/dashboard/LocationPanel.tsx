@@ -67,7 +67,6 @@ export function LocationPanel({
         <h3>Текущее место</h3>
         <div className="current-location-card">
           <strong>{location?.name ?? 'Место не найдено'}</strong>
-          <span>{location?.description ?? 'Описание недоступно.'}</span>
         </div>
       </div>
 
@@ -94,7 +93,6 @@ export function LocationPanel({
                   onClick={() => setSelectedDistrictId(option.district.id)}
                 >
                   <span>{option.district.name}</span>
-                  <small>{option.district.description}</small>
                   <strong>{option.isCurrent ? 'Ты здесь' : `от ${option.durationMinutes} мин`}</strong>
                 </button>
               ))}

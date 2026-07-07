@@ -61,7 +61,7 @@ export function EffectList({ items, emptyText = 'Без эффекта' }: Effec
         const tone = getTone(item);
 
         return (
-          <span className={`effect-chip effect-chip--${tone}`} key={`${item.label}-${item.value}-${item.unit ?? ''}`}>
+          <span className={`effect-line effect-line--${tone}`} key={`${item.label}-${item.value}-${item.unit ?? ''}`}>
             <strong>{formatValue(item)}</strong>
             <span>{item.label}</span>
           </span>

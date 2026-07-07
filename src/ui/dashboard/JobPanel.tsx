@@ -61,7 +61,6 @@ export function JobPanel({ currentJob, jobs, onApplyForJob, onWorkShift }: JobPa
       <div className="current-job-card">
         <span>Текущая работа</span>
         <strong>{currentJob?.title ?? 'Нет работы'}</strong>
-        <small>{currentJob ? 'Чтобы работать смену, надо быть на месте работы.' : 'Устройся на одну из доступных вакансий.'}</small>
       </div>
 
       <div className="job-list">
@@ -70,7 +69,6 @@ export function JobPanel({ currentJob, jobs, onApplyForJob, onWorkShift }: JobPa
             <div>
               <p className="panel__eyebrow">{view.location?.name ?? 'Место не найдено'}</p>
               <h3>{view.job.title}</h3>
-              <p>{view.job.description}</p>
             </div>
 
             <dl className="job-card__meta">

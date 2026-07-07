@@ -26,7 +26,6 @@ export function HousingPanel({ housing, player }: HousingPanelProps) {
       <div className="panel__header">
         <p className="panel__eyebrow">Жильё</p>
         <h2 className="panel__title">{housing.name}</h2>
-        <p className="panel__text">{housing.description}</p>
       </div>
 
       <div className="housing-grid">
