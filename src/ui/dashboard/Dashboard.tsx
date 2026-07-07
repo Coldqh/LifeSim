@@ -4,6 +4,7 @@ import { formatGameTime, formatWeekday } from '../../core/time';
 import type { GameState } from '../../state';
 import type { LifeAction } from '../../types/actions';
 import type { DistrictId, LocationId, ActionId, ProductId } from '../../types/ids';
+import type { TravelModeId } from '../../types/transport';
 import type { City, District, Location } from '../../types/location';
 import type { Product, Shop } from '../../types/product';
 import type { DistrictTravelOption, LocationTravelOption } from '../../types/travel';
@@ -31,8 +32,8 @@ type DashboardProps = {
     districtTravelOptions: DistrictTravelOption[];
   };
   onPerformAction: (actionId: ActionId) => void;
-  onMoveDistrict: (districtId: DistrictId) => void;
-  onMoveLocation: (locationId: LocationId) => void;
+  onMoveDistrict: (districtId: DistrictId, modeId: TravelModeId) => void;
+  onMoveLocation: (locationId: LocationId, modeId: TravelModeId) => void;
   onBuyProduct: (productId: ProductId) => void;
   onUseInventoryItem: (productId: ProductId) => void;
   onReset: () => void;

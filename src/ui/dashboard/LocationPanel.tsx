@@ -1,8 +1,10 @@
 import { useState } from 'react';
 import type { DistrictId, LocationId } from '../../types/ids';
+import type { TravelModeId } from '../../types/transport';
 import type { City, District, Location } from '../../types/location';
 import type { DistrictTravelOption, LocationTravelOption } from '../../types/travel';
 import { LocationTravelModal } from './LocationTravelModal';
+import { TransportOptionCard } from './TransportOptionCard';
 
 type LocationPanelProps = {
   city?: City;
@@ -10,8 +12,8 @@ type LocationPanelProps = {
   location?: Location;
   districtTravelOptions: DistrictTravelOption[];
   locationTravelOptions: LocationTravelOption[];
-  onMoveDistrict: (districtId: DistrictId) => void;
-  onMoveLocation: (locationId: LocationId) => void;
+  onMoveDistrict: (districtId: DistrictId, modeId: TravelModeId) => void;
+  onMoveLocation: (locationId: LocationId, modeId: TravelModeId) => void;
 };
 
 export function LocationPanel({
@@ -25,10 +27,20 @@ export function LocationPanel({
 }: LocationPanelProps) {
   const [isDistrictPickerOpen, setIsDistrictPickerOpen] = useState(false);
   const [isLocationPickerOpen, setIsLocationPickerOpen] = useState(false);
+  const [selectedDistrictId, setSelectedDistrictId] = useState<DistrictId | undefined>();
+  const selectedDistrictOption = districtTravelOptions.find((option) => option.district.id === selectedDistrictId);
 
-  function handleDistrictSelect(districtId: DistrictId): void {
-    onMoveDistrict(districtId);
+  function openDistrictPicker(): void {
+    setSelectedDistrictId(undefined);
+    setIsDistrictPickerOpen(true);
+  }
+
+  function handleDistrictTravel(modeId: TravelModeId): void {
+    if (!selectedDistrictOption || selectedDistrictOption.isCurrent || !selectedDistrictOption.defaultLocation) return;
+
+    onMoveDistrict(selectedDistrictOption.district.id, modeId);
     setIsDistrictPickerOpen(false);
+    setSelectedDistrictId(undefined);
   }
 
   return (
@@ -42,7 +54,7 @@ export function LocationPanel({
           </p>
         </div>
         <div className="location-panel__actions">
-          <button className="secondary-button" type="button" onClick={() => setIsDistrictPickerOpen(true)}>
+          <button className="secondary-button" type="button" onClick={openDistrictPicker}>
             Сменить район
           </button>
           <button className="secondary-button" type="button" onClick={() => setIsLocationPickerOpen(true)}>
@@ -75,18 +87,34 @@ export function LocationPanel({
             <div className="location-list">
               {districtTravelOptions.map((option) => (
                 <button
-                  className={`location-chip ${option.isCurrent ? 'location-chip--active' : ''}`}
+                  className={`location-chip ${option.isCurrent || option.district.id === selectedDistrictId ? 'location-chip--active' : ''}`}
                   disabled={option.isCurrent || !option.defaultLocation}
                   key={option.district.id}
                   type="button"
-                  onClick={() => handleDistrictSelect(option.district.id)}
+                  onClick={() => setSelectedDistrictId(option.district.id)}
                 >
                   <span>{option.district.name}</span>
                   <small>{option.district.description}</small>
-                  <strong>{option.isCurrent ? 'Ты здесь' : `${option.durationMinutes} мин`}</strong>
+                  <strong>{option.isCurrent ? 'Ты здесь' : `от ${option.durationMinutes} мин`}</strong>
                 </button>
               ))}
             </div>
+
+            {selectedDistrictOption && !selectedDistrictOption.isCurrent ? (
+              <div className="transport-section">
+                <p className="panel__eyebrow">Как добраться?</p>
+                <h4>{selectedDistrictOption.district.name}</h4>
+                <div className="transport-options">
+                  {selectedDistrictOption.transportOptions.map((transportOption) => (
+                    <TransportOptionCard
+                      key={transportOption.modeId}
+                      option={transportOption}
+                      onSelect={handleDistrictTravel}
+                    />
+                  ))}
+                </div>
+              </div>
+            ) : null}
           </div>
         </div>
       ) : null}

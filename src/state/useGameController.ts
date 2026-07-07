@@ -24,6 +24,7 @@ import {
 import { getLifeAction } from '../data';
 import { getProductById } from '../data/products/basicProducts';
 import type { ActionId, DistrictId, LocationId, ProductId } from '../types/ids';
+import type { TravelModeId } from '../types/transport';
 import {
   clearSavedGameState,
   createInitialGameState,
@@ -53,12 +54,17 @@ export function useGameController() {
     const actions = getActionsForLocation(location?.id);
     const shop = getShopForLocation(location);
     const shopProducts = getShopProducts(shop?.id);
-    const locationTravelOptions = createLocationTravelOptions(location, locations);
+    const travelContext = {
+      playerMoney: gameState.player.money,
+      playerEnergy: gameState.player.needs.energy
+    };
+    const locationTravelOptions = createLocationTravelOptions(location, locations, travelContext);
     const districtTravelOptions = districts.map((candidateDistrict) =>
       createDistrictTravelOption({
         currentLocation: location,
         district: candidateDistrict,
-        defaultLocation: getDefaultLocationForDistrict(candidateDistrict.id)
+        defaultLocation: getDefaultLocationForDistrict(candidateDistrict.id),
+        context: travelContext
       })
     );
 
@@ -74,7 +80,7 @@ export function useGameController() {
       locationTravelOptions,
       districtTravelOptions
     };
-  }, [gameState.player.cityId, gameState.player.districtId, gameState.player.locationId]);
+  }, [gameState.player.cityId, gameState.player.districtId, gameState.player.locationId, gameState.player.money, gameState.player.needs.energy]);
 
   function performAction(actionId: ActionId): void {
     const action = getLifeAction(actionId);
@@ -119,7 +125,7 @@ export function useGameController() {
     });
   }
 
-  function moveToDistrict(districtId: DistrictId): void {
+  function moveToDistrict(districtId: DistrictId, modeId: TravelModeId): void {
     const district = getDistrictById(districtId);
     const defaultLocation = getDefaultLocationForDistrict(districtId);
     if (!district || !defaultLocation) return;
@@ -129,7 +135,12 @@ export function useGameController() {
       const travel = calculateDistrictTravel({
         fromLocation: currentLocation,
         toDistrict: district,
-        toLocation: defaultLocation
+        toLocation: defaultLocation,
+        modeId,
+        context: {
+          playerMoney: currentState.player.money,
+          playerEnergy: currentState.player.needs.energy
+        }
       });
 
       if (!travel.ok) {
@@ -138,19 +149,27 @@ export function useGameController() {
           lastResult: {
             ok: false,
             timeDeltaMinutes: 0,
+            moneyDelta: 0,
+            needsDelta: travel.needsDelta,
             messages: [travel.message]
           }
         };
       }
 
       const nextTime = addMinutes(currentState.time, travel.durationMinutes);
-      const logEntry = createLifeLogEntry({ time: nextTime }, 'Перемещение', travel.message);
+      const nextNeeds = applyNeedsDelta(currentState.player.needs, travel.needsDelta);
+      const nextMoney = applyMoneyDelta(currentState.player.money, -(travel.moneyCost ?? 0));
+      const warning = getNeedWarning(nextNeeds);
+      const messages = warning ? [travel.message, warning] : [travel.message];
+      const logEntry = createLifeLogEntry({ time: nextTime }, 'Перемещение', messages.join(' '));
 
       return {
         ...currentState,
         time: nextTime,
         player: {
           ...currentState.player,
+          money: nextMoney,
+          needs: nextNeeds,
           cityId: district.cityId,
           districtId: district.id,
           locationId: defaultLocation.id
@@ -158,21 +177,31 @@ export function useGameController() {
         lastResult: {
           ok: true,
           timeDeltaMinutes: travel.durationMinutes,
+          moneyDelta: -(travel.moneyCost ?? 0),
+          needsDelta: travel.needsDelta,
           locationDelta: defaultLocation.id,
-          messages: [travel.message]
+          messages
         },
         lifeLog: [logEntry, ...currentState.lifeLog].slice(0, 12)
       };
     });
   }
 
-  function moveToLocation(locationId: LocationId): void {
+  function moveToLocation(locationId: LocationId, modeId: TravelModeId): void {
     const location = getLocationById(locationId);
     if (!location) return;
 
     setGameState((currentState) => {
       const currentLocation = getLocationById(currentState.player.locationId);
-      const travel = calculateLocationTravel(currentLocation, location);
+      const travel = calculateLocationTravel({
+        fromLocation: currentLocation,
+        toLocation: location,
+        modeId,
+        context: {
+          playerMoney: currentState.player.money,
+          playerEnergy: currentState.player.needs.energy
+        }
+      });
 
       if (!travel.ok) {
         return {
@@ -180,19 +209,27 @@ export function useGameController() {
           lastResult: {
             ok: false,
             timeDeltaMinutes: 0,
+            moneyDelta: 0,
+            needsDelta: travel.needsDelta,
             messages: [travel.message]
           }
         };
       }
 
       const nextTime = addMinutes(currentState.time, travel.durationMinutes);
-      const logEntry = createLifeLogEntry({ time: nextTime }, 'Перемещение', travel.message);
+      const nextNeeds = applyNeedsDelta(currentState.player.needs, travel.needsDelta);
+      const nextMoney = applyMoneyDelta(currentState.player.money, -(travel.moneyCost ?? 0));
+      const warning = getNeedWarning(nextNeeds);
+      const messages = warning ? [travel.message, warning] : [travel.message];
+      const logEntry = createLifeLogEntry({ time: nextTime }, 'Перемещение', messages.join(' '));
 
       return {
         ...currentState,
         time: nextTime,
         player: {
           ...currentState.player,
+          money: nextMoney,
+          needs: nextNeeds,
           cityId: location.cityId,
           districtId: location.districtId,
           locationId: location.id
@@ -200,8 +237,10 @@ export function useGameController() {
         lastResult: {
           ok: true,
           timeDeltaMinutes: travel.durationMinutes,
+          moneyDelta: -(travel.moneyCost ?? 0),
+          needsDelta: travel.needsDelta,
           locationDelta: location.id,
-          messages: [travel.message]
+          messages
         },
         lifeLog: [logEntry, ...currentState.lifeLog].slice(0, 12)
       };

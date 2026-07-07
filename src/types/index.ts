@@ -4,6 +4,7 @@ export * from './needs';
 export * from './economy';
 export * from './location';
 export * from './travel';
+export * from './transport';
 export * from './player';
 export * from './product';
 export * from './shop';
