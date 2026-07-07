@@ -9,96 +9,31 @@ export const lifeActions: LifeAction[] = [
   {
     id: actionId('sleep_eight_hours'),
     name: 'Сон 8 часов',
-    description: 'Полный сон дома. День двигается дальше, тело восстанавливается.',
+    description: 'Полное восстановление дома. Еда и вода падают за ночь.',
     category: 'sleep',
     durationMinutes: 480,
     needsDelta: {
       energy: 70,
-      health: 3,
-      mood: 6,
       hunger: -25,
-      thirst: -25
+      thirst: -25,
+      mood: 8,
+      health: 2
     },
     resultMessage: 'Ты поспал восемь часов.'
   },
   {
     id: actionId('rest_one_hour'),
     name: 'Отдохнуть 1 час',
-    description: 'Пауза без денег и прогресса. Возвращает силы.',
+    description: 'Короткая пауза дома. Силы немного возвращаются.',
     category: 'rest',
     durationMinutes: 60,
     needsDelta: {
       energy: 20,
-      mood: 8,
       hunger: -5,
-      thirst: -5
-    },
-    resultMessage: 'Ты отдохнул час.'
-  },
-  {
-    id: actionId('buy_simple_food'),
-    name: 'Купить простую еду',
-    description: 'Быстрая еда из магазина. Закрывает голод без лишней системы товаров.',
-    category: 'food',
-    durationMinutes: 20,
-    moneyDelta: -280,
-    needsDelta: {
-      hunger: 38,
-      mood: 1
-    },
-    requirements: {
-      minMoney: 280
-    },
-    resultMessage: 'Ты купил простую еду и поел.'
-  },
-  {
-    id: actionId('buy_water'),
-    name: 'Купить воду',
-    description: 'Вода из магазина. Быстро закрывает жажду.',
-    category: 'drink',
-    durationMinutes: 10,
-    moneyDelta: -80,
-    needsDelta: {
-      thirst: 40
-    },
-    requirements: {
-      minMoney: 80
-    },
-    resultMessage: 'Ты купил воду и выпил её.'
-  },
-  {
-    id: actionId('eat_at_cafe'),
-    name: 'Поесть в кафе',
-    description: 'Дороже магазина, но лучше для настроения.',
-    category: 'food',
-    durationMinutes: 45,
-    moneyDelta: -650,
-    needsDelta: {
-      hunger: 50,
-      thirst: 10,
+      thirst: -5,
       mood: 8
     },
-    requirements: {
-      minMoney: 650
-    },
-    resultMessage: 'Ты поел в кафе.'
-  },
-  {
-    id: actionId('drink_coffee'),
-    name: 'Выпить кофе',
-    description: 'Кофе даёт немного энергии и настроения, но не заменяет сон.',
-    category: 'drink',
-    durationMinutes: 25,
-    moneyDelta: -250,
-    needsDelta: {
-      energy: 10,
-      thirst: 8,
-      mood: 5
-    },
-    requirements: {
-      minMoney: 250
-    },
-    resultMessage: 'Ты выпил кофе.'
+    resultMessage: 'Ты спокойно отдохнул час.'
   },
   {
     id: actionId('part_time_shift_4h'),

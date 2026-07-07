@@ -1,16 +1,25 @@
+import type { NeedsState } from './needs';
 import type { ProductId, ShopId } from './ids';
 
-export type ProductCategory = 'food' | 'drink' | 'medicine' | 'clothing' | 'electronics' | 'service' | 'other';
+export type ProductCategory = 'food' | 'drink' | 'coffee' | 'medicine' | 'other';
 
 export type Product = {
   id: ProductId;
-  shopId?: ShopId;
   name: string;
   category: ProductCategory;
   price: number;
+  description: string;
+  effects: Partial<NeedsState>;
 };
 
-export type InventoryItem = {
+export type ShopProduct = {
   productId: ProductId;
-  quantity: number;
+  priceOverride?: number;
+};
+
+export type Shop = {
+  id: ShopId;
+  name: string;
+  description: string;
+  productIds: ProductId[];
 };

@@ -1,5 +1,5 @@
 import type { Location } from '../../types/location';
-import type { ActionId, CityId, DistrictId, LocationId } from '../../types/ids';
+import type { ActionId, CityId, DistrictId, LocationId, ShopId } from '../../types/ids';
 
 function actionId(value: string): ActionId {
   return value as ActionId;
@@ -15,6 +15,10 @@ function districtId(value: string): DistrictId {
 
 function locationId(value: string): LocationId {
   return value as LocationId;
+}
+
+function shopId(value: string): ShopId {
+  return value as ShopId;
 }
 
 const moscow = cityId('moscow');
@@ -35,8 +39,9 @@ export const moscowLocations: Location[] = [
     districtId: districtId('msk_danilovsky'),
     name: 'Магазин у дома',
     type: 'shop',
-    description: 'Простой магазин для базовой еды и воды. Без инвентаря в этом патче.',
-    availableActionIds: [actionId('buy_simple_food'), actionId('buy_water')]
+    description: 'Простой магазин для базовой еды и воды.',
+    availableActionIds: [],
+    shopId: shopId('shop_local_grocery')
   },
   {
     id: locationId('msk_danilovsky_metro_cafe'),
@@ -45,7 +50,8 @@ export const moscowLocations: Location[] = [
     name: 'Кафе у метро',
     type: 'cafe',
     description: 'Быстрое кафе рядом с районом старта.',
-    availableActionIds: [actionId('eat_at_cafe'), actionId('drink_coffee')]
+    availableActionIds: [],
+    shopId: shopId('shop_coffee_spot')
   },
   {
     id: locationId('msk_presnya_part_time_office'),
@@ -72,7 +78,8 @@ export const moscowLocations: Location[] = [
     name: 'Кофейня',
     type: 'cafe',
     description: 'Небольшая кофейня для короткой паузы.',
-    availableActionIds: [actionId('drink_coffee'), actionId('eat_at_cafe')]
+    availableActionIds: [],
+    shopId: shopId('shop_coffee_spot')
   },
   {
     id: locationId('msk_tverskoy_central_cafe'),
@@ -81,7 +88,8 @@ export const moscowLocations: Location[] = [
     name: 'Кафе в центре',
     type: 'cafe',
     description: 'Центральное кафе. Дороже магазина, но поднимает настроение.',
-    availableActionIds: [actionId('eat_at_cafe'), actionId('drink_coffee')]
+    availableActionIds: [],
+    shopId: shopId('shop_coffee_spot')
   },
   {
     id: locationId('msk_tverskoy_walking_zone'),

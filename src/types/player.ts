@@ -1,4 +1,5 @@
 import type { CityId, DistrictId, LocationId, PlayerId } from './ids';
+import type { InventoryItem } from './inventory';
 import type { NeedsState } from './needs';
 
 export type PlayerSkills = Record<string, number>;
@@ -13,4 +14,5 @@ export type Player = {
   locationId?: LocationId;
   needs: NeedsState;
   skills: PlayerSkills;
+  inventory: InventoryItem[];
 };

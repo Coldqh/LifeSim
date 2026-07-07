@@ -1,4 +1,4 @@
-import type { ActionId, CityId, CountryId, DistrictId, LocationId } from './ids';
+import type { ActionId, CityId, CountryId, DistrictId, LocationId, ShopId } from './ids';
 
 export type City = {
   id: CityId;
@@ -35,4 +35,5 @@ export type Location = {
   type: LocationType;
   description: string;
   availableActionIds: ActionId[];
+  shopId?: ShopId;
 };

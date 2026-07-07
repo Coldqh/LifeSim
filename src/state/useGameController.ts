@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { applyLifeAction } from '../core/actions';
+import { applyMoneyDelta, canAfford } from '../core/economy';
+import { addInventoryItem, hasInventoryItem, removeInventoryItem } from '../core/inventory';
 import {
   getActionsForLocation,
   getCityById,
@@ -10,8 +12,11 @@ import {
   getLocationsForDistrict,
   isActionAvailableAtLocation
 } from '../core/location';
+import { applyNeedsDelta, getNeedWarning } from '../core/needs';
+import { getShopForLocation, getShopProducts, isProductSoldByShop } from '../core/shop';
 import { getLifeAction } from '../data';
-import type { ActionId, DistrictId, LocationId } from '../types/ids';
+import { getProductById } from '../data/products/basicProducts';
+import type { ActionId, DistrictId, LocationId, ProductId } from '../types/ids';
 import {
   clearSavedGameState,
   createInitialGameState,
@@ -39,6 +44,8 @@ export function useGameController() {
     const districts = city ? getDistrictsForCity(city.id) : [];
     const locations = district ? getLocationsForDistrict(district.id) : [];
     const actions = getActionsForLocation(location?.id);
+    const shop = getShopForLocation(location);
+    const shopProducts = getShopProducts(shop?.id);
 
     return {
       city,
@@ -46,7 +53,9 @@ export function useGameController() {
       location,
       districts,
       locations,
-      actions
+      actions,
+      shop,
+      shopProducts
     };
   }, [gameState.player.cityId, gameState.player.districtId, gameState.player.locationId]);
 
@@ -99,7 +108,7 @@ export function useGameController() {
     if (!district || !defaultLocation) return;
 
     setGameState((currentState) => {
-      const logEntry = createLifeLogEntry(currentState, 'Район', `Ты перешёл в район ${district.name}.`);
+      const logEntry = createLifeLogEntry(currentState, 'Район', `Ты сменил район: ${district.name}.`);
 
       return {
         ...currentState,
@@ -134,6 +143,109 @@ export function useGameController() {
     });
   }
 
+  function buyProduct(productId: ProductId): void {
+    setGameState((currentState) => {
+      const location = getLocationById(currentState.player.locationId);
+      const shop = getShopForLocation(location);
+      const product = getProductById(productId);
+
+      if (!shop || !product || !isProductSoldByShop(shop.id, productId)) {
+        const message = 'Этот товар здесь не продаётся.';
+        const logEntry = createLifeLogEntry(currentState, 'Покупка не прошла', message);
+
+        return {
+          ...currentState,
+          lastResult: {
+            ok: false,
+            timeDeltaMinutes: 0,
+            moneyDelta: 0,
+            messages: [message]
+          },
+          lifeLog: [logEntry, ...currentState.lifeLog].slice(0, 12)
+        };
+      }
+
+      if (!canAfford(currentState.player.money, product.price)) {
+        const message = 'Не хватает денег.';
+        const logEntry = createLifeLogEntry(currentState, 'Покупка не прошла', message);
+
+        return {
+          ...currentState,
+          lastResult: {
+            ok: false,
+            timeDeltaMinutes: 0,
+            moneyDelta: 0,
+            messages: [message]
+          },
+          lifeLog: [logEntry, ...currentState.lifeLog].slice(0, 12)
+        };
+      }
+
+      const nextPlayer = {
+        ...currentState.player,
+        money: applyMoneyDelta(currentState.player.money, -product.price),
+        inventory: addInventoryItem(currentState.player.inventory, product.id)
+      };
+      const message = `Куплено: ${product.name}. Товар добавлен в инвентарь.`;
+      const logEntry = createLifeLogEntry(currentState, 'Покупка', message);
+
+      return {
+        ...currentState,
+        player: nextPlayer,
+        lastResult: {
+          ok: true,
+          timeDeltaMinutes: 0,
+          moneyDelta: -product.price,
+          messages: [message]
+        },
+        lifeLog: [logEntry, ...currentState.lifeLog].slice(0, 12)
+      };
+    });
+  }
+
+  function useInventoryItem(productId: ProductId): void {
+    setGameState((currentState) => {
+      const product = getProductById(productId);
+
+      if (!product || !hasInventoryItem(currentState.player.inventory, productId)) {
+        const message = 'Предмет не найден в инвентаре.';
+        const logEntry = createLifeLogEntry(currentState, 'Инвентарь', message);
+
+        return {
+          ...currentState,
+          lastResult: {
+            ok: false,
+            timeDeltaMinutes: 0,
+            messages: [message]
+          },
+          lifeLog: [logEntry, ...currentState.lifeLog].slice(0, 12)
+        };
+      }
+
+      const nextNeeds = applyNeedsDelta(currentState.player.needs, product.effects);
+      const warning = getNeedWarning(nextNeeds);
+      const message = `Использовано: ${product.name}.`;
+      const messages = warning ? [message, warning] : [message];
+      const logEntry = createLifeLogEntry(currentState, 'Инвентарь', messages.join(' '));
+
+      return {
+        ...currentState,
+        player: {
+          ...currentState.player,
+          needs: nextNeeds,
+          inventory: removeInventoryItem(currentState.player.inventory, productId)
+        },
+        lastResult: {
+          ok: true,
+          timeDeltaMinutes: 0,
+          needsDelta: product.effects,
+          messages
+        },
+        lifeLog: [logEntry, ...currentState.lifeLog].slice(0, 12)
+      };
+    });
+  }
+
   function resetGame(): void {
     clearSavedGameState();
     setGameState(createInitialGameState());
@@ -146,6 +258,8 @@ export function useGameController() {
     performAction,
     moveToDistrict,
     moveToLocation,
+    buyProduct,
+    useInventoryItem,
     resetGame
   };
 }
