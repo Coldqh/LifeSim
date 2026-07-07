@@ -6,6 +6,7 @@ import type { LifeAction } from '../../types/actions';
 import type { DistrictId, LocationId, ActionId, ProductId } from '../../types/ids';
 import type { City, District, Location } from '../../types/location';
 import type { Product, Shop } from '../../types/product';
+import type { DistrictTravelOption, LocationTravelOption } from '../../types/travel';
 import { ActionCard } from './ActionCard';
 import { InventoryPanel } from './InventoryPanel';
 import { LifeLog } from './LifeLog';
@@ -26,6 +27,8 @@ type DashboardProps = {
     locations: Location[];
     shop?: Shop;
     shopProducts: Product[];
+    locationTravelOptions: LocationTravelOption[];
+    districtTravelOptions: DistrictTravelOption[];
   };
   onPerformAction: (actionId: ActionId) => void;
   onMoveDistrict: (districtId: DistrictId) => void;
@@ -134,8 +137,8 @@ export function Dashboard({
               city={locationState.city}
               district={locationState.district}
               location={locationState.location}
-              districts={locationState.districts}
-              locations={locationState.locations}
+              districtTravelOptions={locationState.districtTravelOptions}
+              locationTravelOptions={locationState.locationTravelOptions}
               onMoveDistrict={onMoveDistrict}
               onMoveLocation={onMoveLocation}
             />

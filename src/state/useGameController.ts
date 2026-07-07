@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { applyLifeAction } from '../core/actions';
 import { applyMoneyDelta, canAfford } from '../core/economy';
+import { addMinutes } from '../core/time';
 import { addInventoryItem, hasInventoryItem, removeInventoryItem } from '../core/inventory';
 import {
   getActionsForLocation,
@@ -14,6 +15,12 @@ import {
 } from '../core/location';
 import { applyNeedsDelta, getNeedWarning } from '../core/needs';
 import { getShopForLocation, getShopProducts, isProductSoldByShop } from '../core/shop';
+import {
+  calculateDistrictTravel,
+  calculateLocationTravel,
+  createDistrictTravelOption,
+  createLocationTravelOptions
+} from '../core/travel';
 import { getLifeAction } from '../data';
 import { getProductById } from '../data/products/basicProducts';
 import type { ActionId, DistrictId, LocationId, ProductId } from '../types/ids';
@@ -46,6 +53,14 @@ export function useGameController() {
     const actions = getActionsForLocation(location?.id);
     const shop = getShopForLocation(location);
     const shopProducts = getShopProducts(shop?.id);
+    const locationTravelOptions = createLocationTravelOptions(location, locations);
+    const districtTravelOptions = districts.map((candidateDistrict) =>
+      createDistrictTravelOption({
+        currentLocation: location,
+        district: candidateDistrict,
+        defaultLocation: getDefaultLocationForDistrict(candidateDistrict.id)
+      })
+    );
 
     return {
       city,
@@ -55,7 +70,9 @@ export function useGameController() {
       locations,
       actions,
       shop,
-      shopProducts
+      shopProducts,
+      locationTravelOptions,
+      districtTravelOptions
     };
   }, [gameState.player.cityId, gameState.player.districtId, gameState.player.locationId]);
 
@@ -108,15 +125,41 @@ export function useGameController() {
     if (!district || !defaultLocation) return;
 
     setGameState((currentState) => {
-      const logEntry = createLifeLogEntry(currentState, 'Район', `Ты сменил район: ${district.name}.`);
+      const currentLocation = getLocationById(currentState.player.locationId);
+      const travel = calculateDistrictTravel({
+        fromLocation: currentLocation,
+        toDistrict: district,
+        toLocation: defaultLocation
+      });
+
+      if (!travel.ok) {
+        return {
+          ...currentState,
+          lastResult: {
+            ok: false,
+            timeDeltaMinutes: 0,
+            messages: [travel.message]
+          }
+        };
+      }
+
+      const nextTime = addMinutes(currentState.time, travel.durationMinutes);
+      const logEntry = createLifeLogEntry({ time: nextTime }, 'Перемещение', travel.message);
 
       return {
         ...currentState,
+        time: nextTime,
         player: {
           ...currentState.player,
           cityId: district.cityId,
           districtId: district.id,
           locationId: defaultLocation.id
+        },
+        lastResult: {
+          ok: true,
+          timeDeltaMinutes: travel.durationMinutes,
+          locationDelta: defaultLocation.id,
+          messages: [travel.message]
         },
         lifeLog: [logEntry, ...currentState.lifeLog].slice(0, 12)
       };
@@ -128,15 +171,37 @@ export function useGameController() {
     if (!location) return;
 
     setGameState((currentState) => {
-      const logEntry = createLifeLogEntry(currentState, 'Место', `Ты пришёл в место: ${location.name}.`);
+      const currentLocation = getLocationById(currentState.player.locationId);
+      const travel = calculateLocationTravel(currentLocation, location);
+
+      if (!travel.ok) {
+        return {
+          ...currentState,
+          lastResult: {
+            ok: false,
+            timeDeltaMinutes: 0,
+            messages: [travel.message]
+          }
+        };
+      }
+
+      const nextTime = addMinutes(currentState.time, travel.durationMinutes);
+      const logEntry = createLifeLogEntry({ time: nextTime }, 'Перемещение', travel.message);
 
       return {
         ...currentState,
+        time: nextTime,
         player: {
           ...currentState.player,
           cityId: location.cityId,
           districtId: location.districtId,
           locationId: location.id
+        },
+        lastResult: {
+          ok: true,
+          timeDeltaMinutes: travel.durationMinutes,
+          locationDelta: location.id,
+          messages: [travel.message]
         },
         lifeLog: [logEntry, ...currentState.lifeLog].slice(0, 12)
       };

@@ -1,13 +1,15 @@
 import { useState } from 'react';
 import type { DistrictId, LocationId } from '../../types/ids';
 import type { City, District, Location } from '../../types/location';
+import type { DistrictTravelOption, LocationTravelOption } from '../../types/travel';
+import { LocationTravelModal } from './LocationTravelModal';
 
 type LocationPanelProps = {
   city?: City;
   district?: District;
   location?: Location;
-  districts: District[];
-  locations: Location[];
+  districtTravelOptions: DistrictTravelOption[];
+  locationTravelOptions: LocationTravelOption[];
   onMoveDistrict: (districtId: DistrictId) => void;
   onMoveLocation: (locationId: LocationId) => void;
 };
@@ -16,12 +18,13 @@ export function LocationPanel({
   city,
   district,
   location,
-  districts,
-  locations,
+  districtTravelOptions,
+  locationTravelOptions,
   onMoveDistrict,
   onMoveLocation
 }: LocationPanelProps) {
   const [isDistrictPickerOpen, setIsDistrictPickerOpen] = useState(false);
+  const [isLocationPickerOpen, setIsLocationPickerOpen] = useState(false);
 
   function handleDistrictSelect(districtId: DistrictId): void {
     onMoveDistrict(districtId);
@@ -38,25 +41,21 @@ export function LocationPanel({
             {district?.name ?? 'Район не найден'} · {location?.name ?? 'Место не найдено'}
           </p>
         </div>
-        <button className="secondary-button" type="button" onClick={() => setIsDistrictPickerOpen(true)}>
-          Сменить район
-        </button>
+        <div className="location-panel__actions">
+          <button className="secondary-button" type="button" onClick={() => setIsDistrictPickerOpen(true)}>
+            Сменить район
+          </button>
+          <button className="secondary-button" type="button" onClick={() => setIsLocationPickerOpen(true)}>
+            Сменить локацию
+          </button>
+        </div>
       </div>
 
       <div className="location-panel__block">
-        <h3>Места района</h3>
-        <div className="location-list location-list--places">
-          {locations.map((candidate) => (
-            <button
-              className={`location-card ${candidate.id === location?.id ? 'location-card--active' : ''}`}
-              key={candidate.id}
-              type="button"
-              onClick={() => onMoveLocation(candidate.id)}
-            >
-              <span>{candidate.name}</span>
-              <small>{candidate.description}</small>
-            </button>
-          ))}
+        <h3>Текущее место</h3>
+        <div className="current-location-card">
+          <strong>{location?.name ?? 'Место не найдено'}</strong>
+          <span>{location?.description ?? 'Описание недоступно.'}</span>
         </div>
       </div>
 
@@ -74,20 +73,30 @@ export function LocationPanel({
             </div>
 
             <div className="location-list">
-              {districts.map((candidate) => (
+              {districtTravelOptions.map((option) => (
                 <button
-                  className={`location-chip ${candidate.id === district?.id ? 'location-chip--active' : ''}`}
-                  key={candidate.id}
+                  className={`location-chip ${option.isCurrent ? 'location-chip--active' : ''}`}
+                  disabled={option.isCurrent || !option.defaultLocation}
+                  key={option.district.id}
                   type="button"
-                  onClick={() => handleDistrictSelect(candidate.id)}
+                  onClick={() => handleDistrictSelect(option.district.id)}
                 >
-                  <span>{candidate.name}</span>
-                  <small>{candidate.description}</small>
+                  <span>{option.district.name}</span>
+                  <small>{option.district.description}</small>
+                  <strong>{option.isCurrent ? 'Ты здесь' : `${option.durationMinutes} мин`}</strong>
                 </button>
               ))}
             </div>
           </div>
         </div>
+      ) : null}
+
+      {isLocationPickerOpen ? (
+        <LocationTravelModal
+          options={locationTravelOptions}
+          onClose={() => setIsLocationPickerOpen(false)}
+          onMoveLocation={onMoveLocation}
+        />
       ) : null}
     </section>
   );

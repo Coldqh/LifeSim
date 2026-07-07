@@ -3,6 +3,7 @@ export * from './time';
 export * from './needs';
 export * from './economy';
 export * from './location';
+export * from './travel';
 export * from './player';
 export * from './product';
 export * from './shop';

@@ -560,3 +560,65 @@ button {
     min-height: auto;
   }
 }
+
+.location-panel__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.current-location-card {
+  display: grid;
+  gap: 8px;
+  padding: 16px;
+  border: 1px solid #e5e7eb;
+  border-radius: 22px;
+  background: #f8fafc;
+}
+
+.current-location-card strong {
+  font-size: 18px;
+}
+
+.current-location-card span {
+  color: #64748b;
+  line-height: 1.5;
+}
+
+.location-list--travel {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.location-chip strong,
+.location-card strong {
+  display: inline-flex;
+  width: fit-content;
+  margin-top: 10px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: #e2e8f0;
+  color: #334155;
+  font-size: 12px;
+}
+
+.location-chip:disabled,
+.location-card:disabled {
+  cursor: default;
+  opacity: 0.78;
+}
+
+.travel-modal {
+  width: min(820px, 100%);
+}
+
+@media (max-width: 640px) {
+  .location-panel__actions {
+    display: grid;
+    justify-content: stretch;
+  }
+
+  .location-list--travel {
+    grid-template-columns: 1fr;
+  }
+}
