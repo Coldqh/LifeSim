@@ -47,3 +47,12 @@ export function formatWeekday(weekday: Weekday): string {
 
   return labels[weekday];
 }
+
+
+export function getTotalMinutes(time: GameTime): number {
+  return (time.day - 1) * MINUTES_IN_DAY + time.hour * 60 + time.minute;
+}
+
+export function getElapsedMinutes(fromTime: GameTime, toTime: GameTime): number {
+  return Math.max(0, getTotalMinutes(toTime) - getTotalMinutes(fromTime));
+}

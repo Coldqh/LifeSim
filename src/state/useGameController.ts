@@ -14,9 +14,9 @@ import {
   getLocationsForDistrict,
   isActionAvailableAtLocation
 } from '../core/location';
-import { applyNeedsDelta, getNeedWarning } from '../core/needs';
+import { applyNeedsDecay, applyNeedsDelta, describeNeedsDecay, getNeedWarning, type NeedsDecayProfile } from '../core/needs';
 import { getShopForLocation, getShopProducts, isProductSoldByShop } from '../core/shop';
-import { addMinutes } from '../core/time';
+import { addMinutes, getElapsedMinutes } from '../core/time';
 import {
   calculateDistrictTravel,
   calculateLocationTravel,
@@ -29,6 +29,7 @@ import { basicJobs, getJobById } from '../data/jobs/basicJobs';
 import { getProductById } from '../data/products/basicProducts';
 import type { ActionId, DistrictId, JobId, LocationId, ProductId } from '../types/ids';
 import type { TravelModeId } from '../types/transport';
+import type { NeedsState } from '../types/needs';
 import type { Player } from '../types/player';
 import type { GameTime } from '../types/time';
 import {
@@ -42,30 +43,75 @@ import {
 } from './gameState';
 
 
-function applyHousingForElapsedDays(
+function mergeNeedsDelta(first: Partial<NeedsState> = {}, second: Partial<NeedsState> = {}): Partial<NeedsState> | undefined {
+  const merged: Partial<NeedsState> = {
+    hunger: (first.hunger ?? 0) + (second.hunger ?? 0),
+    thirst: (first.thirst ?? 0) + (second.thirst ?? 0),
+    energy: (first.energy ?? 0) + (second.energy ?? 0),
+    health: (first.health ?? 0) + (second.health ?? 0),
+    mood: (first.mood ?? 0) + (second.mood ?? 0)
+  };
+
+  const visibleEntries = Object.entries(merged).filter(([, value]) => value !== 0);
+  if (visibleEntries.length === 0) return undefined;
+
+  return Object.fromEntries(visibleEntries) as Partial<NeedsState>;
+}
+
+function getNeedsDecayProfileForActionCategory(category?: string): NeedsDecayProfile {
+  if (category === 'sleep') return 'sleeping';
+  if (category === 'rest') return 'resting';
+
+  return 'active';
+}
+
+function applyElapsedTimeConsequences(
   currentState: GameState,
   player: Player,
-  nextTime: GameTime
-): { player: Player; lifeLogEntries: LifeLogEntry[] } {
+  nextTime: GameTime,
+  decayProfile: NeedsDecayProfile = 'active'
+): { player: Player; lifeLogEntries: LifeLogEntry[]; needsDelta?: Partial<NeedsState>; messages: string[] } {
+  const elapsedMinutes = getElapsedMinutes(currentState.time, nextTime);
+  const lifeLogEntries: LifeLogEntry[] = [];
+  const messages: string[] = [];
+  const decayApplied = applyNeedsDecay(player.needs, elapsedMinutes, decayProfile);
+  const decayMessage = describeNeedsDecay(decayApplied.delta);
+  const decayWarning = getNeedWarning(decayApplied.needs);
+  let nextPlayer: Player = {
+    ...player,
+    needs: decayApplied.needs
+  };
+
+  if (decayMessage) {
+    messages.push(decayMessage);
+    lifeLogEntries.push(createLifeLogEntry({ time: nextTime }, 'Время', decayMessage));
+  }
+
+  if (decayWarning) {
+    messages.push(decayWarning);
+  }
+
   const elapsedDays = Math.max(0, nextTime.day - currentState.time.day);
-  if (elapsedDays === 0) {
-    return { player, lifeLogEntries: [] };
-  }
+  if (elapsedDays > 0) {
+    const housing = getHousingById(nextPlayer.housingId);
 
-  const housing = getHousingById(player.housingId);
-  if (!housing) {
-    return { player, lifeLogEntries: [] };
-  }
+    if (housing) {
+      const applied = applyHousingDayChanges({
+        player: nextPlayer,
+        housing,
+        elapsedDays
+      });
 
-  const applied = applyHousingDayChanges({
-    player,
-    housing,
-    elapsedDays
-  });
+      nextPlayer = applied.player;
+      lifeLogEntries.push(...applied.events.map((event) => createLifeLogEntry({ time: nextTime }, event.title, event.text)));
+    }
+  }
 
   return {
-    player: applied.player,
-    lifeLogEntries: applied.events.map((event) => createLifeLogEntry({ time: nextTime }, event.title, event.text))
+    player: nextPlayer,
+    lifeLogEntries,
+    needsDelta: decayApplied.delta,
+    messages
   };
 }
 
@@ -173,19 +219,29 @@ export function useGameController() {
         action
       });
 
-      const housingApplied = applyHousingForElapsedDays(currentState, applied.player, applied.time);
+      const elapsedApplied = applyElapsedTimeConsequences(
+        currentState,
+        applied.player,
+        applied.time,
+        getNeedsDecayProfileForActionCategory(action.category)
+      );
+      const resultMessages = [...applied.result.messages, ...elapsedApplied.messages];
       const logEntry = createLifeLogEntry(
         { time: applied.time },
         applied.result.ok ? action.name : 'Действие не выполнено',
-        applied.result.messages.join(' ')
+        resultMessages.join(' ')
       );
 
       return {
         ...currentState,
-        player: housingApplied.player,
+        player: elapsedApplied.player,
         time: applied.time,
-        lastResult: applied.result,
-        lifeLog: mergeLifeLog([logEntry, ...housingApplied.lifeLogEntries], currentState.lifeLog)
+        lastResult: {
+          ...applied.result,
+          needsDelta: mergeNeedsDelta(applied.result.needsDelta, elapsedApplied.needsDelta),
+          messages: resultMessages
+        },
+        lifeLog: mergeLifeLog([logEntry, ...elapsedApplied.lifeLogEntries], currentState.lifeLog)
       };
     });
   }
@@ -234,22 +290,23 @@ export function useGameController() {
         districtId: district.id,
         locationId: defaultLocation.id
       };
-      const housingApplied = applyHousingForElapsedDays(currentState, movedPlayer, nextTime);
-      const logEntry = createLifeLogEntry({ time: nextTime }, 'Перемещение', messages.join(' '));
+      const elapsedApplied = applyElapsedTimeConsequences(currentState, movedPlayer, nextTime, 'active');
+      const resultMessages = [...messages, ...elapsedApplied.messages];
+      const logEntry = createLifeLogEntry({ time: nextTime }, 'Перемещение', resultMessages.join(' '));
 
       return {
         ...currentState,
         time: nextTime,
-        player: housingApplied.player,
+        player: elapsedApplied.player,
         lastResult: {
           ok: true,
           timeDeltaMinutes: travel.durationMinutes,
           moneyDelta: -(travel.moneyCost ?? 0),
-          needsDelta: travel.needsDelta,
+          needsDelta: mergeNeedsDelta(travel.needsDelta, elapsedApplied.needsDelta),
           locationDelta: defaultLocation.id,
-          messages
+          messages: resultMessages
         },
-        lifeLog: mergeLifeLog([logEntry, ...housingApplied.lifeLogEntries], currentState.lifeLog)
+        lifeLog: mergeLifeLog([logEntry, ...elapsedApplied.lifeLogEntries], currentState.lifeLog)
       };
     });
   }
@@ -296,22 +353,23 @@ export function useGameController() {
         districtId: location.districtId,
         locationId: location.id
       };
-      const housingApplied = applyHousingForElapsedDays(currentState, movedPlayer, nextTime);
-      const logEntry = createLifeLogEntry({ time: nextTime }, 'Перемещение', messages.join(' '));
+      const elapsedApplied = applyElapsedTimeConsequences(currentState, movedPlayer, nextTime, 'active');
+      const resultMessages = [...messages, ...elapsedApplied.messages];
+      const logEntry = createLifeLogEntry({ time: nextTime }, 'Перемещение', resultMessages.join(' '));
 
       return {
         ...currentState,
         time: nextTime,
-        player: housingApplied.player,
+        player: elapsedApplied.player,
         lastResult: {
           ok: true,
           timeDeltaMinutes: travel.durationMinutes,
           moneyDelta: -(travel.moneyCost ?? 0),
-          needsDelta: travel.needsDelta,
+          needsDelta: mergeNeedsDelta(travel.needsDelta, elapsedApplied.needsDelta),
           locationDelta: location.id,
-          messages
+          messages: resultMessages
         },
-        lifeLog: mergeLifeLog([logEntry, ...housingApplied.lifeLogEntries], currentState.lifeLog)
+        lifeLog: mergeLifeLog([logEntry, ...elapsedApplied.lifeLogEntries], currentState.lifeLog)
       };
     });
   }
@@ -458,26 +516,27 @@ export function useGameController() {
         time: currentState.time,
         job
       });
-      const housingApplied = applyHousingForElapsedDays(currentState, applied.player, applied.time);
+      const elapsedApplied = applyElapsedTimeConsequences(currentState, applied.player, applied.time, 'active');
+      const resultMessages = [...applied.result.messages, ...elapsedApplied.messages];
       const logEntry = createLifeLogEntry(
         { time: applied.time },
         applied.result.ok ? 'Смена' : 'Смена недоступна',
-        applied.result.messages.join(' ')
+        resultMessages.join(' ')
       );
 
       return {
         ...currentState,
-        player: housingApplied.player,
+        player: elapsedApplied.player,
         time: applied.time,
         lastResult: {
           ok: applied.result.ok,
           actionName: job.title,
           timeDeltaMinutes: applied.result.timeDeltaMinutes,
           moneyDelta: applied.result.moneyDelta,
-          needsDelta: applied.result.needsDelta,
-          messages: applied.result.messages
+          needsDelta: mergeNeedsDelta(applied.result.needsDelta, elapsedApplied.needsDelta),
+          messages: resultMessages
         },
-        lifeLog: mergeLifeLog([logEntry, ...housingApplied.lifeLogEntries], currentState.lifeLog)
+        lifeLog: mergeLifeLog([logEntry, ...elapsedApplied.lifeLogEntries], currentState.lifeLog)
       };
     });
   }

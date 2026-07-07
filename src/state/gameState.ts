@@ -5,7 +5,7 @@ import type { HousingId } from '../types/housing';
 import type { GameTime } from '../types/time';
 import { createInitialTime, formatGameTime } from '../core/time';
 
-export const GAME_STATE_STORAGE_KEY = 'lifesim.gameState.v5';
+export const GAME_STATE_STORAGE_KEY = 'lifesim.gameState.v6';
 
 export type LifeLogEntry = {
   id: string;
@@ -79,7 +79,7 @@ export function createInitialGameState(): GameState {
         day: time.day,
         timeLabel: formatGameTime(time),
         title: 'Старт',
-        text: 'Москва. Даниловский. Дом. Есть стартовая комната, аренда и ежедневные расходы.'
+        text: 'Москва. Даниловский. Дом. Время теперь влияет на еду, воду и энергию.'
       }
     ]
   };

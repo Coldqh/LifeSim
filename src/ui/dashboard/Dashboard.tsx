@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useUiTheme } from '../../state';
 import { formatRubles } from '../../core/economy';
+import { getNeedsDecayDelta } from '../../core/needs';
 import { getHousingById } from '../../data/housing/basicHousing';
 import { formatGameTime, formatWeekday } from '../../core/time';
 import type { GameState } from '../../state';
@@ -12,6 +13,7 @@ import type { Job } from '../../types/job';
 import type { Product, Shop } from '../../types/product';
 import type { DistrictTravelOption, LocationTravelOption } from '../../types/travel';
 import { ActionCard } from './ActionCard';
+import { createNeedsEffectItems, EffectList } from './EffectList';
 import { HousingPanel } from './HousingPanel';
 import { InventoryPanel } from './InventoryPanel';
 import { JobPanel } from './JobPanel';
@@ -90,6 +92,7 @@ export function Dashboard({
   const housing = getHousingById(player.housingId);
   const [activeTab, setActiveTab] = useState<DashboardTab>('character');
   const { theme, toggleTheme } = useUiTheme();
+  const activeHourDecayItems = createNeedsEffectItems(getNeedsDecayDelta(60, 'active'));
 
   return (
     <main className="app-layout">
@@ -162,6 +165,15 @@ export function Dashboard({
               <StatCard label="Вода" value={player.needs.thirst} helper="жажда" tone={needTone(player.needs.thirst)} />
               <StatCard label="Здоровье" value={player.needs.health} helper="тело" tone={needTone(player.needs.health)} />
               <StatCard label="Настроение" value={player.needs.mood} helper="фон" tone={needTone(player.needs.mood)} />
+            </section>
+
+            <section className="panel needs-decay-panel">
+              <div className="panel__header">
+                <p className="panel__eyebrow">Ритм дня</p>
+                <h2 className="panel__title">Потребности падают от времени</h2>
+              </div>
+              <p className="panel__text">Любое действие, смена или дорога двигают часы. За каждый активный час город съедает часть еды, воды и энергии.</p>
+              <EffectList items={activeHourDecayItems} />
             </section>
 
             <HousingPanel housing={housing} player={player} />
