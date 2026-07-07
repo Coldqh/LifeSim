@@ -25,40 +25,262 @@ select {
   font: inherit;
 }
 
-.app-shell {
-  min-height: 100vh;
-  display: grid;
-  place-items: center;
-  padding: 24px;
+button {
+  cursor: pointer;
 }
 
-.app-card {
-  width: min(100%, 520px);
-  padding: 24px;
+.dashboard-shell {
+  width: min(100%, 1120px);
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.hero-panel,
+.panel,
+.result-panel,
+.stat-card,
+.action-card {
   border: 1px solid #e5e7eb;
-  border-radius: 24px;
   background: #ffffff;
-  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.08);
+  box-shadow: 0 18px 50px rgba(15, 23, 42, 0.06);
 }
 
-.app-card__eyebrow {
-  margin: 0 0 8px;
+.hero-panel {
+  display: flex;
+  gap: 18px;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 18px;
+  padding: 24px;
+  border-radius: 28px;
+}
+
+.hero-panel__eyebrow,
+.panel__eyebrow,
+.result-panel__eyebrow,
+.action-card__category,
+.stat-card__label {
+  margin: 0;
   color: #64748b;
-  font-size: 14px;
-  font-weight: 700;
+  font-size: 12px;
+  font-weight: 800;
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
 
-.app-card__title {
-  margin: 0 0 12px;
-  font-size: clamp(32px, 8vw, 52px);
+.hero-panel__title {
+  margin: 8px 0 10px;
+  font-size: clamp(30px, 7vw, 52px);
   line-height: 1;
 }
 
-.app-card__text {
+.hero-panel__text {
+  max-width: 640px;
   margin: 0;
   color: #475569;
-  font-size: 16px;
   line-height: 1.6;
+}
+
+.reset-button,
+.action-card__button {
+  border: 0;
+  border-radius: 999px;
+  font-weight: 800;
+}
+
+.reset-button {
+  padding: 10px 16px;
+  color: #334155;
+  background: #f1f5f9;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.stat-card {
+  min-height: 116px;
+  padding: 16px;
+  border-radius: 22px;
+}
+
+.stat-card--good {
+  border-color: #bbf7d0;
+  background: #f0fdf4;
+}
+
+.stat-card--warning {
+  border-color: #fed7aa;
+  background: #fff7ed;
+}
+
+.stat-card__value {
+  display: block;
+  margin-top: 10px;
+  font-size: 28px;
+  line-height: 1;
+}
+
+.stat-card__helper {
+  display: block;
+  margin-top: 8px;
+  color: #64748b;
+  font-size: 13px;
+}
+
+.result-panel {
+  margin-bottom: 18px;
+  padding: 18px;
+  border-radius: 24px;
+}
+
+.result-panel--ok {
+  border-color: #bfdbfe;
+  background: #eff6ff;
+}
+
+.result-panel--fail {
+  border-color: #fecaca;
+  background: #fef2f2;
+}
+
+.result-panel h2 {
+  margin: 8px 0;
+  font-size: 20px;
+}
+
+.result-panel p:last-child {
+  margin-bottom: 0;
+}
+
+.panel {
+  margin-bottom: 18px;
+  padding: 18px;
+  border-radius: 28px;
+}
+
+.panel__header {
+  margin-bottom: 14px;
+}
+
+.panel__title {
+  margin: 6px 0 0;
+  font-size: 24px;
+}
+
+.actions-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.action-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 260px;
+  padding: 16px;
+  border-radius: 22px;
+}
+
+.action-card__title {
+  margin: 8px 0 8px;
+  font-size: 18px;
+}
+
+.action-card__text {
+  margin: 0;
+  color: #475569;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.action-card__meta {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin: 14px 0;
+}
+
+.action-card__meta div {
+  padding: 10px;
+  border-radius: 16px;
+  background: #f8fafc;
+}
+
+.action-card__meta dt {
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.action-card__meta dd {
+  margin: 4px 0 0;
+  font-weight: 800;
+}
+
+.action-card__button {
+  width: 100%;
+  padding: 12px 14px;
+  color: #ffffff;
+  background: #111827;
+}
+
+.life-log {
+  display: grid;
+  gap: 10px;
+}
+
+.life-log__entry {
+  padding: 14px;
+  border: 1px solid #e5e7eb;
+  border-radius: 18px;
+  background: #f8fafc;
+}
+
+.life-log__time {
+  display: block;
+  margin-bottom: 6px;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.life-log__entry p {
+  margin: 6px 0 0;
+  color: #475569;
+}
+
+@media (max-width: 920px) {
+  .stats-grid,
+  .actions-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .dashboard-shell {
+    padding: 12px;
+  }
+
+  .hero-panel {
+    display: block;
+    padding: 20px;
+  }
+
+  .reset-button {
+    margin-top: 16px;
+  }
+
+  .stats-grid,
+  .actions-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .action-card {
+    min-height: auto;
+  }
 }
