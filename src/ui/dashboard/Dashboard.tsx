@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useUiTheme } from '../../state';
 import { formatRubles } from '../../core/economy';
+import { getHousingById } from '../../data/housing/basicHousing';
 import { formatGameTime, formatWeekday } from '../../core/time';
 import type { GameState } from '../../state';
 import type { LifeAction } from '../../types/actions';
@@ -11,6 +12,7 @@ import type { Job } from '../../types/job';
 import type { Product, Shop } from '../../types/product';
 import type { DistrictTravelOption, LocationTravelOption } from '../../types/travel';
 import { ActionCard } from './ActionCard';
+import { HousingPanel } from './HousingPanel';
 import { InventoryPanel } from './InventoryPanel';
 import { JobPanel } from './JobPanel';
 import { LifeLog } from './LifeLog';
@@ -85,6 +87,7 @@ export function Dashboard({
   onReset
 }: DashboardProps) {
   const { player, time, lastResult } = gameState;
+  const housing = getHousingById(player.housingId);
   const [activeTab, setActiveTab] = useState<DashboardTab>('character');
   const { theme, toggleTheme } = useUiTheme();
 
@@ -160,6 +163,8 @@ export function Dashboard({
               <StatCard label="Здоровье" value={player.needs.health} helper="тело" tone={needTone(player.needs.health)} />
               <StatCard label="Настроение" value={player.needs.mood} helper="фон" tone={needTone(player.needs.mood)} />
             </section>
+
+            <HousingPanel housing={housing} player={player} />
 
             <InventoryPanel inventory={player.inventory} onUseInventoryItem={onUseInventoryItem} />
           </>

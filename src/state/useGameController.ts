@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { applyLifeAction } from '../core/actions';
+import { applyHousingDayChanges } from '../core/housing';
 import { applyMoneyDelta, canAfford } from '../core/economy';
 import { applyForJob as applyJob, applyJobShift, getJobApplicationFailure, getJobShiftFailure } from '../core/jobs';
 import { addInventoryItem, hasInventoryItem, removeInventoryItem } from '../core/inventory';
@@ -23,18 +24,54 @@ import {
   createLocationTravelOptions
 } from '../core/travel';
 import { getLifeAction } from '../data';
+import { getHousingById } from '../data/housing/basicHousing';
 import { basicJobs, getJobById } from '../data/jobs/basicJobs';
 import { getProductById } from '../data/products/basicProducts';
 import type { ActionId, DistrictId, JobId, LocationId, ProductId } from '../types/ids';
 import type { TravelModeId } from '../types/transport';
+import type { Player } from '../types/player';
+import type { GameTime } from '../types/time';
 import {
   clearSavedGameState,
   createInitialGameState,
   createLifeLogEntry,
   loadGameState,
   saveGameState,
-  type GameState
+  type GameState,
+  type LifeLogEntry
 } from './gameState';
+
+
+function applyHousingForElapsedDays(
+  currentState: GameState,
+  player: Player,
+  nextTime: GameTime
+): { player: Player; lifeLogEntries: LifeLogEntry[] } {
+  const elapsedDays = Math.max(0, nextTime.day - currentState.time.day);
+  if (elapsedDays === 0) {
+    return { player, lifeLogEntries: [] };
+  }
+
+  const housing = getHousingById(player.housingId);
+  if (!housing) {
+    return { player, lifeLogEntries: [] };
+  }
+
+  const applied = applyHousingDayChanges({
+    player,
+    housing,
+    elapsedDays
+  });
+
+  return {
+    player: applied.player,
+    lifeLogEntries: applied.events.map((event) => createLifeLogEntry({ time: nextTime }, event.title, event.text))
+  };
+}
+
+function mergeLifeLog(newEntries: LifeLogEntry[], oldEntries: LifeLogEntry[]): LifeLogEntry[] {
+  return [...newEntries, ...oldEntries].slice(0, 16);
+}
 
 function resolveInitialState(): GameState {
   return loadGameState() ?? createInitialGameState();
@@ -136,6 +173,7 @@ export function useGameController() {
         action
       });
 
+      const housingApplied = applyHousingForElapsedDays(currentState, applied.player, applied.time);
       const logEntry = createLifeLogEntry(
         { time: applied.time },
         applied.result.ok ? action.name : 'Действие не выполнено',
@@ -144,10 +182,10 @@ export function useGameController() {
 
       return {
         ...currentState,
-        player: applied.player,
+        player: housingApplied.player,
         time: applied.time,
         lastResult: applied.result,
-        lifeLog: [logEntry, ...currentState.lifeLog].slice(0, 12)
+        lifeLog: mergeLifeLog([logEntry, ...housingApplied.lifeLogEntries], currentState.lifeLog)
       };
     });
   }
@@ -188,19 +226,21 @@ export function useGameController() {
       const nextMoney = applyMoneyDelta(currentState.player.money, -(travel.moneyCost ?? 0));
       const warning = getNeedWarning(nextNeeds);
       const messages = warning ? [travel.message, warning] : [travel.message];
+      const movedPlayer = {
+        ...currentState.player,
+        money: nextMoney,
+        needs: nextNeeds,
+        cityId: district.cityId,
+        districtId: district.id,
+        locationId: defaultLocation.id
+      };
+      const housingApplied = applyHousingForElapsedDays(currentState, movedPlayer, nextTime);
       const logEntry = createLifeLogEntry({ time: nextTime }, 'Перемещение', messages.join(' '));
 
       return {
         ...currentState,
         time: nextTime,
-        player: {
-          ...currentState.player,
-          money: nextMoney,
-          needs: nextNeeds,
-          cityId: district.cityId,
-          districtId: district.id,
-          locationId: defaultLocation.id
-        },
+        player: housingApplied.player,
         lastResult: {
           ok: true,
           timeDeltaMinutes: travel.durationMinutes,
@@ -209,7 +249,7 @@ export function useGameController() {
           locationDelta: defaultLocation.id,
           messages
         },
-        lifeLog: [logEntry, ...currentState.lifeLog].slice(0, 12)
+        lifeLog: mergeLifeLog([logEntry, ...housingApplied.lifeLogEntries], currentState.lifeLog)
       };
     });
   }
@@ -248,19 +288,21 @@ export function useGameController() {
       const nextMoney = applyMoneyDelta(currentState.player.money, -(travel.moneyCost ?? 0));
       const warning = getNeedWarning(nextNeeds);
       const messages = warning ? [travel.message, warning] : [travel.message];
+      const movedPlayer = {
+        ...currentState.player,
+        money: nextMoney,
+        needs: nextNeeds,
+        cityId: location.cityId,
+        districtId: location.districtId,
+        locationId: location.id
+      };
+      const housingApplied = applyHousingForElapsedDays(currentState, movedPlayer, nextTime);
       const logEntry = createLifeLogEntry({ time: nextTime }, 'Перемещение', messages.join(' '));
 
       return {
         ...currentState,
         time: nextTime,
-        player: {
-          ...currentState.player,
-          money: nextMoney,
-          needs: nextNeeds,
-          cityId: location.cityId,
-          districtId: location.districtId,
-          locationId: location.id
-        },
+        player: housingApplied.player,
         lastResult: {
           ok: true,
           timeDeltaMinutes: travel.durationMinutes,
@@ -269,7 +311,7 @@ export function useGameController() {
           locationDelta: location.id,
           messages
         },
-        lifeLog: [logEntry, ...currentState.lifeLog].slice(0, 12)
+        lifeLog: mergeLifeLog([logEntry, ...housingApplied.lifeLogEntries], currentState.lifeLog)
       };
     });
   }
@@ -416,6 +458,7 @@ export function useGameController() {
         time: currentState.time,
         job
       });
+      const housingApplied = applyHousingForElapsedDays(currentState, applied.player, applied.time);
       const logEntry = createLifeLogEntry(
         { time: applied.time },
         applied.result.ok ? 'Смена' : 'Смена недоступна',
@@ -424,7 +467,7 @@ export function useGameController() {
 
       return {
         ...currentState,
-        player: applied.player,
+        player: housingApplied.player,
         time: applied.time,
         lastResult: {
           ok: applied.result.ok,
@@ -434,7 +477,7 @@ export function useGameController() {
           needsDelta: applied.result.needsDelta,
           messages: applied.result.messages
         },
-        lifeLog: [logEntry, ...currentState.lifeLog].slice(0, 12)
+        lifeLog: mergeLifeLog([logEntry, ...housingApplied.lifeLogEntries], currentState.lifeLog)
       };
     });
   }

@@ -9,6 +9,7 @@ export * from './player';
 export * from './product';
 export * from './shop';
 export * from './inventory';
+export * from './housing';
 export * from './job';
 export * from './education';
 export * from './sport';

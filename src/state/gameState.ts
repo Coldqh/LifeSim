@@ -1,10 +1,11 @@
 import type { ActionResult } from '../types/actions';
 import type { CityId, DistrictId, LocationId, PlayerId } from '../types/ids';
 import type { Player } from '../types/player';
+import type { HousingId } from '../types/housing';
 import type { GameTime } from '../types/time';
 import { createInitialTime, formatGameTime } from '../core/time';
 
-export const GAME_STATE_STORAGE_KEY = 'lifesim.gameState.v4';
+export const GAME_STATE_STORAGE_KEY = 'lifesim.gameState.v5';
 
 export type LifeLogEntry = {
   id: string;
@@ -37,6 +38,10 @@ function locationId(value: string): LocationId {
   return value as LocationId;
 }
 
+function housingId(value: string): HousingId {
+  return value as HousingId;
+}
+
 export function createInitialPlayer(): Player {
   return {
     id: playerId('player_001'),
@@ -55,7 +60,10 @@ export function createInitialPlayer(): Player {
     },
     skills: {},
     inventory: [],
-    completedShifts: {}
+    completedShifts: {},
+    housingId: housingId('housing_room_danilovsky'),
+    rentDebt: 0,
+    daysUntilRent: 7
   };
 }
 
@@ -71,7 +79,7 @@ export function createInitialGameState(): GameState {
         day: time.day,
         timeLabel: formatGameTime(time),
         title: 'Старт',
-        text: 'Москва. Даниловский. Дом. Работа теперь проходит через вакансии и смены.'
+        text: 'Москва. Даниловский. Дом. Есть стартовая комната, аренда и ежедневные расходы.'
       }
     ]
   };

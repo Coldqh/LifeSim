@@ -1,4 +1,5 @@
 import type { CityId, DistrictId, JobId, LocationId, PlayerId } from './ids';
+import type { HousingId } from './housing';
 import type { InventoryItem } from './inventory';
 import type { NeedsState } from './needs';
 
@@ -17,4 +18,7 @@ export type Player = {
   inventory: InventoryItem[];
   currentJobId?: JobId;
   completedShifts: Partial<Record<JobId, number>>;
+  housingId: HousingId;
+  rentDebt: number;
+  daysUntilRent: number;
 };
