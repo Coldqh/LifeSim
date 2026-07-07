@@ -505,7 +505,7 @@ button {
   }
 
   .side-tabs {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 
   .reset-button--wide {
@@ -708,5 +708,132 @@ button {
 @media (max-width: 980px) {
   .transport-options {
     grid-template-columns: 1fr;
+  }
+}
+
+.current-job-card {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 14px;
+  padding: 16px;
+  border: 1px solid #dbeafe;
+  border-radius: 22px;
+  background: #eff6ff;
+}
+
+.current-job-card span {
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.current-job-card strong {
+  font-size: 20px;
+}
+
+.current-job-card small {
+  color: #475569;
+  font-weight: 700;
+}
+
+.job-list {
+  display: grid;
+  gap: 12px;
+}
+
+.job-card {
+  display: grid;
+  gap: 14px;
+  padding: 16px;
+  border: 1px solid #e5e7eb;
+  border-radius: 22px;
+  background: #f8fafc;
+}
+
+.job-card--active {
+  border-color: #93c5fd;
+  background: #eff6ff;
+}
+
+.job-card h3 {
+  margin: 6px 0 8px;
+  font-size: 20px;
+}
+
+.job-card p {
+  margin: 0;
+  color: #475569;
+  line-height: 1.5;
+}
+
+.job-card__meta {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0;
+}
+
+.job-card__meta div {
+  padding: 10px;
+  border-radius: 16px;
+  background: #ffffff;
+}
+
+.job-card__meta dt {
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.job-card__meta dd {
+  margin: 4px 0 0;
+  font-weight: 900;
+}
+
+.job-card__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.job-card__actions button {
+  min-width: 160px;
+}
+
+.job-card__actions button:disabled,
+.action-card__button:disabled,
+.secondary-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.job-card__warning {
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: #fff7ed;
+  color: #9a3412 !important;
+  font-weight: 800;
+}
+
+@media (max-width: 980px) {
+  .job-card__meta {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .job-card__meta,
+  .job-card__actions {
+    grid-template-columns: 1fr;
+  }
+
+  .job-card__actions {
+    display: grid;
+  }
+
+  .job-card__actions button {
+    width: 100%;
   }
 }

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { applyLifeAction } from '../core/actions';
 import { applyMoneyDelta, canAfford } from '../core/economy';
-import { addMinutes } from '../core/time';
+import { applyForJob as applyJob, applyJobShift, getJobApplicationFailure, getJobShiftFailure } from '../core/jobs';
 import { addInventoryItem, hasInventoryItem, removeInventoryItem } from '../core/inventory';
 import {
   getActionsForLocation,
@@ -15,6 +15,7 @@ import {
 } from '../core/location';
 import { applyNeedsDelta, getNeedWarning } from '../core/needs';
 import { getShopForLocation, getShopProducts, isProductSoldByShop } from '../core/shop';
+import { addMinutes } from '../core/time';
 import {
   calculateDistrictTravel,
   calculateLocationTravel,
@@ -22,8 +23,9 @@ import {
   createLocationTravelOptions
 } from '../core/travel';
 import { getLifeAction } from '../data';
+import { basicJobs, getJobById } from '../data/jobs/basicJobs';
 import { getProductById } from '../data/products/basicProducts';
-import type { ActionId, DistrictId, LocationId, ProductId } from '../types/ids';
+import type { ActionId, DistrictId, JobId, LocationId, ProductId } from '../types/ids';
 import type { TravelModeId } from '../types/transport';
 import {
   clearSavedGameState,
@@ -81,6 +83,31 @@ export function useGameController() {
       districtTravelOptions
     };
   }, [gameState.player.cityId, gameState.player.districtId, gameState.player.locationId, gameState.player.money, gameState.player.needs.energy]);
+
+  const jobState = useMemo(() => {
+    const currentJob = getJobById(gameState.player.currentJobId);
+    const jobs = basicJobs.map((job) => {
+      const location = getLocationById(job.locationId);
+      const applicationFailure = getJobApplicationFailure(gameState.player, job);
+      const shiftFailure = getJobShiftFailure(gameState.player, job);
+
+      return {
+        job,
+        location,
+        isCurrentJob: gameState.player.currentJobId === job.id,
+        completedShifts: gameState.player.completedShifts[job.id] ?? 0,
+        canApply: !applicationFailure,
+        applicationFailure,
+        canWorkShift: !shiftFailure,
+        shiftFailure
+      };
+    });
+
+    return {
+      jobs,
+      currentJob
+    };
+  }, [gameState.player]);
 
   function performAction(actionId: ActionId): void {
     const action = getLifeAction(actionId);
@@ -350,6 +377,68 @@ export function useGameController() {
     });
   }
 
+  function applyForJob(jobId: JobId): void {
+    const job = getJobById(jobId);
+    if (!job) return;
+
+    setGameState((currentState) => {
+      const applied = applyJob({
+        player: currentState.player,
+        job
+      });
+      const logEntry = createLifeLogEntry(
+        currentState,
+        applied.result.ok ? 'Работа' : 'Работа недоступна',
+        applied.result.messages.join(' ')
+      );
+
+      return {
+        ...currentState,
+        player: applied.player,
+        lastResult: {
+          ok: applied.result.ok,
+          actionName: job.title,
+          timeDeltaMinutes: 0,
+          messages: applied.result.messages
+        },
+        lifeLog: [logEntry, ...currentState.lifeLog].slice(0, 12)
+      };
+    });
+  }
+
+  function workShift(jobId: JobId): void {
+    const job = getJobById(jobId);
+    if (!job) return;
+
+    setGameState((currentState) => {
+      const applied = applyJobShift({
+        player: currentState.player,
+        time: currentState.time,
+        job
+      });
+      const logEntry = createLifeLogEntry(
+        { time: applied.time },
+        applied.result.ok ? 'Смена' : 'Смена недоступна',
+        applied.result.messages.join(' ')
+      );
+
+      return {
+        ...currentState,
+        player: applied.player,
+        time: applied.time,
+        lastResult: {
+          ok: applied.result.ok,
+          actionName: job.title,
+          timeDeltaMinutes: applied.result.timeDeltaMinutes,
+          moneyDelta: applied.result.moneyDelta,
+          needsDelta: applied.result.needsDelta,
+          messages: applied.result.messages
+        },
+        lifeLog: [logEntry, ...currentState.lifeLog].slice(0, 12)
+      };
+    });
+  }
+
   function resetGame(): void {
     clearSavedGameState();
     setGameState(createInitialGameState());
@@ -359,11 +448,14 @@ export function useGameController() {
     gameState,
     actions: locationState.actions,
     locationState,
+    jobState,
     performAction,
     moveToDistrict,
     moveToLocation,
     buyProduct,
     useInventoryItem,
+    applyForJob,
+    workShift,
     resetGame
   };
 }

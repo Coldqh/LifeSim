@@ -3,19 +3,32 @@ import { formatRubles } from '../../core/economy';
 import { formatGameTime, formatWeekday } from '../../core/time';
 import type { GameState } from '../../state';
 import type { LifeAction } from '../../types/actions';
-import type { DistrictId, LocationId, ActionId, ProductId } from '../../types/ids';
+import type { DistrictId, LocationId, ActionId, ProductId, JobId } from '../../types/ids';
 import type { TravelModeId } from '../../types/transport';
 import type { City, District, Location } from '../../types/location';
+import type { Job } from '../../types/job';
 import type { Product, Shop } from '../../types/product';
 import type { DistrictTravelOption, LocationTravelOption } from '../../types/travel';
 import { ActionCard } from './ActionCard';
 import { InventoryPanel } from './InventoryPanel';
+import { JobPanel } from './JobPanel';
 import { LifeLog } from './LifeLog';
 import { LocationPanel } from './LocationPanel';
 import { ShopPanel } from './ShopPanel';
 import { StatCard } from './StatCard';
 
-type DashboardTab = 'character' | 'city' | 'log';
+type DashboardTab = 'character' | 'city' | 'jobs' | 'log';
+
+type JobView = {
+  job: Job;
+  location?: Location;
+  isCurrentJob: boolean;
+  completedShifts: number;
+  canApply: boolean;
+  applicationFailure?: string;
+  canWorkShift: boolean;
+  shiftFailure?: string;
+};
 
 type DashboardProps = {
   gameState: GameState;
@@ -31,11 +44,17 @@ type DashboardProps = {
     locationTravelOptions: LocationTravelOption[];
     districtTravelOptions: DistrictTravelOption[];
   };
+  jobState: {
+    jobs: JobView[];
+    currentJob?: Job;
+  };
   onPerformAction: (actionId: ActionId) => void;
   onMoveDistrict: (districtId: DistrictId, modeId: TravelModeId) => void;
   onMoveLocation: (locationId: LocationId, modeId: TravelModeId) => void;
   onBuyProduct: (productId: ProductId) => void;
   onUseInventoryItem: (productId: ProductId) => void;
+  onApplyForJob: (jobId: JobId) => void;
+  onWorkShift: (jobId: JobId) => void;
   onReset: () => void;
 };
 
@@ -54,11 +73,14 @@ export function Dashboard({
   gameState,
   actions,
   locationState,
+  jobState,
   onPerformAction,
   onMoveDistrict,
   onMoveLocation,
   onBuyProduct,
   onUseInventoryItem,
+  onApplyForJob,
+  onWorkShift,
   onReset
 }: DashboardProps) {
   const { player, time, lastResult } = gameState;
@@ -81,6 +103,10 @@ export function Dashboard({
             <span>Город</span>
             <small>места и действия</small>
           </button>
+          <button className={getTabClassName('jobs', activeTab)} type="button" onClick={() => setActiveTab('jobs')}>
+            <span>Работа</span>
+            <small>вакансии и смены</small>
+          </button>
           <button className={getTabClassName('log', activeTab)} type="button" onClick={() => setActiveTab('log')}>
             <span>Лог</span>
             <small>архив жизни</small>
@@ -100,7 +126,7 @@ export function Dashboard({
               {locationState.city?.name ?? 'Город'} · {locationState.district?.name ?? 'Район'}
             </h1>
             <p className="hero-panel__text">
-              Текущее место: {locationState.location?.name ?? 'не найдено'}. Магазины теперь продают товары, а еда и вода лежат в инвентаре.
+              Текущее место: {locationState.location?.name ?? 'не найдено'}. Работа теперь проходит через вакансии, места и смены.
             </p>
           </div>
         </section>
@@ -159,10 +185,19 @@ export function Dashboard({
                   ))}
                 </div>
               ) : (
-                <p className="empty-state">В этом месте нет обычных действий. Если это магазин или кафе — смотри товары выше.</p>
+                <p className="empty-state">В этом месте нет обычных действий. Если это магазин, кафе или работа — смотри соответствующую вкладку.</p>
               )}
             </section>
           </>
+        ) : null}
+
+        {activeTab === 'jobs' ? (
+          <JobPanel
+            currentJob={jobState.currentJob}
+            jobs={jobState.jobs}
+            onApplyForJob={onApplyForJob}
+            onWorkShift={onWorkShift}
+          />
         ) : null}
 
         {activeTab === 'log' ? <LifeLog entries={gameState.lifeLog} /> : null}

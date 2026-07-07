@@ -36,24 +36,6 @@ export const lifeActions: LifeAction[] = [
     resultMessage: 'Ты спокойно отдохнул час.'
   },
   {
-    id: actionId('part_time_shift_4h'),
-    name: 'Подработка 4 часа',
-    description: 'Быстрая смена за деньги. Сильно режет силы, еду и воду.',
-    category: 'work',
-    durationMinutes: 240,
-    moneyDelta: 2500,
-    needsDelta: {
-      energy: -35,
-      hunger: -25,
-      thirst: -25,
-      mood: -4
-    },
-    requirements: {
-      minEnergy: 20
-    },
-    resultMessage: 'Ты отработал смену и получил деньги.'
-  },
-  {
     id: actionId('walk_one_hour'),
     name: 'Прогулка 1 час',
     description: 'Простая прогулка по району. Денег не даёт, но разгружает голову.',

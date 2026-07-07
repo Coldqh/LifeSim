@@ -4,7 +4,7 @@ import type { Player } from '../types/player';
 import type { GameTime } from '../types/time';
 import { createInitialTime, formatGameTime } from '../core/time';
 
-export const GAME_STATE_STORAGE_KEY = 'lifesim.gameState.v3';
+export const GAME_STATE_STORAGE_KEY = 'lifesim.gameState.v4';
 
 export type LifeLogEntry = {
   id: string;
@@ -54,7 +54,8 @@ export function createInitialPlayer(): Player {
       mood: 60
     },
     skills: {},
-    inventory: []
+    inventory: [],
+    completedShifts: {}
   };
 }
 
@@ -70,7 +71,7 @@ export function createInitialGameState(): GameState {
         day: time.day,
         timeLabel: formatGameTime(time),
         title: 'Старт',
-        text: 'Москва. Даниловский. Дом. Теперь еда и вода проходят через магазины и инвентарь.'
+        text: 'Москва. Даниловский. Дом. Работа теперь проходит через вакансии и смены.'
       }
     ]
   };

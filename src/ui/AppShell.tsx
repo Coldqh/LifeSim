@@ -6,11 +6,14 @@ export function AppShell() {
     gameState,
     actions,
     locationState,
+    jobState,
     performAction,
     moveToDistrict,
     moveToLocation,
     buyProduct,
     useInventoryItem,
+    applyForJob,
+    workShift,
     resetGame
   } = useGameController();
 
@@ -18,13 +21,16 @@ export function AppShell() {
     <Dashboard
       actions={actions}
       gameState={gameState}
+      jobState={jobState}
       locationState={locationState}
+      onApplyForJob={applyForJob}
       onBuyProduct={buyProduct}
       onMoveDistrict={moveToDistrict}
       onMoveLocation={moveToLocation}
       onPerformAction={performAction}
       onReset={resetGame}
       onUseInventoryItem={useInventoryItem}
+      onWorkShift={workShift}
     />
   );
 }

@@ -2,6 +2,7 @@ export * from './ActionCard';
 export * from './Dashboard';
 export * from './InventoryPanel';
 export * from './LifeLog';
+export * from './JobPanel';
 export * from './LocationPanel';
 export * from './LocationTravelModal';
 export * from './TransportOptionCard';
