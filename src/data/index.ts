@@ -1,1 +1,4 @@
 export * from './lifeActions';
+export * from './cities/moscow';
+export * from './districts/moscowDistricts';
+export * from './locations/moscowLocations';

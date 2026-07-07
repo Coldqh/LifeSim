@@ -4,7 +4,7 @@ import type { Player } from '../types/player';
 import type { GameTime } from '../types/time';
 import { createInitialTime, formatGameTime } from '../core/time';
 
-export const GAME_STATE_STORAGE_KEY = 'lifesim.gameState.v1';
+export const GAME_STATE_STORAGE_KEY = 'lifesim.gameState.v2';
 
 export type LifeLogEntry = {
   id: string;
@@ -43,9 +43,9 @@ export function createInitialPlayer(): Player {
     name: 'Игрок',
     age: 18,
     money: 12000,
-    cityId: cityId('city_start'),
-    districtId: districtId('district_start'),
-    locationId: locationId('home_start'),
+    cityId: cityId('moscow'),
+    districtId: districtId('msk_danilovsky'),
+    locationId: locationId('msk_danilovsky_home'),
     needs: {
       hunger: 75,
       thirst: 75,
@@ -69,7 +69,7 @@ export function createInitialGameState(): GameState {
         day: time.day,
         timeLabel: formatGameTime(time),
         title: 'Старт',
-        text: 'Ты начинаешь первый день. Денег немного. Времени хватает только на решения.'
+        text: 'Москва. Даниловский. Дом. Теперь действия завязаны на места.'
       }
     ]
   };

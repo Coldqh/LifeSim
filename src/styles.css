@@ -171,9 +171,75 @@ button {
   font-size: 24px;
 }
 
+.location-panel__current {
+  margin: 8px 0 0;
+  color: #475569;
+  font-weight: 700;
+}
+
+.location-panel__block {
+  margin-top: 18px;
+}
+
+.location-panel__block h3 {
+  margin: 0 0 10px;
+  font-size: 16px;
+}
+
+.location-list {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.location-list--places {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.location-chip,
+.location-card {
+  width: 100%;
+  border: 1px solid #e5e7eb;
+  background: #f8fafc;
+  color: #111827;
+  text-align: left;
+}
+
+.location-chip {
+  min-height: 110px;
+  padding: 14px;
+  border-radius: 20px;
+}
+
+.location-card {
+  min-height: 122px;
+  padding: 14px;
+  border-radius: 22px;
+}
+
+.location-chip--active,
+.location-card--active {
+  border-color: #93c5fd;
+  background: #eff6ff;
+}
+
+.location-chip span,
+.location-card span {
+  display: block;
+  font-weight: 900;
+}
+
+.location-chip small,
+.location-card small {
+  display: block;
+  margin-top: 8px;
+  color: #64748b;
+  line-height: 1.4;
+}
+
 .actions-grid {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
 }
 
@@ -229,6 +295,14 @@ button {
   background: #111827;
 }
 
+.empty-state {
+  margin: 0;
+  padding: 18px;
+  border-radius: 18px;
+  background: #f8fafc;
+  color: #64748b;
+}
+
 .life-log {
   display: grid;
   gap: 10px;
@@ -256,7 +330,9 @@ button {
 
 @media (max-width: 920px) {
   .stats-grid,
-  .actions-grid {
+  .actions-grid,
+  .location-list,
+  .location-list--places {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
@@ -276,11 +352,15 @@ button {
   }
 
   .stats-grid,
-  .actions-grid {
+  .actions-grid,
+  .location-list,
+  .location-list--places {
     grid-template-columns: 1fr;
   }
 
-  .action-card {
+  .action-card,
+  .location-chip,
+  .location-card {
     min-height: auto;
   }
 }

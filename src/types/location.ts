@@ -1,24 +1,29 @@
-import type { CityId, CountryId, DistrictId, LocationId } from './ids';
+import type { ActionId, CityId, CountryId, DistrictId, LocationId } from './ids';
 
 export type City = {
   id: CityId;
   countryId: CountryId;
   name: string;
+  description: string;
+  districtIds: DistrictId[];
 };
 
 export type District = {
   id: DistrictId;
   cityId: CityId;
   name: string;
+  description: string;
+  locationIds: LocationId[];
 };
 
 export type LocationType =
   | 'home'
   | 'shop'
+  | 'cafe'
   | 'workplace'
-  | 'education'
-  | 'sport'
-  | 'transport'
+  | 'business_center'
+  | 'park'
+  | 'sport_ground'
   | 'service'
   | 'other';
 
@@ -28,4 +33,6 @@ export type Location = {
   districtId: DistrictId;
   name: string;
   type: LocationType;
+  description: string;
+  availableActionIds: ActionId[];
 };
