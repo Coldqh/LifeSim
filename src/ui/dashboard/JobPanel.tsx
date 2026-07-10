@@ -115,7 +115,7 @@ export function JobPanel({ currentJobView, onPromoteJob, onWorkShift }: JobPanel
             <div>
               <span className="section-kicker">Текущая работа · уровень {currentLevel}/{maxLevel}</span>
               <h2>{jobLevel.title}</h2>
-              <p>{location?.name ?? 'Место не найдено'} · {district?.name ?? 'Район не найден'}</p>
+              <p>{location?.name ?? 'Место не найдено'} · {location?.address ?? district?.name ?? 'Район не найден'}</p>
             </div>
           </div>
           <span className={canWorkShift ? 'status-label status-label--success' : 'status-label'}>
@@ -125,15 +125,17 @@ export function JobPanel({ currentJobView, onPromoteJob, onWorkShift }: JobPanel
       </section>
 
       <section className="panel workplace-progress-panel career-progress-panel visual-panel">
-        <div className="progress-orbit" aria-hidden="true"><span>{progressPercent}%</span></div>
-        <div className="section-heading">
+        <div className="section-heading career-progress-heading">
           <div>
             <span className="section-kicker">Карьерный прогресс</span>
             <h2>{isMaxLevel ? 'Максимальная должность' : `Следующая: ${nextJobLevel?.title ?? '—'}`}</h2>
           </div>
-          <strong className="progress-value">
-            {isMaxLevel ? `${jobExperience} XP` : `${levelExperience} / ${levelExperienceRequired} XP`}
-          </strong>
+          <div className="career-progress-summary">
+            <strong className="progress-value">
+              {isMaxLevel ? `${jobExperience} XP` : `${levelExperience} / ${levelExperienceRequired} XP`}
+            </strong>
+            <span>{progressPercent}%</span>
+          </div>
         </div>
         <div className="premium-progress" aria-label="Прогресс до повышения">
           <span style={{ width: `${progressPercent}%` }}><i /></span>

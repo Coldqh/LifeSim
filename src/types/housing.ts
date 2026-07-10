@@ -13,6 +13,7 @@ export type Housing = {
   comfort: number;
   sleepRecoveryBonus: number;
   description: string;
+  imageSrc?: string;
 };
 
 export type HousingChargeEventType = 'daily_upkeep' | 'rent_paid' | 'housing_debt';

@@ -24,7 +24,7 @@ export function HousingPanel({ housing, player }: HousingPanelProps) {
 
   return (
     <section className="panel housing-panel visual-panel">
-      <HousingScene />
+      <HousingScene imageSrc={housing.imageSrc} />
       <div className="housing-panel__content">
         <div className="housing-hero">
           <div className="housing-hero__icon"><Icon name="home" size={22} /></div>

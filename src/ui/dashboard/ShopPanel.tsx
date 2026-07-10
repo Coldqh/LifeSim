@@ -7,6 +7,8 @@ import { createNeedsEffectItems, EffectList, type EffectListItem } from './Effec
 
 type ShopPanelProps = {
   shop?: Shop;
+  locationName?: string;
+  locationAddress?: string;
   products: Product[];
   onBuyProduct: (productId: ProductId) => void;
 };
@@ -18,22 +20,22 @@ function getProductPurchaseEffects(product: Product): EffectListItem[] {
   ];
 }
 
-export function ShopPanel({ shop, products, onBuyProduct }: ShopPanelProps) {
+export function ShopPanel({ shop, locationName, locationAddress, products, onBuyProduct }: ShopPanelProps) {
   if (!shop) return null;
 
   return (
     <section className="panel commerce-panel visual-panel">
-      <CommerceScene title={shop.name} />
+      <CommerceScene title={locationName ?? shop.name} />
       <div className="commerce-panel__content">
         <div className="section-heading section-heading--compact">
-          <div><span className="section-kicker">Торговая точка</span><h2>{shop.name}</h2></div>
+          <div><span className="section-kicker">Торговая точка</span><h2>{locationName ?? shop.name}</h2>{locationAddress ? <p className="commerce-panel__address">{locationAddress}</p> : null}</div>
           <span className="section-counter">{products.length}</span>
         </div>
 
         <div className="commerce-list">
           {products.map((product) => (
             <article className="commerce-row" key={product.id}>
-              <ProductGlyph category={product.category} />
+              <ProductGlyph alt={product.name} category={product.category} imageSrc={product.imageSrc} />
               <div className="commerce-row__content">
                 <strong>{product.name}</strong>
                 <EffectList items={getProductPurchaseEffects(product)} />

@@ -48,6 +48,7 @@ export type Location = {
   cityId: CityId;
   districtId: DistrictId;
   name: string;
+  address: string;
   type: LocationType;
   description: string;
   availableActionIds: ActionId[];

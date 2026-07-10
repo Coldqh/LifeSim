@@ -88,10 +88,11 @@ export function LocationScene({ type, title, subtitle }: LocationSceneProps) {
   );
 }
 
-export function HousingScene() {
+export function HousingScene({ imageSrc }: { imageSrc?: string }) {
   return (
     <div className="housing-scene" aria-hidden="true">
-      <svg viewBox="0 0 420 220" preserveAspectRatio="xMidYMid slice">
+      {imageSrc ? <img className="housing-scene__image" alt="" src={imageSrc} /> : null}
+      {!imageSrc ? <svg viewBox="0 0 420 220" preserveAspectRatio="xMidYMid slice">
         <defs>
           <linearGradient id="wall" x1="0" x2="1" y1="0" y2="1"><stop stopColor="#172735"/><stop offset="1" stopColor="#080b10"/></linearGradient>
           <linearGradient id="window" x1="0" x2="0" y1="0" y2="1"><stop stopColor="#54caff"/><stop offset="1" stopColor="#173a5c"/></linearGradient>
@@ -105,7 +106,7 @@ export function HousingScene() {
         <path stroke="#70e8c4" strokeWidth="3" d="M322 132V85M309 87h26"/>
         <circle cx="322" cy="78" r="13" fill="#ffd48a" opacity=".7"/>
         <path fill="#0a0d11" d="M0 185h420v35H0z"/>
-      </svg>
+      </svg> : null}
       <div className="housing-scene__glow" />
     </div>
   );
@@ -130,6 +131,8 @@ export function WorkplaceScene() {
 
 type ProductGlyphProps = {
   category?: ProductCategory;
+  imageSrc?: string;
+  alt?: string;
 };
 
 const PRODUCT_ICONS: Record<ProductCategory, IconName> = {
@@ -140,11 +143,10 @@ const PRODUCT_ICONS: Record<ProductCategory, IconName> = {
   other: 'package'
 };
 
-export function ProductGlyph({ category = 'other' }: ProductGlyphProps) {
+export function ProductGlyph({ category = 'other', imageSrc, alt = '' }: ProductGlyphProps) {
   return (
-    <span className={`product-glyph product-glyph--${category}`} aria-hidden="true">
-      <i />
-      <Icon name={PRODUCT_ICONS[category]} size={20} />
+    <span className={`product-glyph product-glyph--${category} ${imageSrc ? 'product-glyph--image' : ''}`} aria-hidden={imageSrc ? undefined : true}>
+      {imageSrc ? <img alt={alt} src={imageSrc} /> : <><i /><Icon name={PRODUCT_ICONS[category]} size={20} /></>}
     </span>
   );
 }

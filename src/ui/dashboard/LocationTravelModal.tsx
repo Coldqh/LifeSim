@@ -19,7 +19,7 @@ export function LocationTravelModal({ options, initialLocationId, onMoveLocation
   const selectedOption = options.find((option) => option.location.id === selectedLocationId);
   const normalizedSearch = search.trim().toLowerCase();
   const visibleOptions = useMemo(
-    () => options.filter((option) => normalizedSearch.length === 0 || option.location.name.toLowerCase().includes(normalizedSearch)),
+    () => options.filter((option) => normalizedSearch.length === 0 || `${option.location.name} ${option.location.address}`.toLowerCase().includes(normalizedSearch)),
     [normalizedSearch, options]
   );
 
@@ -52,7 +52,7 @@ export function LocationTravelModal({ options, initialLocationId, onMoveLocation
                   type="button"
                   onClick={() => setSelectedLocationId(option.location.id)}
                 >
-                  <span>{option.location.name}</span>
+                  <div className="destination-row__identity"><span>{option.location.name}</span><small>{option.location.address}</small></div>
                   <small>{option.isCurrent ? 'Вы здесь' : `от ${option.durationMinutes} мин`}</small>
                   <Icon name="chevron" size={17} />
                 </button>
@@ -63,7 +63,7 @@ export function LocationTravelModal({ options, initialLocationId, onMoveLocation
           <section className="transport-column">
             {selectedOption && !selectedOption.isCurrent ? (
               <>
-                <LocationScene type={selectedOption.location.type} title={selectedOption.location.name} subtitle="Выбранная точка" />
+                <LocationScene type={selectedOption.location.type} title={selectedOption.location.name} subtitle={selectedOption.location.address} />
                 <div className="transport-column__heading"><span className="section-kicker">Маршрут</span><h4>Как добраться</h4></div>
                 <div className="transport-options">
                   {selectedOption.transportOptions.map((transportOption) => (

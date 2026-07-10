@@ -1,13 +1,13 @@
 import type { ActionResult } from '../types/actions';
-import type { CityId, DistrictId, LocationId, PlayerId, SkillId } from '../types/ids';
+import type { CityId, DistrictId, LocationId, PlayerId, ProductId, SkillId } from '../types/ids';
 import type { Player } from '../types/player';
 import type { PlayerSkills } from '../types/skill';
 import type { HousingId } from '../types/housing';
 import type { GameTime } from '../types/time';
 import { createInitialTime, formatGameTime } from '../core/time';
 
-export const GAME_STATE_STORAGE_KEY = 'lifesim.gameState.v9';
-const LEGACY_GAME_STATE_STORAGE_KEYS = ['lifesim.gameState.v8', 'lifesim.gameState.v7'];
+export const GAME_STATE_STORAGE_KEY = 'lifesim.gameState.v10';
+const LEGACY_GAME_STATE_STORAGE_KEYS = ['lifesim.gameState.v9', 'lifesim.gameState.v8', 'lifesim.gameState.v7'];
 
 export type LifeLogEntry = {
   id: string;
@@ -44,6 +44,20 @@ function housingId(value: string): HousingId {
   return value as HousingId;
 }
 
+function productId(value: string): ProductId {
+  return value as ProductId;
+}
+
+
+
+function createStarterInventory() {
+  return [
+    { productId: productId('water_15l'), quantity: 2 },
+    { productId: productId('ready_meal'), quantity: 2 },
+    { productId: productId('snack_bar'), quantity: 1 },
+    { productId: productId('energy_drink'), quantity: 1 }
+  ];
+}
 
 function normalizePlayerSkills(value: unknown): PlayerSkills {
   if (!value || typeof value !== 'object') return {};
@@ -85,7 +99,7 @@ export function createInitialPlayer(): Player {
       mood: 60
     },
     skills: {},
-    inventory: [],
+    inventory: createStarterInventory(),
     completedShifts: {},
     jobExperience: {},
     jobLevels: {},
@@ -107,7 +121,7 @@ export function createInitialGameState(): GameState {
         day: time.day,
         timeLabel: formatGameTime(time),
         title: 'Старт',
-        text: 'Москва. Даниловский. Дом. Время теперь влияет на еду, воду и энергию.'
+        text: 'Москва. Даниловский район. В инвентаре есть стартовый запас еды, воды и Burn.'
       }
     ]
   };
@@ -134,10 +148,14 @@ export function loadGameState(): GameState | undefined {
       const parsed = JSON.parse(raw) as GameState;
       if (!parsed.player || !parsed.time || !Array.isArray(parsed.lifeLog)) continue;
 
+      const isLegacySave = storageKey !== GAME_STATE_STORAGE_KEY;
+      const inventory = Array.isArray(parsed.player.inventory) ? parsed.player.inventory : [];
+
       return {
         ...parsed,
         player: {
           ...parsed.player,
+          inventory: isLegacySave && inventory.length === 0 ? createStarterInventory() : inventory,
           completedShifts: parsed.player.completedShifts ?? {},
           jobExperience: parsed.player.jobExperience ?? {},
           jobLevels: parsed.player.jobLevels ?? {},

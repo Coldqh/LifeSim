@@ -18,6 +18,7 @@ export type IconName =
   | 'close'
   | 'reset'
   | 'walk'
+  | 'bus'
   | 'metro'
   | 'taxi'
   | 'pulse'
@@ -61,6 +62,7 @@ const PATHS: Record<IconName, ReactNode> = {
   close: <><path d="m6 6 12 12M18 6 6 18"/></>,
   reset: <><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v6h6"/></>,
   walk: <><circle cx="13" cy="4" r="2"/><path d="m10 22 2-7-3-3 2-5 4 3 3 1M15 22l-2-7 3-2"/></>,
+  bus: <><rect x="4" y="3" width="16" height="16" rx="2"/><path d="M7 7h10M7 12h10M7 19v2M17 19v2"/><circle cx="8" cy="16" r="1"/><circle cx="16" cy="16" r="1"/></>,
   metro: <><rect x="5" y="3" width="14" height="16" rx="2"/><path d="M8 7h8M8 12h8M9 19l-2 2M15 19l2 2"/></>,
   taxi: <><path d="M4 17h16l-1-7-2-4H7l-2 4-1 7Z"/><path d="M7 6h10M6 13h12M7 20v-3M17 20v-3"/></>,
   pulse: <><path d="M3 12h4l2-5 4 10 2-5h6"/></>,

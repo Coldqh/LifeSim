@@ -26,7 +26,7 @@ export function InventoryPanel({ inventory, onUseInventoryItem }: InventoryPanel
             const product = getProductById(item.productId);
             return (
               <article className="inventory-row" key={item.productId}>
-                <ProductGlyph category={product?.category} />
+                <ProductGlyph alt={product?.name ?? ''} category={product?.category} imageSrc={product?.imageSrc} />
                 <div className="inventory-row__content">
                   <strong>{product?.name ?? 'Неизвестный предмет'}</strong>
                   <span>Количество: {item.quantity}</span>

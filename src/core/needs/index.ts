@@ -10,6 +10,7 @@ import type {
 const NEED_MIN = 0;
 const NEED_MAX = 100;
 const MINUTES_IN_HOUR = 60;
+const ACTIVITY_ENERGY_COST_MULTIPLIER = 0.5;
 
 export const NEED_WARNING_THRESHOLD = 30;
 export const NEED_CRITICAL_THRESHOLD = 15;
@@ -165,7 +166,7 @@ export function adjustActivityNeedsDelta(
   const energyDelta = delta.energy ?? 0;
 
   if (energyDelta < 0 && options.scaleEnergyCost !== false) {
-    adjusted.energy = -Math.max(1, Math.round(Math.abs(energyDelta) * consequences.energyCostMultiplier));
+    adjusted.energy = -Math.max(1, Math.round(Math.abs(energyDelta) * ACTIVITY_ENERGY_COST_MULTIPLIER * consequences.energyCostMultiplier));
   }
 
   if (energyDelta > 0 && options.scaleEnergyRecovery) {
@@ -235,7 +236,7 @@ export function applyNeedsDecay(needs: NeedsState, minutesElapsed: number, profi
     scaleEnergyRecovery: false
   });
   const afterBaseDecay = applyNeedsDelta(needs, adjustedBaseDelta);
-  const healthDrainPerHour = getNeedsConsequences(afterBaseDecay).healthDrainPerHour;
+  const healthDrainPerHour = profile === 'sleeping' ? 0 : getNeedsConsequences(afterBaseDecay).healthDrainPerHour;
   const roundedHealthDrain = Math.round(healthDrainPerHour * (safeMinutes / MINUTES_IN_HOUR));
   const healthDrain = healthDrainPerHour > 0 && roundedHealthDrain > 0 ? -roundedHealthDrain : 0;
   const nextNeeds = applyNeedsDelta(afterBaseDecay, healthDrain ? { health: healthDrain } : {});

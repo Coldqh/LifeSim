@@ -299,7 +299,7 @@ export function Dashboard({
               </div>
 
               <aside className="context-column">
-                <ShopPanel shop={locationState.shop} products={locationState.shopProducts} onBuyProduct={onBuyProduct} />
+                <ShopPanel locationAddress={locationState.location?.address} locationName={locationState.location?.name} shop={locationState.shop} products={locationState.shopProducts} onBuyProduct={onBuyProduct} />
                 <section className="panel actions-panel visual-panel">
                   <div className="actions-panel__beam" aria-hidden="true" />
                   <div className="section-heading section-heading--compact">

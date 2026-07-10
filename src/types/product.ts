@@ -9,6 +9,7 @@ export type Product = {
   category: ProductCategory;
   price: number;
   description: string;
+  imageSrc?: string;
   effects: Partial<NeedsState>;
 };
 

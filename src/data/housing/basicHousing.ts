@@ -1,3 +1,4 @@
+import housingRoomDanilovskyImage from '../../assets/housing/housing_room_danilovsky.png';
 import type { DistrictId, LocationId } from '../../types/ids';
 import type { Housing, HousingId } from '../../types/housing';
 
@@ -24,7 +25,8 @@ export const basicHousing: Housing[] = [
     dailyUtilities: 250,
     comfort: 35,
     sleepRecoveryBonus: 10,
-    description: 'Съёмная стартовая комната. Дёшево, тесно, зато есть где спать и держать вещи.'
+    description: 'Съёмная стартовая комната в жилом комплексе «ЗИЛАРТ».',
+    imageSrc: housingRoomDanilovskyImage
   }
 ];
 

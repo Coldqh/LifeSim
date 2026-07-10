@@ -13,9 +13,13 @@ const TRANSPORT_LABELS: Record<TravelModeId, { name: string; description: string
     name: 'Пешком',
     description: 'Бесплатно, но тратит энергию.'
   },
+  bus: {
+    name: 'Автобус',
+    description: 'Основной транспорт внутри района.'
+  },
   metro: {
     name: 'Метро',
-    description: 'Дешевле такси и быстрее ходьбы.'
+    description: 'Быстрый способ добраться между районами.'
   },
   taxi: {
     name: 'Такси',
@@ -71,9 +75,13 @@ function getWalkEnergyCost(baseDurationMinutes: number, isCrossDistrict: boolean
   return Math.max(3, Math.round(baseDurationMinutes * 0.25));
 }
 
-function getMetroDuration(baseDurationMinutes: number, isCrossDistrict: boolean): number {
-  const multiplier = isCrossDistrict ? 0.78 : 0.7;
-  return Math.max(isCrossDistrict ? 25 : 8, Math.round(baseDurationMinutes * multiplier));
+function getBusDuration(baseDurationMinutes: number, isCrossDistrict: boolean): number {
+  const multiplier = isCrossDistrict ? 0.9 : 0.62;
+  return Math.max(isCrossDistrict ? 30 : 7, Math.round(baseDurationMinutes * multiplier));
+}
+
+function getMetroDuration(baseDurationMinutes: number): number {
+  return Math.max(18, Math.round(baseDurationMinutes * 0.58));
 }
 
 function getTaxiDuration(baseDurationMinutes: number, isCrossDistrict: boolean): number {
@@ -144,13 +152,27 @@ export function createTransportOptions(input: {
       moneyCost: 0,
       needsDelta: walkNeedsDelta
     },
-    {
-      modeId: 'metro',
-      name: TRANSPORT_LABELS.metro.name,
-      description: TRANSPORT_LABELS.metro.description,
-      durationMinutes: getMetroDuration(baseDurationMinutes, isCrossDistrict),
-      moneyCost: 65
-    },
+    ...(!isCrossDistrict
+      ? [{
+          modeId: 'bus' as const,
+          name: TRANSPORT_LABELS.bus.name,
+          description: TRANSPORT_LABELS.bus.description,
+          durationMinutes: getBusDuration(baseDurationMinutes, false),
+          moneyCost: 60
+        }]
+      : [{
+          modeId: 'metro' as const,
+          name: TRANSPORT_LABELS.metro.name,
+          description: TRANSPORT_LABELS.metro.description,
+          durationMinutes: getMetroDuration(baseDurationMinutes),
+          moneyCost: 65
+        }, {
+          modeId: 'bus' as const,
+          name: TRANSPORT_LABELS.bus.name,
+          description: 'Дешевле такси, но медленнее метро.',
+          durationMinutes: getBusDuration(baseDurationMinutes, true),
+          moneyCost: 75
+        }]),
     {
       modeId: 'taxi',
       name: TRANSPORT_LABELS.taxi.name,

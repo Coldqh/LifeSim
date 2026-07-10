@@ -3931,3 +3931,123 @@ body {
     animation: none;
   }
 }
+
+/* ==========================================================================
+   City realism / product art / progression overlap repair
+   ========================================================================== */
+
+.career-progress-heading {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 18px;
+  align-items: start;
+  padding-right: 0;
+}
+
+.career-progress-summary {
+  display: grid;
+  grid-template-columns: auto auto;
+  gap: 10px;
+  align-items: baseline;
+  justify-content: end;
+  min-width: max-content;
+  font-family: ui-monospace, "SFMono-Regular", Consolas, monospace;
+}
+
+.career-progress-summary .progress-value {
+  position: static;
+  max-width: none;
+  white-space: nowrap;
+}
+
+.career-progress-summary > span {
+  color: var(--cyan);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.location-directory__title {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.location-directory__title small {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 500;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.destination-row__identity {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.destination-row__identity span,
+.destination-row__identity small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.destination-row__identity small {
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 500;
+}
+
+.commerce-panel__address {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.product-glyph--image {
+  width: 64px;
+  height: 64px;
+  padding: 4px;
+  border-color: rgba(110, 220, 248, .2);
+  background:
+    radial-gradient(circle at 50% 50%, rgba(255,255,255,.07), transparent 68%),
+    color-mix(in srgb, var(--panel-raised) 92%, transparent);
+}
+
+.product-glyph--image img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  filter: drop-shadow(0 8px 9px rgba(0,0,0,.34));
+}
+
+.housing-scene__image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  animation: hero-pan 16s ease-in-out infinite alternate;
+}
+
+.transport-option--bus .transport-option__icon {
+  color: #73d9ff;
+}
+
+@media (max-width: 760px) {
+  .career-progress-heading {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .career-progress-summary {
+    justify-content: start;
+  }
+
+  .product-glyph--image {
+    width: 52px;
+    height: 52px;
+  }
+}

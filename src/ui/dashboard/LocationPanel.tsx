@@ -139,7 +139,7 @@ export function LocationPanel({
 
   const filteredLocationOptions = useMemo(
     () => locationTravelOptions.filter((option) => {
-      const matchesSearch = normalizedSearch.length === 0 || option.location.name.toLowerCase().includes(normalizedSearch);
+      const matchesSearch = normalizedSearch.length === 0 || `${option.location.name} ${option.location.address}`.toLowerCase().includes(normalizedSearch);
       return matchesSearch && matchesFilter(option.location, locationFilter);
     }),
     [locationFilter, locationTravelOptions, normalizedSearch]
@@ -172,7 +172,7 @@ export function LocationPanel({
             <div>
               <span className="section-kicker">Текущий район</span>
               <h2>{district?.name ?? 'Район не найден'}</h2>
-              <p>{city?.name ?? 'Город'} · {location ? LOCATION_TYPE_LABELS[location.type] : '—'}</p>
+              <p>{location?.address ?? `${city?.name ?? 'Город'} · ${location ? LOCATION_TYPE_LABELS[location.type] : '—'}`}</p>
             </div>
           </div>
           <div className="city-command-header__actions">
@@ -220,7 +220,7 @@ export function LocationPanel({
                 >
                   <span className="location-directory__name" role="cell">
                     <i><Icon name={LOCATION_ICONS[option.location.type] ?? 'pin'} size={17}/></i>
-                    <strong>{option.location.name}</strong>
+                    <span className="location-directory__title"><strong>{option.location.name}</strong><small>{option.location.address}</small></span>
                   </span>
                   <span role="cell">{LOCATION_TYPE_LABELS[option.location.type]}</span>
                   <span className="location-directory__markers" role="cell">{markers.join(' · ') || '—'}</span>
