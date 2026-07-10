@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import type { LocationId } from '../../types/ids';
 import type { TravelModeId } from '../../types/transport';
 import type { LocationTravelOption } from '../../types/travel';
+import type { ScheduleStatus } from '../../types/schedule';
 import { Icon } from '../icons';
 import { LocationScene } from '../visuals';
 import { TransportOptionCard } from './TransportOptionCard';
@@ -9,11 +10,12 @@ import { TransportOptionCard } from './TransportOptionCard';
 type LocationTravelModalProps = {
   options: LocationTravelOption[];
   initialLocationId?: LocationId;
+  scheduleStatuses: Record<string, ScheduleStatus>;
   onMoveLocation: (locationId: LocationId, modeId: TravelModeId) => void;
   onClose: () => void;
 };
 
-export function LocationTravelModal({ options, initialLocationId, onMoveLocation, onClose }: LocationTravelModalProps) {
+export function LocationTravelModal({ options, initialLocationId, scheduleStatuses, onMoveLocation, onClose }: LocationTravelModalProps) {
   const [selectedLocationId, setSelectedLocationId] = useState<LocationId | undefined>(initialLocationId);
   const [search, setSearch] = useState('');
   const selectedOption = options.find((option) => option.location.id === selectedLocationId);
@@ -44,7 +46,9 @@ export function LocationTravelModal({ options, initialLocationId, onMoveLocation
               <input type="search" value={search} placeholder="Найти место" onChange={(event) => setSearch(event.target.value)} />
             </label>
             <div className="destination-list">
-              {visibleOptions.map((option) => (
+              {visibleOptions.map((option) => {
+                const scheduleStatus = scheduleStatuses[option.location.id];
+                return (
                 <button
                   className={`destination-row ${option.location.id === selectedLocationId ? 'destination-row--selected' : ''}`}
                   disabled={option.isCurrent}
@@ -52,11 +56,20 @@ export function LocationTravelModal({ options, initialLocationId, onMoveLocation
                   type="button"
                   onClick={() => setSelectedLocationId(option.location.id)}
                 >
-                  <div className="destination-row__identity"><span>{option.location.name}</span><small>{option.location.address}</small></div>
+                  <div className="destination-row__identity">
+                    <span>{option.location.name}</span>
+                    <small>{option.location.address}</small>
+                    {scheduleStatus ? (
+                      <em className={scheduleStatus.isOpen ? 'schedule-inline schedule-inline--open' : 'schedule-inline schedule-inline--closed'}>
+                        {scheduleStatus.label}
+                      </em>
+                    ) : null}
+                  </div>
                   <small>{option.isCurrent ? 'Вы здесь' : `от ${option.durationMinutes} мин`}</small>
                   <Icon name="chevron" size={17} />
                 </button>
-              ))}
+                );
+              })}
             </div>
           </section>
 

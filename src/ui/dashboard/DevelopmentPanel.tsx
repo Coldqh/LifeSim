@@ -5,6 +5,7 @@ import type { EducationProgramId } from '../../types/ids';
 import type { Location } from '../../types/location';
 import type { NeedsState } from '../../types/needs';
 import type { SkillDefinition } from '../../types/skill';
+import type { ScheduleStatus } from '../../types/schedule';
 import { Icon } from '../icons';
 import { createNeedsEffectItems, EffectList, type EffectListItem } from './EffectList';
 
@@ -19,6 +20,7 @@ type EducationProgramView = {
   location?: Location;
   canStudy: boolean;
   failure?: string;
+  scheduleStatus: ScheduleStatus;
   effectiveNeedsDelta: Partial<NeedsState>;
 };
 
@@ -70,7 +72,7 @@ function SkillCard({ view }: { view: SkillView }) {
 }
 
 function ProgramRow({ view, onStudyProgram }: { view: EducationProgramView; onStudyProgram: (programId: EducationProgramId) => void }) {
-  const { program, skill, location, canStudy, failure, effectiveNeedsDelta } = view;
+  const { program, skill, location, canStudy, failure, effectiveNeedsDelta, scheduleStatus } = view;
 
   return (
     <article className={canStudy ? 'education-row education-row--available' : 'education-row'}>
@@ -85,6 +87,7 @@ function ProgramRow({ view, onStudyProgram }: { view: EducationProgramView; onSt
           <span>{formatDuration(program.durationMinutes)}</span>
           <span>{program.price === 0 ? 'Бесплатно' : formatRubles(program.price)}</span>
           <span>{location?.name ?? 'Локация'}</span>
+          <span className={scheduleStatus.isOpen ? 'schedule-inline schedule-inline--open' : 'schedule-inline schedule-inline--closed'}>{scheduleStatus.label}</span>
         </div>
         <EffectList items={getProgramEffects(program, effectiveNeedsDelta)} />
         {!canStudy && failure ? <small className="education-row__failure">{failure}</small> : null}

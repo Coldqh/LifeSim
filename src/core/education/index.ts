@@ -6,6 +6,7 @@ import {
 } from '../needs';
 import { applySkillExperience } from '../progression';
 import { addMinutes } from '../time';
+import { getScheduleActivityFailure } from '../schedule';
 import type { EducationProgram, EducationResult } from '../../types/education';
 import type { Player } from '../../types/player';
 import type { GameTime } from '../../types/time';
@@ -22,12 +23,20 @@ export type ApplyEducationProgramOutput = {
   result: EducationResult;
 };
 
-export function getEducationProgramFailure(player: Player, program: EducationProgram): string | undefined {
+export function getEducationProgramFailure(player: Player, program: EducationProgram, time: GameTime): string | undefined {
   if (player.locationId !== program.locationId) {
     return program.mode === 'self_study'
       ? 'Самообучение доступно дома.'
       : 'Нужно находиться в образовательном центре.';
   }
+
+  const scheduleFailure = getScheduleActivityFailure(
+    program.availabilitySchedule,
+    time,
+    program.durationMinutes,
+    program.mode === 'self_study' ? 'Самообучение' : 'Курс'
+  );
+  if (scheduleFailure) return scheduleFailure;
 
   if (!canAfford(player.money, program.price)) {
     return `Деньги: ${player.money}/${program.price} ₽.`;
@@ -43,7 +52,7 @@ export function getEducationProgramFailure(player: Player, program: EducationPro
 
 export function applyEducationProgram(input: ApplyEducationProgramInput): ApplyEducationProgramOutput {
   const { player, time, program } = input;
-  const failure = getEducationProgramFailure(player, program);
+  const failure = getEducationProgramFailure(player, program, time);
 
   if (failure) {
     return {

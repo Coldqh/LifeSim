@@ -1,6 +1,7 @@
 import type { JobId, LocationId } from './ids';
 import type { NeedsState } from './needs';
 import type { SkillProgressUpdate, SkillRequirement, SkillReward } from './skill';
+import type { WeeklySchedule } from './schedule';
 
 export type JobCategory = 'service' | 'office' | 'assistant' | 'retail' | 'warehouse' | 'fitness';
 
@@ -36,6 +37,7 @@ export type Job = {
   skillRewards?: SkillReward[];
   effects: JobShiftEffects;
   levels: JobLevel[];
+  shiftSchedule?: WeeklySchedule;
 };
 
 export type JobApplicationResult = {

@@ -1,4 +1,5 @@
 export * as time from './time';
+export * as schedule from './schedule';
 export * as needs from './needs';
 export * as economy from './economy';
 export * as actions from './actions';

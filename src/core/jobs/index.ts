@@ -1,6 +1,7 @@
 import { applyMoneyDelta } from '../economy';
 import { applyActivityNeedsDelta, getNeedsRequirementFailure, getNeedWarning } from '../needs';
 import { addMinutes } from '../time';
+import { getScheduleActivityFailure } from '../schedule';
 import { applySkillRewards, getMissingSkillRequirements } from '../progression';
 import type {
   Job,
@@ -137,7 +138,7 @@ export function getJobApplicationFailure(player: Player, job: Job): string | und
   return undefined;
 }
 
-export function getJobShiftFailure(player: Player, job: Job): string | undefined {
+export function getJobShiftFailure(player: Player, job: Job, time: GameTime): string | undefined {
   if (player.currentJobId !== job.id) {
     return 'Сначала устройся на эту работу.';
   }
@@ -145,6 +146,9 @@ export function getJobShiftFailure(player: Player, job: Job): string | undefined
   if (player.locationId !== job.locationId) {
     return 'Нужно быть на месте работы.';
   }
+
+  const scheduleFailure = getScheduleActivityFailure(job.shiftSchedule, time, job.shiftDurationMinutes, 'Смена');
+  if (scheduleFailure) return scheduleFailure;
 
   const currentLevel = getCurrentJobLevel(player, job);
   const minEnergy = currentLevel.minEnergy ?? job.requirements?.minEnergy ?? 20;
@@ -216,7 +220,7 @@ export function applyForJob(input: ApplyJobInput): ApplyJobOutput {
 
 export function applyJobShift(input: ApplyJobShiftInput): ApplyJobShiftOutput {
   const { player, time, job } = input;
-  const failure = getJobShiftFailure(player, job);
+  const failure = getJobShiftFailure(player, job, time);
   const currentLevel = getCurrentJobLevel(player, job);
 
   if (failure) {

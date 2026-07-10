@@ -36,6 +36,7 @@ import {
   type NeedsDecayProfile
 } from '../core/needs';
 import { getShopForLocation, getShopProducts, isProductSoldByShop } from '../core/shop';
+import { getScheduleActivityFailure, getScheduleStatus } from '../core/schedule';
 import { addMinutes, getElapsedMinutes } from '../core/time';
 import {
   calculateDistrictTravel,
@@ -165,6 +166,14 @@ export function useGameController() {
     const actions = getActionsForLocation(location?.id);
     const shop = getShopForLocation(location);
     const shopProducts = getShopProducts(shop?.id);
+    const locationScheduleStatus = getScheduleStatus(location?.openingHours, gameState.time);
+    const locationScheduleStatuses = Object.fromEntries(
+      locations.map((candidateLocation) => [candidateLocation.id, getScheduleStatus(candidateLocation.openingHours, gameState.time)])
+    );
+    const actionScheduleFailure = getScheduleActivityFailure(location?.openingHours, gameState.time, 0, 'Действие');
+    const shopScheduleFailure = shop
+      ? getScheduleActivityFailure(location?.openingHours, gameState.time, 0, 'Магазин')
+      : undefined;
     const travelContext = {
       playerMoney: gameState.player.money,
       playerNeeds: gameState.player.needs
@@ -188,10 +197,14 @@ export function useGameController() {
       actions,
       shop,
       shopProducts,
+      locationScheduleStatus,
+      locationScheduleStatuses,
+      actionScheduleFailure,
+      shopScheduleFailure,
       locationTravelOptions,
       districtTravelOptions
     };
-  }, [gameState.player.cityId, gameState.player.districtId, gameState.player.locationId, gameState.player.money, gameState.player.needs]);
+  }, [gameState.player.cityId, gameState.player.districtId, gameState.player.locationId, gameState.player.money, gameState.player.needs, gameState.time]);
 
   const jobState = useMemo(() => {
     const currentJob = getJobById(gameState.player.currentJobId);
@@ -200,7 +213,7 @@ export function useGameController() {
       const location = getLocationById(job.locationId);
       const district = location ? getDistrictById(location.districtId) : undefined;
       const applicationFailure = getJobApplicationFailure(gameState.player, job);
-      const shiftFailure = getJobShiftFailure(gameState.player, job);
+      const shiftFailure = getJobShiftFailure(gameState.player, job, gameState.time);
       const promotionFailure = getJobPromotionFailure(gameState.player, job);
       const progress = getJobProgress(gameState.player, job);
       const missingSkillRequirements = getMissingSkillRequirements(gameState.player, job.requirements?.skills).map((requirement) => ({
@@ -222,6 +235,7 @@ export function useGameController() {
         currentLevel: progress.currentLevel.level,
         maxLevel: job.levels.length,
         isCurrentJob: gameState.player.currentJobId === job.id,
+        isAtWorkplace: gameState.player.locationId === job.locationId,
         completedShifts: gameState.player.completedShifts[job.id] ?? 0,
         jobExperience: progress.currentExperience,
         levelExperience: progress.levelExperience,
@@ -237,7 +251,8 @@ export function useGameController() {
         canPromote: !promotionFailure,
         promotionFailure,
         missingSkillRequirements,
-        effectiveShiftNeedsDelta
+        effectiveShiftNeedsDelta,
+        scheduleStatus: getScheduleStatus(job.shiftSchedule, gameState.time)
       };
     }
 
@@ -251,7 +266,7 @@ export function useGameController() {
       currentJobView,
       currentLocationJobs
     };
-  }, [gameState.player]);
+  }, [gameState.player, gameState.time]);
 
   const educationState = useMemo(() => {
     const skills = basicSkills.map((skill) => ({
@@ -260,13 +275,14 @@ export function useGameController() {
     }));
 
     const programs = basicEducationPrograms.map((program) => {
-      const failure = getEducationProgramFailure(gameState.player, program);
+      const failure = getEducationProgramFailure(gameState.player, program, gameState.time);
       return {
         program,
         skill: getSkillById(program.skillId),
         location: getLocationById(program.locationId),
         canStudy: !failure,
         failure,
+        scheduleStatus: getScheduleStatus(program.availabilitySchedule, gameState.time),
         effectiveNeedsDelta: adjustActivityNeedsDelta(
           gameState.player.needs,
           program.needsDelta ?? {},
@@ -276,7 +292,7 @@ export function useGameController() {
     });
 
     return { skills, programs };
-  }, [gameState.player]);
+  }, [gameState.player, gameState.time]);
 
   const conditionState = useMemo(() => ({
     conditions: getNeedConditions(gameState.player.needs),
@@ -299,6 +315,29 @@ export function useGameController() {
             actionName: action.name,
             timeDeltaMinutes: 0,
             messages: ['Это действие нельзя выполнить в текущем месте.']
+          },
+          lifeLog: [logEntry, ...currentState.lifeLog].slice(0, 12)
+        };
+      }
+
+      const currentLocation = getLocationById(currentState.player.locationId);
+      const scheduleFailure = getScheduleActivityFailure(
+        currentLocation?.openingHours,
+        currentState.time,
+        action.durationMinutes,
+        'Действие'
+      );
+
+      if (scheduleFailure) {
+        const logEntry = createLifeLogEntry(currentState, 'Действие недоступно', scheduleFailure);
+        return {
+          ...currentState,
+          lastResult: {
+            ok: false,
+            actionId,
+            actionName: action.name,
+            timeDeltaMinutes: 0,
+            messages: [scheduleFailure]
           },
           lifeLog: [logEntry, ...currentState.lifeLog].slice(0, 12)
         };
@@ -482,6 +521,21 @@ export function useGameController() {
             timeDeltaMinutes: 0,
             moneyDelta: 0,
             messages: [message]
+          },
+          lifeLog: [logEntry, ...currentState.lifeLog].slice(0, 12)
+        };
+      }
+
+      const scheduleFailure = getScheduleActivityFailure(location?.openingHours, currentState.time, 0, 'Магазин');
+      if (scheduleFailure) {
+        const logEntry = createLifeLogEntry(currentState, 'Покупка не прошла', scheduleFailure);
+        return {
+          ...currentState,
+          lastResult: {
+            ok: false,
+            timeDeltaMinutes: 0,
+            moneyDelta: 0,
+            messages: [scheduleFailure]
           },
           lifeLog: [logEntry, ...currentState.lifeLog].slice(0, 12)
         };

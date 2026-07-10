@@ -1,6 +1,7 @@
 import type { EducationProgramId, LocationId, SkillId } from './ids';
 import type { NeedsState } from './needs';
 import type { SkillProgressUpdate } from './skill';
+import type { WeeklySchedule } from './schedule';
 
 export type EducationMode = 'self_study' | 'course';
 
@@ -15,6 +16,7 @@ export type EducationProgram = {
   experienceReward: number;
   minEnergy?: number;
   needsDelta?: Partial<NeedsState>;
+  availabilitySchedule?: WeeklySchedule;
 };
 
 export type EducationResult = {

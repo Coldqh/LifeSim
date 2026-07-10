@@ -1,6 +1,7 @@
 import type { EducationProgram } from '../../types/education';
 import type { EducationProgramId, LocationId } from '../../types/ids';
 import { SKILL_IDS } from '../skills/basicSkills';
+import { ALWAYS_OPEN_SCHEDULE, EDUCATION_CENTER_SCHEDULE } from '../schedules/basicSchedules';
 
 function programId(value: string): EducationProgramId {
   return value as EducationProgramId;
@@ -24,7 +25,8 @@ export const basicEducationPrograms: EducationProgram[] = [
     price: 0,
     experienceReward: 14,
     minEnergy: 8,
-    needsDelta: { energy: -6, mood: -1 }
+    needsDelta: { energy: -6, mood: -1 },
+    availabilitySchedule: ALWAYS_OPEN_SCHEDULE
   },
   {
     id: programId('education_self_digital_practice'),
@@ -36,7 +38,8 @@ export const basicEducationPrograms: EducationProgram[] = [
     price: 0,
     experienceReward: 14,
     minEnergy: 8,
-    needsDelta: { energy: -6, mood: -1 }
+    needsDelta: { energy: -6, mood: -1 },
+    availabilitySchedule: ALWAYS_OPEN_SCHEDULE
   },
   {
     id: programId('education_course_service'),
@@ -48,7 +51,8 @@ export const basicEducationPrograms: EducationProgram[] = [
     price: 1200,
     experienceReward: 45,
     minEnergy: 12,
-    needsDelta: { energy: -10, mood: 2 }
+    needsDelta: { energy: -10, mood: 2 },
+    availabilitySchedule: EDUCATION_CENTER_SCHEDULE
   },
   {
     id: programId('education_course_sales'),
@@ -60,7 +64,8 @@ export const basicEducationPrograms: EducationProgram[] = [
     price: 1400,
     experienceReward: 45,
     minEnergy: 12,
-    needsDelta: { energy: -10, mood: 2 }
+    needsDelta: { energy: -10, mood: 2 },
+    availabilitySchedule: EDUCATION_CENTER_SCHEDULE
   },
   {
     id: programId('education_course_office_tools'),
@@ -72,7 +77,8 @@ export const basicEducationPrograms: EducationProgram[] = [
     price: 1800,
     experienceReward: 60,
     minEnergy: 15,
-    needsDelta: { energy: -12, mood: 2 }
+    needsDelta: { energy: -12, mood: 2 },
+    availabilitySchedule: EDUCATION_CENTER_SCHEDULE
   },
   {
     id: programId('education_course_digital_literacy'),
@@ -84,7 +90,8 @@ export const basicEducationPrograms: EducationProgram[] = [
     price: 2200,
     experienceReward: 60,
     minEnergy: 15,
-    needsDelta: { energy: -12, mood: 2 }
+    needsDelta: { energy: -12, mood: 2 },
+    availabilitySchedule: EDUCATION_CENTER_SCHEDULE
   }
 ];
 

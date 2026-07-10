@@ -4069,3 +4069,86 @@ body {
   object-position: center 48%;
   filter: saturate(.82) contrast(.98) brightness(.9);
 }
+
+/* Opening hours / schedule status */
+.schedule-badge,
+.schedule-inline {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  max-width: 100%;
+  font-style: normal;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  line-height: 1.25;
+}
+
+.schedule-badge {
+  margin-top: 8px;
+  padding: 6px 9px;
+  border: 1px solid var(--line-strong);
+  background: color-mix(in srgb, var(--panel-strong) 88%, transparent);
+  font-size: 11px;
+  text-transform: uppercase;
+}
+
+.schedule-inline {
+  margin-top: 4px;
+  font-size: 11px;
+}
+
+.schedule-badge--open,
+.schedule-inline--open {
+  color: var(--positive);
+}
+
+.schedule-badge--closed,
+.schedule-inline--closed {
+  color: var(--negative);
+}
+
+.location-directory__markers {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+}
+
+.location-directory__markers > span:first-child {
+  overflow: hidden;
+  max-width: 100%;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.destination-row__identity .schedule-inline {
+  margin-top: 3px;
+}
+
+.workplace-status-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
+
+.commerce-schedule-warning {
+  margin: 0 0 12px;
+}
+
+.commerce-row__action button:disabled {
+  cursor: not-allowed;
+  opacity: 0.46;
+}
+
+@media (max-width: 760px) {
+  .workplace-status-stack {
+    align-items: flex-start;
+  }
+
+  .schedule-badge,
+  .schedule-inline {
+    white-space: normal;
+  }
+}

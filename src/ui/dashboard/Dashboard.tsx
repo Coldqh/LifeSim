@@ -16,6 +16,7 @@ import type { SkillDefinition } from '../../types/skill';
 import type { SkillProgressView } from '../../core/progression';
 import type { Product, Shop } from '../../types/product';
 import type { NeedCondition, NeedsConsequences } from '../../types/needs';
+import type { ScheduleStatus } from '../../types/schedule';
 import type { DistrictTravelOption, LocationTravelOption } from '../../types/travel';
 import { Icon, type IconName } from '../icons';
 import { CharacterScene } from '../visuals';
@@ -42,6 +43,7 @@ type JobView = {
   currentLevel: number;
   maxLevel: number;
   isCurrentJob: boolean;
+  isAtWorkplace: boolean;
   completedShifts: number;
   jobExperience: number;
   levelExperience: number;
@@ -58,6 +60,7 @@ type JobView = {
   promotionFailure?: string;
   missingSkillRequirements: Array<{ name: string; currentLevel: number; minLevel: number }>;
   effectiveShiftNeedsDelta: Partial<import('../../types/needs').NeedsState>;
+  scheduleStatus: ScheduleStatus;
 };
 
 type DashboardProps = {
@@ -71,6 +74,10 @@ type DashboardProps = {
     locations: Location[];
     shop?: Shop;
     shopProducts: Product[];
+    locationScheduleStatus: ScheduleStatus;
+    locationScheduleStatuses: Record<string, ScheduleStatus>;
+    actionScheduleFailure?: string;
+    shopScheduleFailure?: string;
     locationTravelOptions: LocationTravelOption[];
     districtTravelOptions: DistrictTravelOption[];
   };
@@ -88,6 +95,7 @@ type DashboardProps = {
       location?: Location;
       canStudy: boolean;
       failure?: string;
+      scheduleStatus: ScheduleStatus;
       effectiveNeedsDelta: Partial<import('../../types/needs').NeedsState>;
     }>;
   };
@@ -292,6 +300,8 @@ export function Dashboard({
                   districtTravelOptions={locationState.districtTravelOptions}
                   locationTravelOptions={locationState.locationTravelOptions}
                   locationJobs={jobState.currentLocationJobs}
+                  currentScheduleStatus={locationState.locationScheduleStatus}
+                  locationScheduleStatuses={locationState.locationScheduleStatuses}
                   onMoveDistrict={onMoveDistrict}
                   onMoveLocation={onMoveLocation}
                   onApplyForJob={onApplyForJob}
@@ -299,7 +309,7 @@ export function Dashboard({
               </div>
 
               <aside className="context-column">
-                <ShopPanel locationAddress={locationState.location?.address} locationName={locationState.location?.name} shop={locationState.shop} products={locationState.shopProducts} onBuyProduct={onBuyProduct} />
+                <ShopPanel locationAddress={locationState.location?.address} locationName={locationState.location?.name} shop={locationState.shop} products={locationState.shopProducts} scheduleStatus={locationState.locationScheduleStatus} scheduleFailure={locationState.shopScheduleFailure} onBuyProduct={onBuyProduct} />
                 <section className="panel actions-panel visual-panel">
                   <div className="actions-panel__beam" aria-hidden="true" />
                   <div className="section-heading section-heading--compact">
@@ -310,7 +320,7 @@ export function Dashboard({
                     <div className="actions-list">{actions.map((action) => (
                       <ActionCard
                         action={action}
-                        failure={getLifeActionFailure(player, action)}
+                        failure={locationState.actionScheduleFailure ?? getLifeActionFailure(player, action)}
                         effectiveNeedsDelta={adjustActivityNeedsDelta(
                           player.needs,
                           action.needsDelta,

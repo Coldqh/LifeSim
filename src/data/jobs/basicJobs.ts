@@ -1,6 +1,24 @@
 import type { Job, JobLevel } from '../../types/job';
 import type { JobId, LocationId } from '../../types/ids';
 import { SKILL_IDS } from '../skills/basicSkills';
+import {
+  BANK_SCHEDULE,
+  BUSINESS_CENTER_SCHEDULE,
+  CAFE_SCHEDULE,
+  COWORKING_SCHEDULE,
+  FITNESS_SCHEDULE,
+  FOOD_COURT_SCHEDULE,
+  GROCERY_SCHEDULE,
+  NIGHT_SHIFT_SCHEDULE,
+  OFFICE_SCHEDULE,
+  PHARMACY_SCHEDULE,
+  PICKUP_POINT_SCHEDULE,
+  RESTAURANT_SCHEDULE,
+  RETAIL_SCHEDULE,
+  SERVICE_SCHEDULE,
+  SPORT_FACILITY_SCHEDULE,
+  WAREHOUSE_SCHEDULE
+} from '../schedules/basicSchedules';
 
 function jobId(value: string): JobId {
   return value as JobId;
@@ -652,6 +670,29 @@ const JOB_SKILL_REWARDS: Record<string, Job['skillRewards']> = {
   ]
 };
 
+const JOB_SHIFT_SCHEDULES: Record<string, NonNullable<Job['shiftSchedule']>> = {
+  job_barista_trainee: CAFE_SCHEDULE,
+  job_grocery_assistant: GROCERY_SCHEDULE,
+  job_warehouse_helper: WAREHOUSE_SCHEDULE,
+  job_office_part_time_assistant: OFFICE_SCHEDULE,
+  job_business_center_helper: BUSINESS_CENTER_SCHEDULE,
+  job_salon_administrator: SERVICE_SCHEDULE,
+  job_phone_shop_consultant: RETAIL_SCHEDULE,
+  job_fitness_assistant: FITNESS_SCHEDULE,
+  job_coworking_assistant: COWORKING_SCHEDULE,
+  job_bookstore_assistant: RETAIL_SCHEDULE,
+  job_pharmacy_counter_assistant: PHARMACY_SCHEDULE,
+  job_canteen_cashier: RESTAURANT_SCHEDULE,
+  job_pickup_point_operator: PICKUP_POINT_SCHEDULE,
+  job_electronics_store_assistant: RETAIL_SCHEDULE,
+  job_food_court_cashier: FOOD_COURT_SCHEDULE,
+  job_bank_lobby_assistant: BANK_SCHEDULE,
+  job_clothing_store_assistant: RETAIL_SCHEDULE,
+  job_restaurant_runner: RESTAURANT_SCHEDULE,
+  job_night_store_cashier: NIGHT_SHIFT_SCHEDULE,
+  job_pool_attendant: SPORT_FACILITY_SCHEDULE
+};
+
 const JOB_SKILL_REQUIREMENTS: Record<string, NonNullable<Job['requirements']>['skills']> = {
   job_salon_administrator: [{ skillId: SKILL_IDS.service, minLevel: 1 }],
   job_phone_shop_consultant: [
@@ -678,7 +719,8 @@ export const basicJobs: Job[] = baseJobs.map((job) => ({
     ...job.requirements,
     skills: JOB_SKILL_REQUIREMENTS[job.id] ?? []
   },
-  skillRewards: JOB_SKILL_REWARDS[job.id] ?? []
+  skillRewards: JOB_SKILL_REWARDS[job.id] ?? [],
+  shiftSchedule: JOB_SHIFT_SCHEDULES[job.id]
 }));
 
 export function getJobById(jobId: JobId | undefined): Job | undefined {

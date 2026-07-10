@@ -3,6 +3,7 @@ import type { Job, JobLevel } from '../../types/job';
 import type { JobId } from '../../types/ids';
 import type { District, Location } from '../../types/location';
 import type { NeedsState } from '../../types/needs';
+import type { ScheduleStatus } from '../../types/schedule';
 import { getSkillById } from '../../data/skills/basicSkills';
 import { Icon } from '../icons';
 import { WorkplaceScene } from '../visuals';
@@ -17,6 +18,7 @@ type JobView = {
   currentLevel: number;
   maxLevel: number;
   isCurrentJob: boolean;
+  isAtWorkplace: boolean;
   completedShifts: number;
   jobExperience: number;
   levelExperience: number;
@@ -33,6 +35,7 @@ type JobView = {
   promotionFailure?: string;
   missingSkillRequirements: Array<{ name: string; currentLevel: number; minLevel: number }>;
   effectiveShiftNeedsDelta: Partial<NeedsState>;
+  scheduleStatus: ScheduleStatus;
 };
 
 type JobPanelProps = {
@@ -102,7 +105,9 @@ export function JobPanel({ currentJobView, onPromoteJob, onWorkShift }: JobPanel
     promotionFailure,
     canWorkShift,
     shiftFailure,
-    effectiveShiftNeedsDelta
+    effectiveShiftNeedsDelta,
+    scheduleStatus,
+    isAtWorkplace
   } = currentJobView;
 
   return (
@@ -118,9 +123,14 @@ export function JobPanel({ currentJobView, onPromoteJob, onWorkShift }: JobPanel
               <p>{location?.name ?? 'Место не найдено'} · {location?.address ?? district?.name ?? 'Район не найден'}</p>
             </div>
           </div>
-          <span className={canWorkShift ? 'status-label status-label--success' : 'status-label'}>
-            {canWorkShift ? 'На рабочем месте' : 'Вне рабочего места'}
-          </span>
+          <div className="workplace-status-stack">
+            <span className={canWorkShift ? 'status-label status-label--success' : 'status-label'}>
+              {canWorkShift ? 'Смена доступна' : !isAtWorkplace ? 'Вне рабочего места' : scheduleStatus.isOpen ? 'Смена недоступна' : 'Рабочее место закрыто'}
+            </span>
+            <small className={scheduleStatus.isOpen ? 'schedule-inline schedule-inline--open' : 'schedule-inline schedule-inline--closed'}>
+              {scheduleStatus.label}
+            </small>
+          </div>
         </div>
       </section>
 
@@ -189,7 +199,11 @@ export function JobPanel({ currentJobView, onPromoteJob, onWorkShift }: JobPanel
       <section className="panel shift-panel visual-panel">
         <div className="shift-panel__glow" aria-hidden="true" />
         <div className="section-heading section-heading--compact">
-          <div><span className="section-kicker">Рабочая смена</span><h2>{formatDuration(job.shiftDurationMinutes)}</h2></div>
+          <div>
+            <span className="section-kicker">Рабочая смена</span>
+            <h2>{formatDuration(job.shiftDurationMinutes)}</h2>
+            <small className={scheduleStatus.isOpen ? 'schedule-inline schedule-inline--open' : 'schedule-inline schedule-inline--closed'}>{scheduleStatus.label}</small>
+          </div>
           <strong className="shift-pay">{formatRubles(jobLevel.wagePerShift)}</strong>
         </div>
         <EffectList items={getJobShiftEffects(job, jobLevel, effectiveShiftNeedsDelta)} />

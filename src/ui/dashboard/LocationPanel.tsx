@@ -5,6 +5,7 @@ import type { DistrictId, JobId, LocationId } from '../../types/ids';
 import type { TravelModeId } from '../../types/transport';
 import type { City, District, Location, LocationType } from '../../types/location';
 import type { DistrictTravelOption, LocationTravelOption } from '../../types/travel';
+import type { ScheduleStatus } from '../../types/schedule';
 import { Icon, type IconName } from '../icons';
 import { LocationScene } from '../visuals';
 import { LocationTravelModal } from './LocationTravelModal';
@@ -16,6 +17,7 @@ type LocationJobView = {
   location?: Location;
   district?: District;
   isCurrentJob: boolean;
+  isAtWorkplace: boolean;
   completedShifts: number;
   jobExperience: number;
   experienceRemaining: number;
@@ -24,6 +26,7 @@ type LocationJobView = {
   canWorkShift: boolean;
   shiftFailure?: string;
   missingSkillRequirements: Array<{ name: string; currentLevel: number; minLevel: number }>;
+  scheduleStatus: ScheduleStatus;
 };
 
 type LocationPanelProps = {
@@ -33,6 +36,8 @@ type LocationPanelProps = {
   districtTravelOptions: DistrictTravelOption[];
   locationTravelOptions: LocationTravelOption[];
   locationJobs: LocationJobView[];
+  currentScheduleStatus: ScheduleStatus;
+  locationScheduleStatuses: Record<string, ScheduleStatus>;
   onMoveDistrict: (districtId: DistrictId, modeId: TravelModeId) => void;
   onMoveLocation: (locationId: LocationId, modeId: TravelModeId) => void;
   onApplyForJob: (jobId: JobId) => void;
@@ -124,6 +129,8 @@ export function LocationPanel({
   districtTravelOptions,
   locationTravelOptions,
   locationJobs,
+  currentScheduleStatus,
+  locationScheduleStatuses,
   onMoveDistrict,
   onMoveLocation,
   onApplyForJob
@@ -173,6 +180,9 @@ export function LocationPanel({
               <span className="section-kicker">Текущий район</span>
               <h2>{district?.name ?? 'Район не найден'}</h2>
               <p>{location?.address ?? `${city?.name ?? 'Город'} · ${location ? LOCATION_TYPE_LABELS[location.type] : '—'}`}</p>
+              <span className={`schedule-badge ${currentScheduleStatus.isOpen ? 'schedule-badge--open' : 'schedule-badge--closed'}`}>
+                {currentScheduleStatus.label}
+              </span>
             </div>
           </div>
           <div className="city-command-header__actions">
@@ -209,6 +219,7 @@ export function LocationPanel({
           <div className="location-directory__body">
             {filteredLocationOptions.length > 0 ? filteredLocationOptions.map((option) => {
               const markers = getLocationMarkers(option.location);
+              const scheduleStatus = locationScheduleStatuses[option.location.id];
               return (
                 <button
                   className={option.isCurrent ? 'location-directory__row location-directory__row--current' : 'location-directory__row'}
@@ -223,7 +234,14 @@ export function LocationPanel({
                     <span className="location-directory__title"><strong>{option.location.name}</strong><small>{option.location.address}</small></span>
                   </span>
                   <span role="cell">{LOCATION_TYPE_LABELS[option.location.type]}</span>
-                  <span className="location-directory__markers" role="cell">{markers.join(' · ') || '—'}</span>
+                  <span className="location-directory__markers" role="cell">
+                    <span>{markers.join(' · ') || '—'}</span>
+                    {scheduleStatus ? (
+                      <small className={scheduleStatus.isOpen ? 'schedule-inline schedule-inline--open' : 'schedule-inline schedule-inline--closed'}>
+                        {scheduleStatus.label}
+                      </small>
+                    ) : null}
+                  </span>
                   <span className="location-directory__travel" role="cell">{getMinTravelTimeLabel(option)}{!option.isCurrent ? <Icon name="chevron" size={16} /> : null}</span>
                 </button>
               );
@@ -244,6 +262,9 @@ export function LocationPanel({
                   <div className="vacancy-row__content">
                     <strong>{view.job.title}</strong>
                     <span>{formatDuration(view.job.shiftDurationMinutes)} · {formatRubles(view.job.wagePerShift)} · +{view.job.experiencePerShift} XP</span>
+                    <small className={view.scheduleStatus.isOpen ? 'schedule-inline schedule-inline--open' : 'schedule-inline schedule-inline--closed'}>
+                      Смены: {view.scheduleStatus.label}
+                    </small>
                     <EffectList items={getVacancyEffects(view.job)} />
                     {view.missingSkillRequirements.length > 0 ? (
                       <div className="vacancy-skill-requirements">
@@ -314,6 +335,7 @@ export function LocationPanel({
         <LocationTravelModal
           initialLocationId={selectedLocationId}
           options={locationTravelOptions}
+          scheduleStatuses={locationScheduleStatuses}
           onClose={() => { setIsLocationPickerOpen(false); setSelectedLocationId(undefined); }}
           onMoveLocation={onMoveLocation}
         />

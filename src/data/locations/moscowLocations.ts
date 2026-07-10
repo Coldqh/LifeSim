@@ -1,5 +1,28 @@
-import type { Location } from '../../types/location';
+import type { Location, LocationType } from '../../types/location';
+import type { WeeklySchedule } from '../../types/schedule';
 import type { ActionId, CityId, DistrictId, JobId, LocationId, ShopId } from '../../types/ids';
+import {
+  ALWAYS_OPEN_SCHEDULE,
+  BANK_SCHEDULE,
+  BUSINESS_CENTER_SCHEDULE,
+  CAFE_SCHEDULE,
+  CLINIC_SCHEDULE,
+  COWORKING_SCHEDULE,
+  EDUCATION_CENTER_SCHEDULE,
+  FITNESS_SCHEDULE,
+  FOOD_COURT_SCHEDULE,
+  GROCERY_SCHEDULE,
+  MALL_SCHEDULE,
+  OFFICE_SCHEDULE,
+  PHARMACY_SCHEDULE,
+  PICKUP_POINT_SCHEDULE,
+  PREMIUM_CAFE_SCHEDULE,
+  RESTAURANT_SCHEDULE,
+  RETAIL_SCHEDULE,
+  SERVICE_SCHEDULE,
+  SPORT_FACILITY_SCHEDULE,
+  WAREHOUSE_SCHEDULE
+} from '../schedules/basicSchedules';
 
 function actionId(value: string): ActionId {
   return value as ActionId;
@@ -27,7 +50,7 @@ function jobId(value: string): JobId {
 
 const moscow = cityId('moscow');
 
-export const moscowLocations: Location[] = [
+const baseMoscowLocations: Location[] = [
   {
     id: locationId('msk_danilovsky_home'),
     cityId: moscow,
@@ -490,3 +513,42 @@ export const moscowLocations: Location[] = [
     shopId: shopId('shop_canteen')
   }
 ];
+
+const LOCATION_TYPE_SCHEDULES: Record<LocationType, WeeklySchedule> = {
+  home: ALWAYS_OPEN_SCHEDULE,
+  shop: GROCERY_SCHEDULE,
+  cafe: CAFE_SCHEDULE,
+  workplace: OFFICE_SCHEDULE,
+  business_center: BUSINESS_CENTER_SCHEDULE,
+  park: ALWAYS_OPEN_SCHEDULE,
+  sport_ground: ALWAYS_OPEN_SCHEDULE,
+  service: SERVICE_SCHEDULE,
+  warehouse: WAREHOUSE_SCHEDULE,
+  fitness: FITNESS_SCHEDULE,
+  coworking: COWORKING_SCHEDULE,
+  clinic: CLINIC_SCHEDULE,
+  pharmacy: PHARMACY_SCHEDULE,
+  restaurant: RESTAURANT_SCHEDULE,
+  food_court: FOOD_COURT_SCHEDULE,
+  pickup_point: PICKUP_POINT_SCHEDULE,
+  mall: MALL_SCHEDULE,
+  electronics_store: RETAIL_SCHEDULE,
+  clothing_store: RETAIL_SCHEDULE,
+  bank: BANK_SCHEDULE,
+  education_center: EDUCATION_CENTER_SCHEDULE,
+  sports_store: RETAIL_SCHEDULE,
+  boxing_gym: SPORT_FACILITY_SCHEDULE,
+  pool: SPORT_FACILITY_SCHEDULE,
+  other: ALWAYS_OPEN_SCHEDULE
+};
+
+const LOCATION_SCHEDULE_OVERRIDES: Record<string, WeeklySchedule> = {
+  msk_tverskoy_night_store: ALWAYS_OPEN_SCHEDULE,
+  msk_tverskoy_premium_coffee: PREMIUM_CAFE_SCHEDULE
+};
+
+export const moscowLocations: Location[] = baseMoscowLocations.map((location) => ({
+  ...location,
+  openingHours: LOCATION_SCHEDULE_OVERRIDES[location.id] ?? LOCATION_TYPE_SCHEDULES[location.type]
+}));
+

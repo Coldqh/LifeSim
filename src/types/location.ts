@@ -1,4 +1,5 @@
 import type { ActionId, CityId, CountryId, DistrictId, JobId, LocationId, ShopId } from './ids';
+import type { WeeklySchedule } from './schedule';
 
 export type City = {
   id: CityId;
@@ -54,4 +55,5 @@ export type Location = {
   availableActionIds: ActionId[];
   shopId?: ShopId;
   jobIds?: JobId[];
+  openingHours?: WeeklySchedule;
 };

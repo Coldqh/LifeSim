@@ -1,5 +1,6 @@
 export * from './ids';
 export * from './time';
+export * from './schedule';
 export * from './needs';
 export * from './economy';
 export * from './location';
