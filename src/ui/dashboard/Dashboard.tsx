@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { useUiTheme } from '../../state';
 import { formatRubles } from '../../core/economy';
-import { getNeedsDecayDelta } from '../../core/needs';
+import { getLifeActionFailure } from '../../core/actions';
+import { adjustActivityNeedsDelta, getNeedSeverity, getNeedsDecayDelta } from '../../core/needs';
 import { getHousingById } from '../../data/housing/basicHousing';
 import { formatGameTime, formatWeekday } from '../../core/time';
 import type { GameState } from '../../state';
@@ -14,12 +15,14 @@ import type { EducationProgram } from '../../types/education';
 import type { SkillDefinition } from '../../types/skill';
 import type { SkillProgressView } from '../../core/progression';
 import type { Product, Shop } from '../../types/product';
+import type { NeedCondition, NeedsConsequences } from '../../types/needs';
 import type { DistrictTravelOption, LocationTravelOption } from '../../types/travel';
 import { Icon, type IconName } from '../icons';
 import { CharacterScene } from '../visuals';
 import { ActionCard } from './ActionCard';
 import { createNeedsEffectItems, EffectList } from './EffectList';
 import { HousingPanel } from './HousingPanel';
+import { ConditionPanel } from './ConditionPanel';
 import { DevelopmentPanel } from './DevelopmentPanel';
 import { InventoryPanel } from './InventoryPanel';
 import { JobPanel } from './JobPanel';
@@ -54,6 +57,7 @@ type JobView = {
   canPromote: boolean;
   promotionFailure?: string;
   missingSkillRequirements: Array<{ name: string; currentLevel: number; minLevel: number }>;
+  effectiveShiftNeedsDelta: Partial<import('../../types/needs').NeedsState>;
 };
 
 type DashboardProps = {
@@ -84,7 +88,12 @@ type DashboardProps = {
       location?: Location;
       canStudy: boolean;
       failure?: string;
+      effectiveNeedsDelta: Partial<import('../../types/needs').NeedsState>;
     }>;
+  };
+  conditionState: {
+    conditions: NeedCondition[];
+    consequences: NeedsConsequences;
   };
   onPerformAction: (actionId: ActionId) => void;
   onMoveDistrict: (districtId: DistrictId, modeId: TravelModeId) => void;
@@ -116,11 +125,14 @@ const PAGE_TITLES: Record<DashboardTab, { title: string; eyebrow: string }> = {
   log: { title: 'Журнал', eyebrow: 'Хронология' }
 };
 
-function needTone(value: number): 'default' | 'good' | 'warning' {
-  if (value <= 25) return 'warning';
+function needTone(value: number): 'default' | 'good' | 'warning' | 'critical' {
+  const severity = getNeedSeverity(value);
+  if (severity === 'critical' || severity === 'emergency') return 'critical';
+  if (severity === 'warning') return 'warning';
   if (value >= 75) return 'good';
   return 'default';
 }
+
 
 export function Dashboard({
   gameState,
@@ -128,6 +140,7 @@ export function Dashboard({
   locationState,
   jobState,
   educationState,
+  conditionState,
   onPerformAction,
   onMoveDistrict,
   onMoveLocation,
@@ -244,6 +257,8 @@ export function Dashboard({
                 </div>
               </section>
 
+              <ConditionPanel conditions={conditionState.conditions} consequences={conditionState.consequences} />
+
               <section className="panel vitals-panel visual-panel">
                 <div className="vitals-panel__aurora" aria-hidden="true" />
                 <div className="section-heading">
@@ -292,7 +307,22 @@ export function Dashboard({
                     <span className="section-counter">{actions.length}</span>
                   </div>
                   {actions.length > 0 ? (
-                    <div className="actions-list">{actions.map((action) => <ActionCard action={action} key={action.id} onPerform={onPerformAction} />)}</div>
+                    <div className="actions-list">{actions.map((action) => (
+                      <ActionCard
+                        action={action}
+                        failure={getLifeActionFailure(player, action)}
+                        effectiveNeedsDelta={adjustActivityNeedsDelta(
+                          player.needs,
+                          action.needsDelta,
+                          {
+                            scaleEnergyCost: true,
+                            scaleEnergyRecovery: action.category === 'sleep' || action.category === 'rest'
+                          }
+                        )}
+                        key={action.id}
+                        onPerform={onPerformAction}
+                      />
+                    ))}</div>
                   ) : (
                     <div className="empty-state compact-empty-state">Нет доступных действий</div>
                   )}

@@ -5,7 +5,7 @@ type StatCardProps = {
   value: string | number;
   helper?: string;
   progress?: number;
-  tone?: 'default' | 'good' | 'warning';
+  tone?: 'default' | 'good' | 'warning' | 'critical';
   icon?: IconName;
 };
 

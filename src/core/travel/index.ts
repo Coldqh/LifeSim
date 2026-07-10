@@ -1,4 +1,6 @@
+import { adjustActivityNeedsDelta, getNeedsRequirementFailure } from '../needs';
 import type { District, Location } from '../../types/location';
+import type { NeedsState } from '../../types/needs';
 import type { DistrictTravelOption, LocationTravelOption, TransportOption, TravelResult } from '../../types/travel';
 import type { TravelModeId } from '../../types/transport';
 
@@ -23,7 +25,7 @@ const TRANSPORT_LABELS: Record<TravelModeId, { name: string; description: string
 
 type TravelContext = {
   playerMoney: number;
-  playerEnergy: number;
+  playerNeeds: NeedsState;
 };
 
 function getSameDistrictDuration(fromLocation: Location, toLocation: Location): number {
@@ -92,16 +94,23 @@ function withAvailability(option: Omit<TransportOption, 'available' | 'unavailab
     return {
       ...option,
       available: false,
-      unavailableReason: 'Не хватает денег.'
+      unavailableReason: `Деньги: ${context.playerMoney}/${option.moneyCost} ₽.`
     };
   }
 
-  if (energyCost > context.playerEnergy) {
-    return {
-      ...option,
-      available: false,
-      unavailableReason: 'Не хватает энергии.'
-    };
+  if (option.modeId === 'walk') {
+    const needsFailure = getNeedsRequirementFailure(context.playerNeeds, {
+      minEnergy: energyCost,
+      minHealth: 15
+    });
+
+    if (needsFailure) {
+      return {
+        ...option,
+        available: false,
+        unavailableReason: needsFailure
+      };
+    }
   }
 
   return {
@@ -120,6 +129,11 @@ export function createTransportOptions(input: {
   if (baseDurationMinutes <= 0) return [];
 
   const walkEnergyCost = getWalkEnergyCost(baseDurationMinutes, isCrossDistrict);
+  const walkNeedsDelta = adjustActivityNeedsDelta(
+    context.playerNeeds,
+    { energy: -walkEnergyCost },
+    { scaleEnergyCost: true }
+  );
 
   const rawOptions: Omit<TransportOption, 'available' | 'unavailableReason'>[] = [
     {
@@ -128,9 +142,7 @@ export function createTransportOptions(input: {
       description: TRANSPORT_LABELS.walk.description,
       durationMinutes: isCrossDistrict ? baseDurationMinutes * 2 : baseDurationMinutes,
       moneyCost: 0,
-      needsDelta: {
-        energy: -walkEnergyCost
-      }
+      needsDelta: walkNeedsDelta
     },
     {
       modeId: 'metro',

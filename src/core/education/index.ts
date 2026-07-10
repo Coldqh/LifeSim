@@ -1,5 +1,9 @@
 import { applyMoneyDelta, canAfford } from '../economy';
-import { applyNeedsDelta, getNeedWarning } from '../needs';
+import {
+  applyActivityNeedsDelta,
+  getNeedsRequirementFailure,
+  getNeedWarning
+} from '../needs';
 import { applySkillExperience } from '../progression';
 import { addMinutes } from '../time';
 import type { EducationProgram, EducationResult } from '../../types/education';
@@ -26,14 +30,15 @@ export function getEducationProgramFailure(player: Player, program: EducationPro
   }
 
   if (!canAfford(player.money, program.price)) {
-    return 'Не хватает денег на обучение.';
+    return `Деньги: ${player.money}/${program.price} ₽.`;
   }
 
-  if (program.minEnergy !== undefined && player.needs.energy < program.minEnergy) {
-    return `Не хватает энергии. Нужно минимум ${program.minEnergy}.`;
-  }
-
-  return undefined;
+  return getNeedsRequirementFailure(player.needs, {
+    minEnergy: program.minEnergy ?? 15,
+    minHealth: 20,
+    minHunger: 6,
+    minThirst: 6
+  });
 }
 
 export function applyEducationProgram(input: ApplyEducationProgramInput): ApplyEducationProgramOutput {
@@ -56,10 +61,13 @@ export function applyEducationProgram(input: ApplyEducationProgramInput): ApplyE
   }
 
   const skillApplied = applySkillExperience(player.skills, program.skillId, program.experienceReward);
-  const nextNeeds = applyNeedsDelta(player.needs, program.needsDelta ?? {});
+  const needsApplied = applyActivityNeedsDelta(player.needs, program.needsDelta ?? {}, {
+    scaleEnergyCost: true,
+    scaleEnergyRecovery: false
+  });
   const nextTime = addMinutes(time, program.durationMinutes);
   const nextMoney = applyMoneyDelta(player.money, -program.price);
-  const warning = getNeedWarning(nextNeeds);
+  const warning = getNeedWarning(needsApplied.needs);
   const baseMessage = `${program.title}: +${program.experienceReward} XP навыка.`;
   const messages = warning ? [baseMessage, warning] : [baseMessage];
 
@@ -67,7 +75,7 @@ export function applyEducationProgram(input: ApplyEducationProgramInput): ApplyE
     player: {
       ...player,
       money: nextMoney,
-      needs: nextNeeds,
+      needs: needsApplied.needs,
       skills: skillApplied.skills
     },
     time: nextTime,
@@ -77,7 +85,7 @@ export function applyEducationProgram(input: ApplyEducationProgramInput): ApplyE
       programTitle: program.title,
       timeDeltaMinutes: program.durationMinutes,
       moneyDelta: -program.price,
-      needsDelta: program.needsDelta,
+      needsDelta: needsApplied.delta,
       skillProgress: skillApplied.update,
       messages
     }

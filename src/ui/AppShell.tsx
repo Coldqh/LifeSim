@@ -8,6 +8,7 @@ export function AppShell() {
     locationState,
     jobState,
     educationState,
+    conditionState,
     performAction,
     moveToDistrict,
     moveToLocation,
@@ -26,6 +27,7 @@ export function AppShell() {
       gameState={gameState}
       jobState={jobState}
       educationState={educationState}
+      conditionState={conditionState}
       locationState={locationState}
       onApplyForJob={applyForJob}
       onBuyProduct={buyProduct}

@@ -7,6 +7,9 @@ export type LifeActionCategory = 'work' | 'food' | 'drink' | 'rest' | 'sleep' | 
 export type LifeActionRequirements = {
   minMoney?: number;
   minEnergy?: number;
+  minHealth?: number;
+  minHunger?: number;
+  minThirst?: number;
 };
 
 export type LifeAction = {

@@ -2,6 +2,7 @@ import { formatRubles } from '../../core/economy';
 import type { Job, JobLevel } from '../../types/job';
 import type { JobId } from '../../types/ids';
 import type { District, Location } from '../../types/location';
+import type { NeedsState } from '../../types/needs';
 import { getSkillById } from '../../data/skills/basicSkills';
 import { Icon } from '../icons';
 import { WorkplaceScene } from '../visuals';
@@ -31,6 +32,7 @@ type JobView = {
   canPromote: boolean;
   promotionFailure?: string;
   missingSkillRequirements: Array<{ name: string; currentLevel: number; minLevel: number }>;
+  effectiveShiftNeedsDelta: Partial<NeedsState>;
 };
 
 type JobPanelProps = {
@@ -47,7 +49,7 @@ function formatDuration(minutes: number): string {
   return `${restMinutes} мин`;
 }
 
-function getJobShiftEffects(job: Job, jobLevel: JobLevel): EffectListItem[] {
+function getJobShiftEffects(job: Job, jobLevel: JobLevel, effectiveNeedsDelta: Partial<NeedsState>): EffectListItem[] {
   return [
     { label: 'Деньги', value: jobLevel.wagePerShift, unit: '₽', tone: 'positive' },
     { label: 'Опыт работы', value: job.experiencePerShift, unit: 'XP', tone: 'positive' },
@@ -58,7 +60,7 @@ function getJobShiftEffects(job: Job, jobLevel: JobLevel): EffectListItem[] {
       tone: 'positive' as const
     })),
     { label: 'Время', value: -job.shiftDurationMinutes, unit: 'мин', tone: 'negative' },
-    ...createNeedsEffectItems(job.effects.needsDelta)
+    ...createNeedsEffectItems(effectiveNeedsDelta)
   ];
 }
 
@@ -99,7 +101,8 @@ export function JobPanel({ currentJobView, onPromoteJob, onWorkShift }: JobPanel
     canPromote,
     promotionFailure,
     canWorkShift,
-    shiftFailure
+    shiftFailure,
+    effectiveShiftNeedsDelta
   } = currentJobView;
 
   return (
@@ -187,7 +190,7 @@ export function JobPanel({ currentJobView, onPromoteJob, onWorkShift }: JobPanel
           <div><span className="section-kicker">Рабочая смена</span><h2>{formatDuration(job.shiftDurationMinutes)}</h2></div>
           <strong className="shift-pay">{formatRubles(jobLevel.wagePerShift)}</strong>
         </div>
-        <EffectList items={getJobShiftEffects(job, jobLevel)} />
+        <EffectList items={getJobShiftEffects(job, jobLevel, effectiveShiftNeedsDelta)} />
         <button className="primary-command-button premium-cta" disabled={!canWorkShift} type="button" onClick={() => onWorkShift(job.id)}>
           <span>Начать смену</span><Icon name="arrow" size={18} />
         </button>

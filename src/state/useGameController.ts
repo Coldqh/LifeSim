@@ -24,7 +24,17 @@ import {
   getLocationsForDistrict,
   isActionAvailableAtLocation
 } from '../core/location';
-import { applyNeedsDecay, applyNeedsDelta, describeNeedsDecay, getNeedWarning, type NeedsDecayProfile } from '../core/needs';
+import {
+  adjustActivityNeedsDelta,
+  applyNeedsDecay,
+  applyNeedsDelta,
+  describeNeedsDecay,
+  getConditionTransitionMessages,
+  getNeedConditions,
+  getNeedsConsequences,
+  getNeedWarning,
+  type NeedsDecayProfile
+} from '../core/needs';
 import { getShopForLocation, getShopProducts, isProductSoldByShop } from '../core/shop';
 import { addMinutes, getElapsedMinutes } from '../core/time';
 import {
@@ -88,7 +98,6 @@ function applyElapsedTimeConsequences(
   const messages: string[] = [];
   const decayApplied = applyNeedsDecay(player.needs, elapsedMinutes, decayProfile);
   const decayMessage = describeNeedsDecay(decayApplied.delta);
-  const decayWarning = getNeedWarning(decayApplied.needs);
   let nextPlayer: Player = {
     ...player,
     needs: decayApplied.needs
@@ -99,8 +108,13 @@ function applyElapsedTimeConsequences(
     lifeLogEntries.push(createLifeLogEntry({ time: nextTime }, 'Время', decayMessage));
   }
 
-  if (decayWarning) {
-    messages.push(decayWarning);
+
+  const conditionMessages = getConditionTransitionMessages(currentState.player.needs, decayApplied.needs);
+  if (conditionMessages.length > 0) {
+    messages.push(...conditionMessages);
+    lifeLogEntries.push(
+      ...conditionMessages.map((message) => createLifeLogEntry({ time: nextTime }, 'Состояние', message))
+    );
   }
 
   const elapsedDays = Math.max(0, nextTime.day - currentState.time.day);
@@ -153,7 +167,7 @@ export function useGameController() {
     const shopProducts = getShopProducts(shop?.id);
     const travelContext = {
       playerMoney: gameState.player.money,
-      playerEnergy: gameState.player.needs.energy
+      playerNeeds: gameState.player.needs
     };
     const locationTravelOptions = createLocationTravelOptions(location, locations, travelContext);
     const districtTravelOptions = districts.map((candidateDistrict) =>
@@ -177,7 +191,7 @@ export function useGameController() {
       locationTravelOptions,
       districtTravelOptions
     };
-  }, [gameState.player.cityId, gameState.player.districtId, gameState.player.locationId, gameState.player.money, gameState.player.needs.energy]);
+  }, [gameState.player.cityId, gameState.player.districtId, gameState.player.locationId, gameState.player.money, gameState.player.needs]);
 
   const jobState = useMemo(() => {
     const currentJob = getJobById(gameState.player.currentJobId);
@@ -193,6 +207,11 @@ export function useGameController() {
         ...requirement,
         name: getSkillById(requirement.skillId)?.name ?? requirement.skillId
       }));
+      const effectiveShiftNeedsDelta = adjustActivityNeedsDelta(
+        gameState.player.needs,
+        job.effects.needsDelta,
+        { scaleEnergyCost: true }
+      );
 
       return {
         job,
@@ -217,7 +236,8 @@ export function useGameController() {
         shiftFailure,
         canPromote: !promotionFailure,
         promotionFailure,
-        missingSkillRequirements
+        missingSkillRequirements,
+        effectiveShiftNeedsDelta
       };
     }
 
@@ -246,12 +266,22 @@ export function useGameController() {
         skill: getSkillById(program.skillId),
         location: getLocationById(program.locationId),
         canStudy: !failure,
-        failure
+        failure,
+        effectiveNeedsDelta: adjustActivityNeedsDelta(
+          gameState.player.needs,
+          program.needsDelta ?? {},
+          { scaleEnergyCost: true }
+        )
       };
     });
 
     return { skills, programs };
   }, [gameState.player]);
+
+  const conditionState = useMemo(() => ({
+    conditions: getNeedConditions(gameState.player.needs),
+    consequences: getNeedsConsequences(gameState.player.needs)
+  }), [gameState.player.needs]);
 
   function performAction(actionId: ActionId): void {
     const action = getLifeAction(actionId);
@@ -321,7 +351,7 @@ export function useGameController() {
         modeId,
         context: {
           playerMoney: currentState.player.money,
-          playerEnergy: currentState.player.needs.energy
+          playerNeeds: currentState.player.needs
         }
       });
 
@@ -384,7 +414,7 @@ export function useGameController() {
         modeId,
         context: {
           playerMoney: currentState.player.money,
-          playerEnergy: currentState.player.needs.energy
+          playerNeeds: currentState.player.needs
         }
       });
 
@@ -702,6 +732,7 @@ export function useGameController() {
     locationState,
     jobState,
     educationState,
+    conditionState,
     performAction,
     moveToDistrict,
     moveToLocation,

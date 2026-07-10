@@ -3,6 +3,7 @@ import type { SkillProgressView } from '../../core/progression';
 import type { EducationProgram } from '../../types/education';
 import type { EducationProgramId } from '../../types/ids';
 import type { Location } from '../../types/location';
+import type { NeedsState } from '../../types/needs';
 import type { SkillDefinition } from '../../types/skill';
 import { Icon } from '../icons';
 import { createNeedsEffectItems, EffectList, type EffectListItem } from './EffectList';
@@ -18,6 +19,7 @@ type EducationProgramView = {
   location?: Location;
   canStudy: boolean;
   failure?: string;
+  effectiveNeedsDelta: Partial<NeedsState>;
 };
 
 type DevelopmentPanelProps = {
@@ -34,12 +36,12 @@ function formatDuration(minutes: number): string {
   return `${rest} мин`;
 }
 
-function getProgramEffects(program: EducationProgram): EffectListItem[] {
+function getProgramEffects(program: EducationProgram, effectiveNeedsDelta: Partial<NeedsState>): EffectListItem[] {
   return [
     { label: 'Навык', value: program.experienceReward, unit: 'XP', tone: 'positive' },
     ...(program.price > 0 ? [{ label: 'Деньги', value: -program.price, unit: '₽', tone: 'negative' } as EffectListItem] : []),
     { label: 'Время', value: -program.durationMinutes, unit: 'мин', tone: 'negative' },
-    ...createNeedsEffectItems(program.needsDelta ?? {})
+    ...createNeedsEffectItems(effectiveNeedsDelta)
   ];
 }
 
@@ -68,7 +70,7 @@ function SkillCard({ view }: { view: SkillView }) {
 }
 
 function ProgramRow({ view, onStudyProgram }: { view: EducationProgramView; onStudyProgram: (programId: EducationProgramId) => void }) {
-  const { program, skill, location, canStudy, failure } = view;
+  const { program, skill, location, canStudy, failure, effectiveNeedsDelta } = view;
 
   return (
     <article className={canStudy ? 'education-row education-row--available' : 'education-row'}>
@@ -84,7 +86,7 @@ function ProgramRow({ view, onStudyProgram }: { view: EducationProgramView; onSt
           <span>{program.price === 0 ? 'Бесплатно' : formatRubles(program.price)}</span>
           <span>{location?.name ?? 'Локация'}</span>
         </div>
-        <EffectList items={getProgramEffects(program)} />
+        <EffectList items={getProgramEffects(program, effectiveNeedsDelta)} />
         {!canStudy && failure ? <small className="education-row__failure">{failure}</small> : null}
       </div>
       <button

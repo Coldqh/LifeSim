@@ -1,5 +1,5 @@
 import { applyMoneyDelta } from '../economy';
-import { applyNeedsDelta, getNeedWarning } from '../needs';
+import { applyActivityNeedsDelta, getNeedsRequirementFailure, getNeedWarning } from '../needs';
 import { addMinutes } from '../time';
 import { applySkillRewards, getMissingSkillRequirements } from '../progression';
 import type {
@@ -147,12 +147,14 @@ export function getJobShiftFailure(player: Player, job: Job): string | undefined
   }
 
   const currentLevel = getCurrentJobLevel(player, job);
-  const minEnergy = currentLevel.minEnergy ?? job.requirements?.minEnergy;
-  if (minEnergy !== undefined && player.needs.energy < minEnergy) {
-    return `Не хватает энергии для смены. Нужно минимум ${minEnergy}.`;
-  }
+  const minEnergy = currentLevel.minEnergy ?? job.requirements?.minEnergy ?? 20;
 
-  return undefined;
+  return getNeedsRequirementFailure(player.needs, {
+    minEnergy,
+    minHealth: 25,
+    minHunger: 6,
+    minThirst: 6
+  });
 }
 
 export function getJobPromotionFailure(player: Player, job: Job): string | undefined {
@@ -233,13 +235,16 @@ export function applyJobShift(input: ApplyJobShiftInput): ApplyJobShiftOutput {
   }
 
   const nextTime = addMinutes(time, job.shiftDurationMinutes);
-  const nextNeeds = applyNeedsDelta(player.needs, job.effects.needsDelta);
+  const needsApplied = applyActivityNeedsDelta(player.needs, job.effects.needsDelta, {
+    scaleEnergyCost: true,
+    scaleEnergyRecovery: false
+  });
   const nextMoney = applyMoneyDelta(player.money, currentLevel.wagePerShift);
   const completedCount = (player.completedShifts[job.id] ?? 0) + 1;
   const currentExperience = player.jobExperience[job.id] ?? 0;
   const nextExperience = currentExperience + job.experiencePerShift;
   const skillApplied = applySkillRewards(player.skills, job.skillRewards);
-  const warning = getNeedWarning(nextNeeds);
+  const warning = getNeedWarning(needsApplied.needs);
   const baseMessage = `Смена завершена: ${currentLevel.title}. Получено ${currentLevel.wagePerShift} ₽. Опыт работы +${job.experiencePerShift}.`;
   const skillMessage = job.skillRewards?.length ? 'Получен опыт навыков.' : undefined;
   const messages = [baseMessage, skillMessage, warning].filter((message): message is string => Boolean(message));
@@ -248,7 +253,7 @@ export function applyJobShift(input: ApplyJobShiftInput): ApplyJobShiftOutput {
     player: {
       ...player,
       money: nextMoney,
-      needs: nextNeeds,
+      needs: needsApplied.needs,
       skills: skillApplied.skills,
       completedShifts: {
         ...player.completedShifts,
@@ -268,7 +273,7 @@ export function applyJobShift(input: ApplyJobShiftInput): ApplyJobShiftOutput {
       moneyDelta: currentLevel.wagePerShift,
       experienceDelta: job.experiencePerShift,
       skillProgressUpdates: skillApplied.updates,
-      needsDelta: job.effects.needsDelta,
+      needsDelta: needsApplied.delta,
       messages
     }
   };

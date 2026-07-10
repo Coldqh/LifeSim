@@ -1,5 +1,9 @@
 import { applyMoneyDelta, canAfford } from '../economy';
-import { applyNeedsDelta, getNeedWarning } from '../needs';
+import {
+  applyActivityNeedsDelta,
+  getNeedsRequirementFailure,
+  getNeedWarning
+} from '../needs';
 import { addMinutes } from '../time';
 import type { ActionResult, LifeAction } from '../../types/actions';
 import type { GameTime } from '../../types/time';
@@ -17,20 +21,58 @@ export type ApplyLifeActionOutput = {
   result: ActionResult;
 };
 
-function getRequirementFailure(player: Player, action: LifeAction): string | undefined {
+function getCategoryRequirements(action: LifeAction): {
+  minEnergy?: number;
+  minHealth?: number;
+  minHunger?: number;
+  minThirst?: number;
+} {
+  if (action.category === 'training') {
+    return {
+      minEnergy: Math.max(25, action.requirements?.minEnergy ?? 0),
+      minHealth: Math.max(30, action.requirements?.minHealth ?? 0),
+      minHunger: Math.max(6, action.requirements?.minHunger ?? 0),
+      minThirst: Math.max(6, action.requirements?.minThirst ?? 0)
+    };
+  }
+
+  if (action.category === 'walk') {
+    return {
+      minEnergy: Math.max(8, action.requirements?.minEnergy ?? 0),
+      minHealth: Math.max(15, action.requirements?.minHealth ?? 0)
+    };
+  }
+
+  if (action.category === 'sleep' || action.category === 'rest') {
+    return {
+      minEnergy: action.requirements?.minEnergy,
+      minHealth: action.requirements?.minHealth,
+      minHunger: action.requirements?.minHunger,
+      minThirst: action.requirements?.minThirst
+    };
+  }
+
+  return {
+    minEnergy: action.requirements?.minEnergy,
+    minHealth: Math.max(6, action.requirements?.minHealth ?? 0),
+    minHunger: action.requirements?.minHunger,
+    minThirst: action.requirements?.minThirst
+  };
+}
+
+export function getLifeActionFailure(player: Player, action: LifeAction): string | undefined {
   const requirements = action.requirements;
 
   if (requirements?.minMoney !== undefined && player.money < requirements.minMoney) {
-    return 'Не хватает денег.';
+    return `Деньги: ${player.money}/${requirements.minMoney} ₽.`;
   }
 
-  if (requirements?.minEnergy !== undefined && player.needs.energy < requirements.minEnergy) {
-    return 'Не хватает энергии.';
-  }
+  const needsFailure = getNeedsRequirementFailure(player.needs, getCategoryRequirements(action));
+  if (needsFailure) return needsFailure;
 
   const moneyDelta = action.moneyDelta ?? 0;
   if (moneyDelta < 0 && !canAfford(player.money, Math.abs(moneyDelta))) {
-    return 'Не хватает денег.';
+    return `Деньги: ${player.money}/${Math.abs(moneyDelta)} ₽.`;
   }
 
   return undefined;
@@ -38,7 +80,7 @@ function getRequirementFailure(player: Player, action: LifeAction): string | und
 
 export function applyLifeAction(input: ApplyLifeActionInput): ApplyLifeActionOutput {
   const { player, time, action } = input;
-  const failure = getRequirementFailure(player, action);
+  const failure = getLifeActionFailure(player, action);
 
   if (failure) {
     return {
@@ -55,16 +97,19 @@ export function applyLifeAction(input: ApplyLifeActionInput): ApplyLifeActionOut
   }
 
   const nextTime = addMinutes(time, action.durationMinutes);
-  const nextNeeds = applyNeedsDelta(player.needs, action.needsDelta);
+  const needsApplied = applyActivityNeedsDelta(player.needs, action.needsDelta, {
+    scaleEnergyCost: true,
+    scaleEnergyRecovery: action.category === 'sleep' || action.category === 'rest'
+  });
   const nextMoney = applyMoneyDelta(player.money, action.moneyDelta);
-  const warning = getNeedWarning(nextNeeds);
+  const warning = getNeedWarning(needsApplied.needs);
   const messages = warning ? [action.resultMessage, warning] : [action.resultMessage];
 
   return {
     player: {
       ...player,
       money: nextMoney,
-      needs: nextNeeds
+      needs: needsApplied.needs
     },
     time: nextTime,
     result: {
@@ -73,7 +118,7 @@ export function applyLifeAction(input: ApplyLifeActionInput): ApplyLifeActionOut
       actionName: action.name,
       timeDeltaMinutes: action.durationMinutes,
       moneyDelta: action.moneyDelta,
-      needsDelta: action.needsDelta,
+      needsDelta: needsApplied.delta,
       messages
     }
   };
