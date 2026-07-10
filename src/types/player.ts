@@ -19,6 +19,7 @@ export type Player = {
   currentJobId?: JobId;
   completedShifts: Partial<Record<JobId, number>>;
   jobExperience: Partial<Record<JobId, number>>;
+  jobLevels: Partial<Record<JobId, number>>;
   housingId: HousingId;
   rentDebt: number;
   daysUntilRent: number;

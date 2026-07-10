@@ -3103,3 +3103,264 @@ body {
     justify-self: end;
   }
 }
+
+/* ==========================================================================
+   Job Promotion MVP
+   ========================================================================== */
+
+.career-progress-panel {
+  position: relative;
+  isolation: isolate;
+}
+
+.career-progress-panel::after {
+  position: absolute;
+  z-index: -1;
+  right: -110px;
+  bottom: -150px;
+  width: 330px;
+  height: 330px;
+  background: radial-gradient(circle, rgba(93, 219, 255, .11), transparent 68%);
+  pointer-events: none;
+  content: "";
+}
+
+.promotion-command-button {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  width: calc(100% - 40px);
+  margin: 18px 20px 20px;
+  padding: 13px 15px;
+  border: 1px solid var(--line-strong);
+  background: linear-gradient(90deg, rgba(92, 117, 141, .08), transparent), var(--panel-raised);
+  color: var(--muted-strong);
+  text-align: left;
+  cursor: default;
+}
+
+.promotion-command-button__icon {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  color: var(--muted);
+}
+
+.promotion-command-button > span:nth-child(2) {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.promotion-command-button strong {
+  color: var(--text);
+  font-size: 13px;
+  letter-spacing: .01em;
+}
+
+.promotion-command-button small {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.promotion-command-button--ready {
+  border-color: rgba(83, 225, 204, .42);
+  background:
+    linear-gradient(100deg, rgba(45, 222, 194, .15), rgba(72, 196, 255, .08) 54%, transparent),
+    var(--panel-raised);
+  box-shadow: inset 0 0 38px rgba(64, 222, 205, .05), 0 14px 36px rgba(0, 0, 0, .18);
+  color: var(--aqua);
+  cursor: pointer;
+  transition: border-color .2s ease, box-shadow .2s ease, transform .2s ease;
+}
+
+.promotion-command-button--ready:hover {
+  border-color: rgba(83, 225, 204, .72);
+  box-shadow: inset 0 0 42px rgba(64, 222, 205, .08), 0 18px 44px rgba(0, 0, 0, .26);
+  transform: translateY(-2px);
+}
+
+.promotion-command-button--ready .promotion-command-button__icon {
+  border-color: rgba(83, 225, 204, .42);
+  background: rgba(49, 218, 190, .09);
+  color: var(--aqua);
+  box-shadow: 0 0 28px rgba(70, 221, 200, .11);
+}
+
+.promotion-command-button:disabled {
+  opacity: .78;
+}
+
+.career-ladder-panel {
+  overflow: hidden;
+}
+
+.career-ladder {
+  display: grid;
+  padding: 0 20px 20px;
+}
+
+.career-level {
+  position: relative;
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  min-height: 68px;
+  border-top: 1px solid var(--line);
+}
+
+.career-level:first-child {
+  border-top: 0;
+}
+
+.career-level::before {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 20px;
+  width: 1px;
+  background: var(--line);
+  content: "";
+}
+
+.career-level:first-child::before {
+  top: 50%;
+}
+
+.career-level:last-child::before {
+  bottom: 50%;
+}
+
+.career-level__index {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border: 1px solid var(--line-strong);
+  background: var(--panel);
+  color: var(--muted);
+  font-family: ui-monospace, "SFMono-Regular", Consolas, monospace;
+  font-size: 10px;
+  letter-spacing: .12em;
+}
+
+.career-level__body {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.career-level__body strong {
+  overflow: hidden;
+  color: var(--text);
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.career-level__body span,
+.career-level__status {
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.career-level__status {
+  font-family: ui-monospace, "SFMono-Regular", Consolas, monospace;
+  text-align: right;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+}
+
+.career-level--complete .career-level__index {
+  border-color: rgba(76, 207, 164, .34);
+  color: var(--positive);
+}
+
+.career-level--complete .career-level__status {
+  color: var(--positive);
+}
+
+.career-level--active {
+  background: linear-gradient(90deg, rgba(82, 213, 255, .07), transparent 72%);
+}
+
+.career-level--active .career-level__index {
+  border-color: rgba(82, 213, 255, .56);
+  background: rgba(63, 196, 230, .1);
+  color: var(--cyan);
+  box-shadow: 0 0 24px rgba(77, 205, 244, .12);
+}
+
+.career-level--active .career-level__body strong,
+.career-level--active .career-level__status {
+  color: var(--cyan);
+}
+
+.career-level--locked {
+  opacity: .62;
+}
+
+@media (min-width: 1180px) {
+  .workplace-screen {
+    grid-template-columns: minmax(0, 1.1fr) minmax(330px, .9fr);
+  }
+
+  .workplace-command-panel {
+    grid-column: 1 / -1;
+  }
+
+  .career-progress-panel {
+    grid-column: 1;
+  }
+
+  .career-ladder-panel {
+    grid-column: 1;
+  }
+
+  .shift-panel {
+    grid-column: 2;
+    grid-row: 2 / span 2;
+    align-self: stretch;
+  }
+}
+
+@media (max-width: 680px) {
+  .promotion-command-button {
+    grid-template-columns: 38px minmax(0, 1fr);
+    width: calc(100% - 24px);
+    margin: 14px 12px 12px;
+    padding: 11px 12px;
+  }
+
+  .promotion-command-button > svg {
+    display: none;
+  }
+
+  .promotion-command-button small {
+    white-space: normal;
+  }
+
+  .career-ladder {
+    padding: 0 12px 12px;
+  }
+
+  .career-level {
+    grid-template-columns: 42px minmax(0, 1fr);
+    padding: 7px 0;
+  }
+
+  .career-level__status {
+    grid-column: 2;
+    text-align: left;
+  }
+}

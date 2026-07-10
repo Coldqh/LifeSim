@@ -1,4 +1,4 @@
-import type { Job } from '../../types/job';
+import type { Job, JobLevel } from '../../types/job';
 import type { JobId, LocationId } from '../../types/ids';
 
 function jobId(value: string): JobId {
@@ -7,6 +7,43 @@ function jobId(value: string): JobId {
 
 function locationId(value: string): LocationId {
   return value as LocationId;
+}
+
+
+type CareerTitles = readonly [string, string, string];
+
+function roundWage(value: number): number {
+  return Math.round(value / 50) * 50;
+}
+
+function createJobLevels(
+  titles: CareerTitles,
+  baseWage: number,
+  baseThreshold: number,
+  baseMinEnergy: number
+): JobLevel[] {
+  return [
+    {
+      level: 1,
+      title: titles[0],
+      wagePerShift: baseWage,
+      minEnergy: baseMinEnergy,
+      promotionExperienceRequired: baseThreshold
+    },
+    {
+      level: 2,
+      title: titles[1],
+      wagePerShift: roundWage(baseWage * 1.25),
+      minEnergy: baseMinEnergy + 5,
+      promotionExperienceRequired: baseThreshold + Math.round(baseThreshold * 1.8)
+    },
+    {
+      level: 3,
+      title: titles[2],
+      wagePerShift: roundWage(baseWage * 1.6),
+      minEnergy: baseMinEnergy + 10
+    }
+  ];
 }
 
 export const basicJobs: Job[] = [
@@ -23,6 +60,12 @@ export const basicJobs: Job[] = [
     requirements: {
       minEnergy: 20
     },
+    levels: createJobLevels(
+      ['Бариста-стажёр', 'Бариста', 'Старший бариста'],
+      1800,
+      100,
+      20
+    ),
     effects: {
       moneyDelta: 1800,
       needsDelta: {
@@ -46,6 +89,12 @@ export const basicJobs: Job[] = [
     requirements: {
       minEnergy: 24
     },
+    levels: createJobLevels(
+      ['Продавец продуктов', 'Продавец', 'Старший продавец'],
+      2000,
+      100,
+      24
+    ),
     effects: {
       moneyDelta: 2000,
       needsDelta: {
@@ -69,6 +118,12 @@ export const basicJobs: Job[] = [
     requirements: {
       minEnergy: 40
     },
+    levels: createJobLevels(
+      ['Помощник на складе', 'Кладовщик', 'Старший кладовщик'],
+      2800,
+      110,
+      40
+    ),
     effects: {
       moneyDelta: 2800,
       needsDelta: {
@@ -92,6 +147,12 @@ export const basicJobs: Job[] = [
     requirements: {
       minEnergy: 25
     },
+    levels: createJobLevels(
+      ['Офисный помощник на подработке', 'Офисный ассистент', 'Координатор офиса'],
+      2500,
+      100,
+      25
+    ),
     effects: {
       moneyDelta: 2500,
       needsDelta: {
@@ -115,6 +176,12 @@ export const basicJobs: Job[] = [
     requirements: {
       minEnergy: 45
     },
+    levels: createJobLevels(
+      ['Помощник в бизнес-центре', 'Администратор бизнес-центра', 'Старший администратор'],
+      4200,
+      120,
+      45
+    ),
     effects: {
       moneyDelta: 4200,
       needsDelta: {
@@ -138,6 +205,12 @@ export const basicJobs: Job[] = [
     requirements: {
       minEnergy: 25
     },
+    levels: createJobLevels(
+      ['Администратор салона', 'Старший администратор салона', 'Управляющий сменой'],
+      2300,
+      100,
+      25
+    ),
     effects: {
       moneyDelta: 2300,
       needsDelta: {
@@ -161,6 +234,12 @@ export const basicJobs: Job[] = [
     requirements: {
       minEnergy: 30
     },
+    levels: createJobLevels(
+      ['Продавец-консультант', 'Ведущий консультант', 'Старший специалист салона'],
+      2600,
+      110,
+      30
+    ),
     effects: {
       moneyDelta: 2600,
       needsDelta: {
@@ -184,6 +263,12 @@ export const basicJobs: Job[] = [
     requirements: {
       minEnergy: 35
     },
+    levels: createJobLevels(
+      ['Помощник в фитнес-зале', 'Администратор фитнес-зала', 'Старший администратор клуба'],
+      2400,
+      100,
+      35
+    ),
     effects: {
       moneyDelta: 2400,
       needsDelta: {
@@ -207,6 +292,12 @@ export const basicJobs: Job[] = [
     requirements: {
       minEnergy: 30
     },
+    levels: createJobLevels(
+      ['Ассистент в коворкинге', 'Координатор коворкинга', 'Старший координатор'],
+      3000,
+      110,
+      30
+    ),
     effects: {
       moneyDelta: 3000,
       needsDelta: {
@@ -230,6 +321,12 @@ export const basicJobs: Job[] = [
     requirements: {
       minEnergy: 22
     },
+    levels: createJobLevels(
+      ['Помощник в книжном магазине', 'Продавец книг', 'Старший продавец книг'],
+      2100,
+      100,
+      22
+    ),
     effects: {
       moneyDelta: 2100,
       needsDelta: {
@@ -252,6 +349,12 @@ export const basicJobs: Job[] = [
     experiencePerShift: 12,
     promotionThreshold: 100,
     requirements: { minEnergy: 24 },
+    levels: createJobLevels(
+      ['Помощник в аптеке', 'Консультант аптеки', 'Старший консультант аптеки'],
+      2200,
+      100,
+      24
+    ),
     effects: { moneyDelta: 2200, needsDelta: { energy: -24, hunger: -18, thirst: -18, mood: -1 } }
   },
   {
@@ -265,6 +368,12 @@ export const basicJobs: Job[] = [
     experiencePerShift: 11,
     promotionThreshold: 100,
     requirements: { minEnergy: 24 },
+    levels: createJobLevels(
+      ['Кассир в столовой', 'Старший кассир', 'Администратор линии'],
+      2100,
+      100,
+      24
+    ),
     effects: { moneyDelta: 2100, needsDelta: { energy: -25, hunger: -18, thirst: -22, mood: -2 } }
   },
   {
@@ -278,6 +387,12 @@ export const basicJobs: Job[] = [
     experiencePerShift: 12,
     promotionThreshold: 105,
     requirements: { minEnergy: 28 },
+    levels: createJobLevels(
+      ['Сотрудник пункта выдачи', 'Оператор пункта выдачи', 'Старший оператор'],
+      2300,
+      105,
+      28
+    ),
     effects: { moneyDelta: 2300, needsDelta: { energy: -30, hunger: -22, thirst: -22, mood: -2 } }
   },
   {
@@ -291,6 +406,12 @@ export const basicJobs: Job[] = [
     experiencePerShift: 14,
     promotionThreshold: 110,
     requirements: { minEnergy: 30 },
+    levels: createJobLevels(
+      ['Помощник в магазине техники', 'Консультант по технике', 'Старший консультант'],
+      2900,
+      110,
+      30
+    ),
     effects: { moneyDelta: 2900, needsDelta: { energy: -32, hunger: -24, thirst: -24, mood: -2 } }
   },
   {
@@ -304,6 +425,12 @@ export const basicJobs: Job[] = [
     experiencePerShift: 12,
     promotionThreshold: 100,
     requirements: { minEnergy: 28 },
+    levels: createJobLevels(
+      ['Кассир фудкорта', 'Старший кассир фудкорта', 'Администратор точки'],
+      2400,
+      100,
+      28
+    ),
     effects: { moneyDelta: 2400, needsDelta: { energy: -31, hunger: -24, thirst: -26, mood: -3 } }
   },
   {
@@ -317,6 +444,12 @@ export const basicJobs: Job[] = [
     experiencePerShift: 15,
     promotionThreshold: 120,
     requirements: { minEnergy: 32 },
+    levels: createJobLevels(
+      ['Помощник в банке', 'Специалист клиентского зала', 'Старший специалист'],
+      3300,
+      120,
+      32
+    ),
     effects: { moneyDelta: 3300, needsDelta: { energy: -34, hunger: -24, thirst: -24, mood: -3 } }
   },
   {
@@ -330,6 +463,12 @@ export const basicJobs: Job[] = [
     experiencePerShift: 13,
     promotionThreshold: 105,
     requirements: { minEnergy: 28 },
+    levels: createJobLevels(
+      ['Помощник в магазине одежды', 'Продавец-консультант одежды', 'Старший консультант отдела'],
+      2500,
+      105,
+      28
+    ),
     effects: { moneyDelta: 2500, needsDelta: { energy: -29, hunger: -22, thirst: -22, mood: -2 } }
   },
   {
@@ -343,6 +482,12 @@ export const basicJobs: Job[] = [
     experiencePerShift: 16,
     promotionThreshold: 120,
     requirements: { minEnergy: 40 },
+    levels: createJobLevels(
+      ['Помощник в ресторане', 'Официант', 'Старший официант'],
+      3200,
+      120,
+      40
+    ),
     effects: { moneyDelta: 3200, needsDelta: { energy: -42, hunger: -30, thirst: -30, mood: -4 } }
   },
   {
@@ -356,6 +501,12 @@ export const basicJobs: Job[] = [
     experiencePerShift: 15,
     promotionThreshold: 115,
     requirements: { minEnergy: 38 },
+    levels: createJobLevels(
+      ['Кассир ночного магазина', 'Старший ночной кассир', 'Администратор ночной смены'],
+      3000,
+      115,
+      38
+    ),
     effects: { moneyDelta: 3000, needsDelta: { energy: -42, hunger: -28, thirst: -28, mood: -5 } }
   },
   {
@@ -369,6 +520,12 @@ export const basicJobs: Job[] = [
     experiencePerShift: 13,
     promotionThreshold: 105,
     requirements: { minEnergy: 30 },
+    levels: createJobLevels(
+      ['Администратор бассейна', 'Старший администратор бассейна', 'Координатор комплекса'],
+      2500,
+      105,
+      30
+    ),
     effects: { moneyDelta: 2500, needsDelta: { energy: -30, hunger: -22, thirst: -24, mood: -2 } }
   }
 ];

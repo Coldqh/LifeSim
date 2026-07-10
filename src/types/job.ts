@@ -12,6 +12,14 @@ export type JobShiftEffects = {
   needsDelta: Partial<NeedsState>;
 };
 
+export type JobLevel = {
+  level: number;
+  title: string;
+  wagePerShift: number;
+  minEnergy?: number;
+  promotionExperienceRequired?: number;
+};
+
 export type Job = {
   id: JobId;
   title: string;
@@ -24,6 +32,7 @@ export type Job = {
   promotionThreshold: number;
   requirements?: JobRequirements;
   effects: JobShiftEffects;
+  levels: JobLevel[];
 };
 
 export type JobApplicationResult = {
@@ -41,5 +50,15 @@ export type JobShiftResult = {
   moneyDelta: number;
   experienceDelta?: number;
   needsDelta?: Partial<NeedsState>;
+  messages: string[];
+};
+
+export type JobPromotionResult = {
+  ok: boolean;
+  jobId: JobId;
+  previousLevel: number;
+  nextLevel: number;
+  previousTitle: string;
+  nextTitle: string;
   messages: string[];
 };

@@ -1,7 +1,13 @@
 import { applyMoneyDelta } from '../economy';
 import { applyNeedsDelta, getNeedWarning } from '../needs';
 import { addMinutes } from '../time';
-import type { Job, JobApplicationResult, JobShiftResult } from '../../types/job';
+import type {
+  Job,
+  JobApplicationResult,
+  JobLevel,
+  JobPromotionResult,
+  JobShiftResult
+} from '../../types/job';
 import type { Player } from '../../types/player';
 import type { GameTime } from '../../types/time';
 
@@ -27,9 +33,101 @@ export type ApplyJobShiftOutput = {
   result: JobShiftResult;
 };
 
+export type ApplyJobPromotionInput = {
+  player: Player;
+  job: Job;
+};
+
+export type ApplyJobPromotionOutput = {
+  player: Player;
+  result: JobPromotionResult;
+};
+
+export type JobProgress = {
+  currentLevel: JobLevel;
+  nextLevel?: JobLevel;
+  currentExperience: number;
+  levelStartExperience: number;
+  promotionThreshold?: number;
+  levelExperience: number;
+  levelExperienceRequired: number;
+  experienceRemaining: number;
+  progressPercent: number;
+  isMaxLevel: boolean;
+};
+
+function createFallbackLevel(job: Job): JobLevel {
+  return {
+    level: 1,
+    title: job.title,
+    wagePerShift: job.wagePerShift,
+    minEnergy: job.requirements?.minEnergy,
+    promotionExperienceRequired: job.promotionThreshold
+  };
+}
+
+export function getJobLevels(job: Job): JobLevel[] {
+  return job.levels.length > 0 ? [...job.levels].sort((a, b) => a.level - b.level) : [createFallbackLevel(job)];
+}
+
+export function getPlayerJobLevel(player: Player, job: Job): number {
+  const levels = getJobLevels(job);
+  const storedLevel = player.jobLevels[job.id] ?? levels[0].level;
+  const matchingLevel = levels.find((level) => level.level === storedLevel);
+
+  return matchingLevel?.level ?? levels[0].level;
+}
+
+export function getCurrentJobLevel(player: Player, job: Job): JobLevel {
+  const levels = getJobLevels(job);
+  const currentLevel = getPlayerJobLevel(player, job);
+
+  return levels.find((level) => level.level === currentLevel) ?? levels[0];
+}
+
+export function getNextJobLevel(player: Player, job: Job): JobLevel | undefined {
+  const levels = getJobLevels(job);
+  const currentLevel = getCurrentJobLevel(player, job);
+  const currentIndex = levels.findIndex((level) => level.level === currentLevel.level);
+
+  return currentIndex >= 0 ? levels[currentIndex + 1] : undefined;
+}
+
+export function getJobProgress(player: Player, job: Job): JobProgress {
+  const levels = getJobLevels(job);
+  const currentLevel = getCurrentJobLevel(player, job);
+  const currentIndex = levels.findIndex((level) => level.level === currentLevel.level);
+  const previousLevel = currentIndex > 0 ? levels[currentIndex - 1] : undefined;
+  const nextLevel = currentIndex >= 0 ? levels[currentIndex + 1] : undefined;
+  const currentExperience = player.jobExperience[job.id] ?? 0;
+  const levelStartExperience = previousLevel?.promotionExperienceRequired ?? 0;
+  const promotionThreshold = currentLevel.promotionExperienceRequired;
+  const levelExperience = Math.max(0, currentExperience - levelStartExperience);
+  const levelExperienceRequired = promotionThreshold === undefined
+    ? 0
+    : Math.max(1, promotionThreshold - levelStartExperience);
+  const experienceRemaining = promotionThreshold === undefined
+    ? 0
+    : Math.max(0, promotionThreshold - currentExperience);
+  const progressPercent = promotionThreshold === undefined
+    ? 100
+    : Math.min(100, Math.round((levelExperience / levelExperienceRequired) * 100));
+
+  return {
+    currentLevel,
+    nextLevel,
+    currentExperience,
+    levelStartExperience,
+    promotionThreshold,
+    levelExperience,
+    levelExperienceRequired,
+    experienceRemaining,
+    progressPercent,
+    isMaxLevel: !nextLevel
+  };
+}
+
 export function getJobApplicationFailure(_player: Player, _job: Job): string | undefined {
-  // MVP rule: applying for a job should stay open.
-  // Energy requirements are checked only when the player works a shift.
   return undefined;
 }
 
@@ -42,9 +140,31 @@ export function getJobShiftFailure(player: Player, job: Job): string | undefined
     return 'Нужно быть на месте работы.';
   }
 
-  const minEnergy = job.requirements?.minEnergy;
+  const currentLevel = getCurrentJobLevel(player, job);
+  const minEnergy = currentLevel.minEnergy ?? job.requirements?.minEnergy;
   if (minEnergy !== undefined && player.needs.energy < minEnergy) {
     return `Не хватает энергии для смены. Нужно минимум ${minEnergy}.`;
+  }
+
+  return undefined;
+}
+
+export function getJobPromotionFailure(player: Player, job: Job): string | undefined {
+  if (player.currentJobId !== job.id) {
+    return 'Повышение доступно только на текущей работе.';
+  }
+
+  const progress = getJobProgress(player, job);
+  if (progress.isMaxLevel) {
+    return 'Достигнут максимальный уровень этой работы.';
+  }
+
+  if (progress.promotionThreshold === undefined) {
+    return 'Для этой должности не настроено следующее повышение.';
+  }
+
+  if (progress.currentExperience < progress.promotionThreshold) {
+    return `До повышения не хватает ${progress.experienceRemaining} XP.`;
   }
 
   return undefined;
@@ -53,6 +173,8 @@ export function getJobShiftFailure(player: Player, job: Job): string | undefined
 export function applyForJob(input: ApplyJobInput): ApplyJobOutput {
   const { player, job } = input;
   const failure = getJobApplicationFailure(player, job);
+  const entryLevel = getJobLevels(job)[0];
+  const assignedLevel = getCurrentJobLevel(player, job);
 
   if (failure) {
     return {
@@ -60,7 +182,7 @@ export function applyForJob(input: ApplyJobInput): ApplyJobOutput {
       result: {
         ok: false,
         jobId: job.id,
-        jobTitle: job.title,
+        jobTitle: assignedLevel.title,
         messages: [failure]
       }
     };
@@ -69,13 +191,17 @@ export function applyForJob(input: ApplyJobInput): ApplyJobOutput {
   return {
     player: {
       ...player,
-      currentJobId: job.id
+      currentJobId: job.id,
+      jobLevels: {
+        ...player.jobLevels,
+        [job.id]: player.jobLevels[job.id] ?? entryLevel.level
+      }
     },
     result: {
       ok: true,
       jobId: job.id,
-      jobTitle: job.title,
-      messages: [`Ты устроился: ${job.title}.`]
+      jobTitle: assignedLevel.title,
+      messages: [`Ты устроился: ${assignedLevel.title}.`]
     }
   };
 }
@@ -83,6 +209,7 @@ export function applyForJob(input: ApplyJobInput): ApplyJobOutput {
 export function applyJobShift(input: ApplyJobShiftInput): ApplyJobShiftOutput {
   const { player, time, job } = input;
   const failure = getJobShiftFailure(player, job);
+  const currentLevel = getCurrentJobLevel(player, job);
 
   if (failure) {
     return {
@@ -91,7 +218,7 @@ export function applyJobShift(input: ApplyJobShiftInput): ApplyJobShiftOutput {
       result: {
         ok: false,
         jobId: job.id,
-        jobTitle: job.title,
+        jobTitle: currentLevel.title,
         timeDeltaMinutes: 0,
         moneyDelta: 0,
         messages: [failure]
@@ -101,12 +228,12 @@ export function applyJobShift(input: ApplyJobShiftInput): ApplyJobShiftOutput {
 
   const nextTime = addMinutes(time, job.shiftDurationMinutes);
   const nextNeeds = applyNeedsDelta(player.needs, job.effects.needsDelta);
-  const nextMoney = applyMoneyDelta(player.money, job.effects.moneyDelta);
+  const nextMoney = applyMoneyDelta(player.money, currentLevel.wagePerShift);
   const completedCount = (player.completedShifts[job.id] ?? 0) + 1;
   const currentExperience = player.jobExperience[job.id] ?? 0;
   const nextExperience = currentExperience + job.experiencePerShift;
   const warning = getNeedWarning(nextNeeds);
-  const baseMessage = `Смена завершена: ${job.title}. Получено ${job.wagePerShift} ₽. Опыт +${job.experiencePerShift}.`;
+  const baseMessage = `Смена завершена: ${currentLevel.title}. Получено ${currentLevel.wagePerShift} ₽. Опыт +${job.experiencePerShift}.`;
   const messages = warning ? [baseMessage, warning] : [baseMessage];
 
   return {
@@ -127,9 +254,9 @@ export function applyJobShift(input: ApplyJobShiftInput): ApplyJobShiftOutput {
     result: {
       ok: true,
       jobId: job.id,
-      jobTitle: job.title,
+      jobTitle: currentLevel.title,
       timeDeltaMinutes: job.shiftDurationMinutes,
-      moneyDelta: job.effects.moneyDelta,
+      moneyDelta: currentLevel.wagePerShift,
       experienceDelta: job.experiencePerShift,
       needsDelta: job.effects.needsDelta,
       messages
@@ -137,9 +264,49 @@ export function applyJobShift(input: ApplyJobShiftInput): ApplyJobShiftOutput {
   };
 }
 
-export type { Job, JobApplicationResult, JobShiftResult };
+export function applyJobPromotion(input: ApplyJobPromotionInput): ApplyJobPromotionOutput {
+  const { player, job } = input;
+  const currentLevel = getCurrentJobLevel(player, job);
+  const nextLevel = getNextJobLevel(player, job);
+  const failure = getJobPromotionFailure(player, job);
+
+  if (failure || !nextLevel) {
+    return {
+      player,
+      result: {
+        ok: false,
+        jobId: job.id,
+        previousLevel: currentLevel.level,
+        nextLevel: currentLevel.level,
+        previousTitle: currentLevel.title,
+        nextTitle: currentLevel.title,
+        messages: [failure ?? 'Повышение недоступно.']
+      }
+    };
+  }
+
+  return {
+    player: {
+      ...player,
+      jobLevels: {
+        ...player.jobLevels,
+        [job.id]: nextLevel.level
+      }
+    },
+    result: {
+      ok: true,
+      jobId: job.id,
+      previousLevel: currentLevel.level,
+      nextLevel: nextLevel.level,
+      previousTitle: currentLevel.title,
+      nextTitle: nextLevel.title,
+      messages: [`Повышение получено: ${nextLevel.title}. Оплата за смену — ${nextLevel.wagePerShift} ₽.`]
+    }
+  };
+}
 
 export function getJobExperienceRemaining(player: Player, job: Job): number {
-  const currentExperience = player.jobExperience[job.id] ?? 0;
-  return Math.max(0, job.promotionThreshold - currentExperience);
+  return getJobProgress(player, job).experienceRemaining;
 }
+
+export type { Job, JobApplicationResult, JobLevel, JobPromotionResult, JobShiftResult };

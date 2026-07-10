@@ -4,9 +4,11 @@ import { applyHousingDayChanges } from '../core/housing';
 import { applyMoneyDelta, canAfford } from '../core/economy';
 import {
   applyForJob as applyJob,
+  applyJobPromotion,
   applyJobShift,
   getJobApplicationFailure,
-  getJobExperienceRemaining,
+  getJobProgress,
+  getJobPromotionFailure,
   getJobShiftFailure
 } from '../core/jobs';
 import { addInventoryItem, hasInventoryItem, removeInventoryItem } from '../core/inventory';
@@ -181,20 +183,32 @@ export function useGameController() {
       const district = location ? getDistrictById(location.districtId) : undefined;
       const applicationFailure = getJobApplicationFailure(gameState.player, job);
       const shiftFailure = getJobShiftFailure(gameState.player, job);
-      const jobExperience = gameState.player.jobExperience[job.id] ?? 0;
+      const promotionFailure = getJobPromotionFailure(gameState.player, job);
+      const progress = getJobProgress(gameState.player, job);
 
       return {
         job,
         location,
         district,
+        jobLevel: progress.currentLevel,
+        nextJobLevel: progress.nextLevel,
+        currentLevel: progress.currentLevel.level,
+        maxLevel: job.levels.length,
         isCurrentJob: gameState.player.currentJobId === job.id,
         completedShifts: gameState.player.completedShifts[job.id] ?? 0,
-        jobExperience,
-        experienceRemaining: getJobExperienceRemaining(gameState.player, job),
+        jobExperience: progress.currentExperience,
+        levelExperience: progress.levelExperience,
+        levelExperienceRequired: progress.levelExperienceRequired,
+        promotionThreshold: progress.promotionThreshold,
+        experienceRemaining: progress.experienceRemaining,
+        progressPercent: progress.progressPercent,
+        isMaxLevel: progress.isMaxLevel,
         canApply: !applicationFailure,
         applicationFailure,
         canWorkShift: !shiftFailure,
-        shiftFailure
+        shiftFailure,
+        canPromote: !promotionFailure,
+        promotionFailure
       };
     }
 
@@ -515,11 +529,40 @@ export function useGameController() {
         player: applied.player,
         lastResult: {
           ok: applied.result.ok,
-          actionName: job.title,
+          actionName: applied.result.jobTitle,
           timeDeltaMinutes: 0,
           messages: applied.result.messages
         },
         lifeLog: [logEntry, ...currentState.lifeLog].slice(0, 12)
+      };
+    });
+  }
+
+  function promoteJob(jobId: JobId): void {
+    const job = getJobById(jobId);
+    if (!job) return;
+
+    setGameState((currentState) => {
+      const promoted = applyJobPromotion({
+        player: currentState.player,
+        job
+      });
+      const logEntry = createLifeLogEntry(
+        currentState,
+        promoted.result.ok ? 'Повышение' : 'Повышение недоступно',
+        promoted.result.messages.join(' ')
+      );
+
+      return {
+        ...currentState,
+        player: promoted.player,
+        lastResult: {
+          ok: promoted.result.ok,
+          actionName: promoted.result.nextTitle,
+          timeDeltaMinutes: 0,
+          messages: promoted.result.messages
+        },
+        lifeLog: mergeLifeLog([logEntry], currentState.lifeLog)
       };
     });
   }
@@ -548,7 +591,7 @@ export function useGameController() {
         time: applied.time,
         lastResult: {
           ok: applied.result.ok,
-          actionName: job.title,
+          actionName: applied.result.jobTitle,
           timeDeltaMinutes: applied.result.timeDeltaMinutes,
           moneyDelta: applied.result.moneyDelta,
           needsDelta: mergeNeedsDelta(applied.result.needsDelta, elapsedApplied.needsDelta),
@@ -575,6 +618,7 @@ export function useGameController() {
     buyProduct,
     useInventoryItem,
     applyForJob,
+    promoteJob,
     workShift,
     resetGame
   };

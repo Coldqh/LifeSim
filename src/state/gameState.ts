@@ -5,7 +5,8 @@ import type { HousingId } from '../types/housing';
 import type { GameTime } from '../types/time';
 import { createInitialTime, formatGameTime } from '../core/time';
 
-export const GAME_STATE_STORAGE_KEY = 'lifesim.gameState.v7';
+export const GAME_STATE_STORAGE_KEY = 'lifesim.gameState.v8';
+const LEGACY_GAME_STATE_STORAGE_KEYS = ['lifesim.gameState.v7'];
 
 export type LifeLogEntry = {
   id: string;
@@ -62,6 +63,7 @@ export function createInitialPlayer(): Player {
     inventory: [],
     completedShifts: {},
     jobExperience: {},
+    jobLevels: {},
     housingId: housingId('housing_room_danilovsky'),
     rentDebt: 0,
     daysUntilRent: 7
@@ -98,13 +100,27 @@ export function createLifeLogEntry(state: Pick<GameState, 'time'>, title: string
 
 export function loadGameState(): GameState | undefined {
   try {
-    const raw = localStorage.getItem(GAME_STATE_STORAGE_KEY);
-    if (!raw) return undefined;
+    const storageKeys = [GAME_STATE_STORAGE_KEY, ...LEGACY_GAME_STATE_STORAGE_KEYS];
 
-    const parsed = JSON.parse(raw) as GameState;
-    if (!parsed.player || !parsed.time || !Array.isArray(parsed.lifeLog)) return undefined;
+    for (const storageKey of storageKeys) {
+      const raw = localStorage.getItem(storageKey);
+      if (!raw) continue;
 
-    return parsed;
+      const parsed = JSON.parse(raw) as GameState;
+      if (!parsed.player || !parsed.time || !Array.isArray(parsed.lifeLog)) continue;
+
+      return {
+        ...parsed,
+        player: {
+          ...parsed.player,
+          completedShifts: parsed.player.completedShifts ?? {},
+          jobExperience: parsed.player.jobExperience ?? {},
+          jobLevels: parsed.player.jobLevels ?? {}
+        }
+      };
+    }
+
+    return undefined;
   } catch {
     return undefined;
   }
@@ -121,6 +137,7 @@ export function saveGameState(state: GameState): void {
 export function clearSavedGameState(): void {
   try {
     localStorage.removeItem(GAME_STATE_STORAGE_KEY);
+    LEGACY_GAME_STATE_STORAGE_KEYS.forEach((storageKey) => localStorage.removeItem(storageKey));
   } catch {
     // Ignore storage failures during reset.
   }

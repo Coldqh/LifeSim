@@ -13,6 +13,7 @@ export function AppShell() {
     buyProduct,
     useInventoryItem,
     applyForJob,
+    promoteJob,
     workShift,
     resetGame
   } = useGameController();
@@ -25,6 +26,7 @@ export function AppShell() {
       locationState={locationState}
       onApplyForJob={applyForJob}
       onBuyProduct={buyProduct}
+      onPromoteJob={promoteJob}
       onMoveDistrict={moveToDistrict}
       onMoveLocation={moveToLocation}
       onPerformAction={performAction}

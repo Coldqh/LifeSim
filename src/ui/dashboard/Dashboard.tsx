@@ -9,7 +9,7 @@ import type { LifeAction } from '../../types/actions';
 import type { DistrictId, LocationId, ActionId, ProductId, JobId } from '../../types/ids';
 import type { TravelModeId } from '../../types/transport';
 import type { City, District, Location } from '../../types/location';
-import type { Job } from '../../types/job';
+import type { Job, JobLevel } from '../../types/job';
 import type { Product, Shop } from '../../types/product';
 import type { DistrictTravelOption, LocationTravelOption } from '../../types/travel';
 import { Icon, type IconName } from '../icons';
@@ -30,14 +30,25 @@ type JobView = {
   job: Job;
   location?: Location;
   district?: District;
+  jobLevel: JobLevel;
+  nextJobLevel?: JobLevel;
+  currentLevel: number;
+  maxLevel: number;
   isCurrentJob: boolean;
   completedShifts: number;
   jobExperience: number;
+  levelExperience: number;
+  levelExperienceRequired: number;
+  promotionThreshold?: number;
   experienceRemaining: number;
+  progressPercent: number;
+  isMaxLevel: boolean;
   canApply: boolean;
   applicationFailure?: string;
   canWorkShift: boolean;
   shiftFailure?: string;
+  canPromote: boolean;
+  promotionFailure?: string;
 };
 
 type DashboardProps = {
@@ -66,6 +77,7 @@ type DashboardProps = {
   onBuyProduct: (productId: ProductId) => void;
   onUseInventoryItem: (productId: ProductId) => void;
   onApplyForJob: (jobId: JobId) => void;
+  onPromoteJob: (jobId: JobId) => void;
   onWorkShift: (jobId: JobId) => void;
   onReset: () => void;
 };
@@ -103,6 +115,7 @@ export function Dashboard({
   onBuyProduct,
   onUseInventoryItem,
   onApplyForJob,
+  onPromoteJob,
   onWorkShift,
   onReset
 }: DashboardProps) {
@@ -205,7 +218,7 @@ export function Dashboard({
                   </div>
                   <div className="profile-command-panel__quick">
                     <div><span>Жильё</span><strong>{housing?.name ?? 'Нет жилья'}</strong></div>
-                    <div><span>Работа</span><strong>{jobState.currentJob?.title ?? 'Нет работы'}</strong></div>
+                    <div><span>Работа</span><strong>{jobState.currentJobView?.jobLevel.title ?? 'Нет работы'}</strong></div>
                     <div><span>Сейчас</span><strong>{formatGameTime(time)}</strong></div>
                   </div>
                 </div>
@@ -268,7 +281,7 @@ export function Dashboard({
             </section>
           ) : null}
 
-          {activeTab === 'jobs' ? <section className="screen screen-enter narrow-screen"><JobPanel currentJobView={jobState.currentJobView} onWorkShift={onWorkShift} /></section> : null}
+          {activeTab === 'jobs' ? <section className="screen screen-enter narrow-screen"><JobPanel currentJobView={jobState.currentJobView} onPromoteJob={onPromoteJob} onWorkShift={onWorkShift} /></section> : null}
           {activeTab === 'log' ? <section className="screen screen-enter narrow-screen"><LifeLog entries={gameState.lifeLog} /></section> : null}
         </div>
       </section>
