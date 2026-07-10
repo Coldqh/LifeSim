@@ -169,9 +169,9 @@ export function LocationPanel({
           <div className="city-command-header__identity">
             <div className="city-command-header__icon"><Icon name="pin" size={22} /></div>
             <div>
-              <span className="section-kicker">{city?.name ?? 'Город'}</span>
-              <h2>{location?.name ?? 'Место не найдено'}</h2>
-              <p>{district?.name ?? 'Район не найден'} · {location ? LOCATION_TYPE_LABELS[location.type] : '—'}</p>
+              <span className="section-kicker">Текущий район</span>
+              <h2>{district?.name ?? 'Район не найден'}</h2>
+              <p>{city?.name ?? 'Город'} · {location ? LOCATION_TYPE_LABELS[location.type] : '—'}</p>
             </div>
           </div>
           <div className="city-command-header__actions">

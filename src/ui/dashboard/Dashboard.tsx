@@ -236,17 +236,19 @@ export function Dashboard({
 
           {activeTab === 'city' ? (
             <section className="screen screen-enter city-screen">
-              <LocationPanel
-                city={locationState.city}
-                district={locationState.district}
-                location={locationState.location}
-                districtTravelOptions={locationState.districtTravelOptions}
-                locationTravelOptions={locationState.locationTravelOptions}
-                locationJobs={jobState.currentLocationJobs}
-                onMoveDistrict={onMoveDistrict}
-                onMoveLocation={onMoveLocation}
-                onApplyForJob={onApplyForJob}
-              />
+              <div className="city-main-column">
+                <LocationPanel
+                  city={locationState.city}
+                  district={locationState.district}
+                  location={locationState.location}
+                  districtTravelOptions={locationState.districtTravelOptions}
+                  locationTravelOptions={locationState.locationTravelOptions}
+                  locationJobs={jobState.currentLocationJobs}
+                  onMoveDistrict={onMoveDistrict}
+                  onMoveLocation={onMoveLocation}
+                  onApplyForJob={onApplyForJob}
+                />
+              </div>
 
               <aside className="context-column">
                 <ShopPanel shop={locationState.shop} products={locationState.shopProducts} onBuyProduct={onBuyProduct} />
