@@ -1,5 +1,6 @@
 import type { Job, JobLevel } from '../../types/job';
 import type { JobId, LocationId } from '../../types/ids';
+import { SKILL_IDS } from '../skills/basicSkills';
 
 function jobId(value: string): JobId {
   return value as JobId;
@@ -46,7 +47,7 @@ function createJobLevels(
   ];
 }
 
-export const basicJobs: Job[] = [
+const baseJobs: Job[] = [
   {
     id: jobId('job_barista_trainee'),
     title: 'Бариста-стажёр',
@@ -529,6 +530,106 @@ export const basicJobs: Job[] = [
     effects: { moneyDelta: 2500, needsDelta: { energy: -30, hunger: -22, thirst: -24, mood: -2 } }
   }
 ];
+
+const JOB_SKILL_REWARDS: Record<string, Job['skillRewards']> = {
+  job_barista_trainee: [{ skillId: SKILL_IDS.service, experience: 10 }],
+  job_grocery_assistant: [
+    { skillId: SKILL_IDS.sales, experience: 8 },
+    { skillId: SKILL_IDS.service, experience: 4 }
+  ],
+  job_warehouse_helper: [
+    { skillId: SKILL_IDS.logistics, experience: 10 },
+    { skillId: SKILL_IDS.fitness, experience: 6 }
+  ],
+  job_office_part_time_assistant: [
+    { skillId: SKILL_IDS.office, experience: 10 },
+    { skillId: SKILL_IDS.digital, experience: 4 }
+  ],
+  job_business_center_helper: [
+    { skillId: SKILL_IDS.office, experience: 12 },
+    { skillId: SKILL_IDS.service, experience: 4 }
+  ],
+  job_salon_administrator: [
+    { skillId: SKILL_IDS.service, experience: 10 },
+    { skillId: SKILL_IDS.sales, experience: 4 }
+  ],
+  job_phone_shop_consultant: [
+    { skillId: SKILL_IDS.sales, experience: 10 },
+    { skillId: SKILL_IDS.digital, experience: 6 }
+  ],
+  job_fitness_assistant: [
+    { skillId: SKILL_IDS.fitness, experience: 10 },
+    { skillId: SKILL_IDS.service, experience: 4 }
+  ],
+  job_coworking_assistant: [
+    { skillId: SKILL_IDS.office, experience: 10 },
+    { skillId: SKILL_IDS.digital, experience: 5 }
+  ],
+  job_bookstore_assistant: [
+    { skillId: SKILL_IDS.sales, experience: 7 },
+    { skillId: SKILL_IDS.service, experience: 5 }
+  ],
+  job_pharmacy_counter_assistant: [
+    { skillId: SKILL_IDS.sales, experience: 6 },
+    { skillId: SKILL_IDS.service, experience: 6 }
+  ],
+  job_canteen_cashier: [{ skillId: SKILL_IDS.service, experience: 9 }],
+  job_pickup_point_operator: [
+    { skillId: SKILL_IDS.logistics, experience: 8 },
+    { skillId: SKILL_IDS.service, experience: 4 }
+  ],
+  job_electronics_store_assistant: [
+    { skillId: SKILL_IDS.sales, experience: 9 },
+    { skillId: SKILL_IDS.digital, experience: 7 }
+  ],
+  job_food_court_cashier: [{ skillId: SKILL_IDS.service, experience: 9 }],
+  job_bank_lobby_assistant: [
+    { skillId: SKILL_IDS.office, experience: 9 },
+    { skillId: SKILL_IDS.service, experience: 6 }
+  ],
+  job_clothing_store_assistant: [{ skillId: SKILL_IDS.sales, experience: 9 }],
+  job_restaurant_runner: [
+    { skillId: SKILL_IDS.service, experience: 12 },
+    { skillId: SKILL_IDS.fitness, experience: 3 }
+  ],
+  job_night_store_cashier: [
+    { skillId: SKILL_IDS.sales, experience: 8 },
+    { skillId: SKILL_IDS.fitness, experience: 3 }
+  ],
+  job_pool_attendant: [
+    { skillId: SKILL_IDS.service, experience: 5 },
+    { skillId: SKILL_IDS.fitness, experience: 7 }
+  ]
+};
+
+const JOB_SKILL_REQUIREMENTS: Record<string, NonNullable<Job['requirements']>['skills']> = {
+  job_salon_administrator: [{ skillId: SKILL_IDS.service, minLevel: 1 }],
+  job_phone_shop_consultant: [
+    { skillId: SKILL_IDS.sales, minLevel: 1 },
+    { skillId: SKILL_IDS.digital, minLevel: 1 }
+  ],
+  job_fitness_assistant: [{ skillId: SKILL_IDS.fitness, minLevel: 1 }],
+  job_coworking_assistant: [{ skillId: SKILL_IDS.office, minLevel: 1 }],
+  job_pharmacy_counter_assistant: [{ skillId: SKILL_IDS.sales, minLevel: 1 }],
+  job_electronics_store_assistant: [
+    { skillId: SKILL_IDS.sales, minLevel: 1 },
+    { skillId: SKILL_IDS.digital, minLevel: 1 }
+  ],
+  job_bank_lobby_assistant: [
+    { skillId: SKILL_IDS.office, minLevel: 2 },
+    { skillId: SKILL_IDS.service, minLevel: 1 }
+  ],
+  job_pool_attendant: [{ skillId: SKILL_IDS.fitness, minLevel: 1 }]
+};
+
+export const basicJobs: Job[] = baseJobs.map((job) => ({
+  ...job,
+  requirements: {
+    ...job.requirements,
+    skills: JOB_SKILL_REQUIREMENTS[job.id] ?? []
+  },
+  skillRewards: JOB_SKILL_REWARDS[job.id] ?? []
+}));
 
 export function getJobById(jobId: JobId | undefined): Job | undefined {
   if (!jobId) return undefined;

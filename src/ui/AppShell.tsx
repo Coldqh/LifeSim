@@ -7,6 +7,7 @@ export function AppShell() {
     actions,
     locationState,
     jobState,
+    educationState,
     performAction,
     moveToDistrict,
     moveToLocation,
@@ -15,6 +16,7 @@ export function AppShell() {
     applyForJob,
     promoteJob,
     workShift,
+    studyProgram,
     resetGame
   } = useGameController();
 
@@ -23,6 +25,7 @@ export function AppShell() {
       actions={actions}
       gameState={gameState}
       jobState={jobState}
+      educationState={educationState}
       locationState={locationState}
       onApplyForJob={applyForJob}
       onBuyProduct={buyProduct}
@@ -33,6 +36,7 @@ export function AppShell() {
       onReset={resetGame}
       onUseInventoryItem={useInventoryItem}
       onWorkShift={workShift}
+      onStudyProgram={studyProgram}
     />
   );
 }

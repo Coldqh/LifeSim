@@ -1,6 +1,7 @@
 import { applyMoneyDelta } from '../economy';
 import { applyNeedsDelta, getNeedWarning } from '../needs';
 import { addMinutes } from '../time';
+import { applySkillRewards, getMissingSkillRequirements } from '../progression';
 import type {
   Job,
   JobApplicationResult,
@@ -127,7 +128,12 @@ export function getJobProgress(player: Player, job: Job): JobProgress {
   };
 }
 
-export function getJobApplicationFailure(_player: Player, _job: Job): string | undefined {
+export function getJobApplicationFailure(player: Player, job: Job): string | undefined {
+  const missingSkills = getMissingSkillRequirements(player, job.requirements?.skills);
+  if (missingSkills.length > 0) {
+    return 'Не хватает навыков для этой вакансии.';
+  }
+
   return undefined;
 }
 
@@ -232,15 +238,18 @@ export function applyJobShift(input: ApplyJobShiftInput): ApplyJobShiftOutput {
   const completedCount = (player.completedShifts[job.id] ?? 0) + 1;
   const currentExperience = player.jobExperience[job.id] ?? 0;
   const nextExperience = currentExperience + job.experiencePerShift;
+  const skillApplied = applySkillRewards(player.skills, job.skillRewards);
   const warning = getNeedWarning(nextNeeds);
-  const baseMessage = `Смена завершена: ${currentLevel.title}. Получено ${currentLevel.wagePerShift} ₽. Опыт +${job.experiencePerShift}.`;
-  const messages = warning ? [baseMessage, warning] : [baseMessage];
+  const baseMessage = `Смена завершена: ${currentLevel.title}. Получено ${currentLevel.wagePerShift} ₽. Опыт работы +${job.experiencePerShift}.`;
+  const skillMessage = job.skillRewards?.length ? 'Получен опыт навыков.' : undefined;
+  const messages = [baseMessage, skillMessage, warning].filter((message): message is string => Boolean(message));
 
   return {
     player: {
       ...player,
       money: nextMoney,
       needs: nextNeeds,
+      skills: skillApplied.skills,
       completedShifts: {
         ...player.completedShifts,
         [job.id]: completedCount
@@ -258,6 +267,7 @@ export function applyJobShift(input: ApplyJobShiftInput): ApplyJobShiftOutput {
       timeDeltaMinutes: job.shiftDurationMinutes,
       moneyDelta: currentLevel.wagePerShift,
       experienceDelta: job.experiencePerShift,
+      skillProgressUpdates: skillApplied.updates,
       needsDelta: job.effects.needsDelta,
       messages
     }

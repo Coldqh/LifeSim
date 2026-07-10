@@ -1,10 +1,12 @@
 import type { JobId, LocationId } from './ids';
 import type { NeedsState } from './needs';
+import type { SkillProgressUpdate, SkillRequirement, SkillReward } from './skill';
 
 export type JobCategory = 'service' | 'office' | 'assistant' | 'retail' | 'warehouse' | 'fitness';
 
 export type JobRequirements = {
   minEnergy?: number;
+  skills?: SkillRequirement[];
 };
 
 export type JobShiftEffects = {
@@ -31,6 +33,7 @@ export type Job = {
   experiencePerShift: number;
   promotionThreshold: number;
   requirements?: JobRequirements;
+  skillRewards?: SkillReward[];
   effects: JobShiftEffects;
   levels: JobLevel[];
 };
@@ -49,6 +52,7 @@ export type JobShiftResult = {
   timeDeltaMinutes: number;
   moneyDelta: number;
   experienceDelta?: number;
+  skillProgressUpdates?: SkillProgressUpdate[];
   needsDelta?: Partial<NeedsState>;
   messages: string[];
 };

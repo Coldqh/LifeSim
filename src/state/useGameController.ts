@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { applyLifeAction } from '../core/actions';
 import { applyHousingDayChanges } from '../core/housing';
 import { applyMoneyDelta, canAfford } from '../core/economy';
+import { applyEducationProgram, getEducationProgramFailure } from '../core/education';
 import {
   applyForJob as applyJob,
   applyJobPromotion,
@@ -12,6 +13,7 @@ import {
   getJobShiftFailure
 } from '../core/jobs';
 import { addInventoryItem, hasInventoryItem, removeInventoryItem } from '../core/inventory';
+import { getMissingSkillRequirements, getSkillProgress } from '../core/progression';
 import {
   getActionsForLocation,
   getCityById,
@@ -33,9 +35,11 @@ import {
 } from '../core/travel';
 import { getLifeAction } from '../data';
 import { getHousingById } from '../data/housing/basicHousing';
+import { basicEducationPrograms, getEducationProgramById } from '../data/education/basicPrograms';
 import { basicJobs, getJobById, getJobsForLocation } from '../data/jobs/basicJobs';
 import { getProductById } from '../data/products/basicProducts';
-import type { ActionId, DistrictId, JobId, LocationId, ProductId } from '../types/ids';
+import { basicSkills, getSkillById } from '../data/skills/basicSkills';
+import type { ActionId, DistrictId, EducationProgramId, JobId, LocationId, ProductId } from '../types/ids';
 import type { TravelModeId } from '../types/transport';
 import type { NeedsState } from '../types/needs';
 import type { Player } from '../types/player';
@@ -185,6 +189,10 @@ export function useGameController() {
       const shiftFailure = getJobShiftFailure(gameState.player, job);
       const promotionFailure = getJobPromotionFailure(gameState.player, job);
       const progress = getJobProgress(gameState.player, job);
+      const missingSkillRequirements = getMissingSkillRequirements(gameState.player, job.requirements?.skills).map((requirement) => ({
+        ...requirement,
+        name: getSkillById(requirement.skillId)?.name ?? requirement.skillId
+      }));
 
       return {
         job,
@@ -208,7 +216,8 @@ export function useGameController() {
         canWorkShift: !shiftFailure,
         shiftFailure,
         canPromote: !promotionFailure,
-        promotionFailure
+        promotionFailure,
+        missingSkillRequirements
       };
     }
 
@@ -222,6 +231,26 @@ export function useGameController() {
       currentJobView,
       currentLocationJobs
     };
+  }, [gameState.player]);
+
+  const educationState = useMemo(() => {
+    const skills = basicSkills.map((skill) => ({
+      skill,
+      progress: getSkillProgress(gameState.player.skills, skill.id)
+    }));
+
+    const programs = basicEducationPrograms.map((program) => {
+      const failure = getEducationProgramFailure(gameState.player, program);
+      return {
+        program,
+        skill: getSkillById(program.skillId),
+        location: getLocationById(program.locationId),
+        canStudy: !failure,
+        failure
+      };
+    });
+
+    return { skills, programs };
   }, [gameState.player]);
 
   function performAction(actionId: ActionId): void {
@@ -578,11 +607,17 @@ export function useGameController() {
         job
       });
       const elapsedApplied = applyElapsedTimeConsequences(currentState, applied.player, applied.time, 'active');
-      const resultMessages = [...applied.result.messages, ...elapsedApplied.messages];
+      const skillLevelMessages = (applied.result.skillProgressUpdates ?? [])
+        .filter((update) => update.leveledUp)
+        .map((update) => `Навык «${getSkillById(update.skillId)?.name ?? 'Навык'}» повышен до уровня ${update.nextLevel}.`);
+      const resultMessages = [...applied.result.messages, ...skillLevelMessages, ...elapsedApplied.messages];
       const logEntry = createLifeLogEntry(
         { time: applied.time },
         applied.result.ok ? 'Смена' : 'Смена недоступна',
         resultMessages.join(' ')
+      );
+      const skillLevelEntries = skillLevelMessages.map((message) =>
+        createLifeLogEntry({ time: applied.time }, 'Новый уровень навыка', message)
       );
 
       return {
@@ -597,7 +632,61 @@ export function useGameController() {
           needsDelta: mergeNeedsDelta(applied.result.needsDelta, elapsedApplied.needsDelta),
           messages: resultMessages
         },
-        lifeLog: mergeLifeLog([logEntry, ...elapsedApplied.lifeLogEntries], currentState.lifeLog)
+        lifeLog: mergeLifeLog([logEntry, ...skillLevelEntries, ...elapsedApplied.lifeLogEntries], currentState.lifeLog)
+      };
+    });
+  }
+
+  function studyProgram(programId: EducationProgramId): void {
+    const program = getEducationProgramById(programId);
+    if (!program) return;
+
+    setGameState((currentState) => {
+      const applied = applyEducationProgram({
+        player: currentState.player,
+        time: currentState.time,
+        program
+      });
+
+      if (!applied.result.ok) {
+        const logEntry = createLifeLogEntry(currentState, 'Обучение недоступно', applied.result.messages.join(' '));
+        return {
+          ...currentState,
+          lastResult: {
+            ok: false,
+            actionName: program.title,
+            timeDeltaMinutes: 0,
+            messages: applied.result.messages
+          },
+          lifeLog: mergeLifeLog([logEntry], currentState.lifeLog)
+        };
+      }
+
+      const elapsedApplied = applyElapsedTimeConsequences(currentState, applied.player, applied.time, 'active');
+      const skill = getSkillById(program.skillId);
+      const levelMessage = applied.result.skillProgress?.leveledUp
+        ? `Навык «${skill?.name ?? 'Навык'}» повышен до уровня ${applied.result.skillProgress.nextLevel}.`
+        : undefined;
+      const resultMessages = [...applied.result.messages, levelMessage, ...elapsedApplied.messages]
+        .filter((message): message is string => Boolean(message));
+      const logEntry = createLifeLogEntry({ time: applied.time }, 'Обучение', resultMessages.join(' '));
+      const levelEntries = levelMessage
+        ? [createLifeLogEntry({ time: applied.time }, 'Новый уровень навыка', levelMessage)]
+        : [];
+
+      return {
+        ...currentState,
+        player: elapsedApplied.player,
+        time: applied.time,
+        lastResult: {
+          ok: true,
+          actionName: program.title,
+          timeDeltaMinutes: applied.result.timeDeltaMinutes,
+          moneyDelta: applied.result.moneyDelta,
+          needsDelta: mergeNeedsDelta(applied.result.needsDelta, elapsedApplied.needsDelta),
+          messages: resultMessages
+        },
+        lifeLog: mergeLifeLog([logEntry, ...levelEntries, ...elapsedApplied.lifeLogEntries], currentState.lifeLog)
       };
     });
   }
@@ -612,6 +701,7 @@ export function useGameController() {
     actions: locationState.actions,
     locationState,
     jobState,
+    educationState,
     performAction,
     moveToDistrict,
     moveToLocation,
@@ -620,6 +710,7 @@ export function useGameController() {
     applyForJob,
     promoteJob,
     workShift,
+    studyProgram,
     resetGame
   };
 }

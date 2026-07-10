@@ -1,12 +1,13 @@
 import type { ActionResult } from '../types/actions';
-import type { CityId, DistrictId, LocationId, PlayerId } from '../types/ids';
+import type { CityId, DistrictId, LocationId, PlayerId, SkillId } from '../types/ids';
 import type { Player } from '../types/player';
+import type { PlayerSkills } from '../types/skill';
 import type { HousingId } from '../types/housing';
 import type { GameTime } from '../types/time';
 import { createInitialTime, formatGameTime } from '../core/time';
 
-export const GAME_STATE_STORAGE_KEY = 'lifesim.gameState.v8';
-const LEGACY_GAME_STATE_STORAGE_KEYS = ['lifesim.gameState.v7'];
+export const GAME_STATE_STORAGE_KEY = 'lifesim.gameState.v9';
+const LEGACY_GAME_STATE_STORAGE_KEYS = ['lifesim.gameState.v8', 'lifesim.gameState.v7'];
 
 export type LifeLogEntry = {
   id: string;
@@ -41,6 +42,30 @@ function locationId(value: string): LocationId {
 
 function housingId(value: string): HousingId {
   return value as HousingId;
+}
+
+
+function normalizePlayerSkills(value: unknown): PlayerSkills {
+  if (!value || typeof value !== 'object') return {};
+
+  return Object.entries(value as Record<string, unknown>).reduce<PlayerSkills>((skills, [key, rawProgress]) => {
+    const skillId = key as SkillId;
+
+    if (typeof rawProgress === 'number') {
+      skills[skillId] = { level: Math.max(0, Math.floor(rawProgress)), experience: 0 };
+      return skills;
+    }
+
+    if (rawProgress && typeof rawProgress === 'object') {
+      const progress = rawProgress as { level?: unknown; experience?: unknown };
+      skills[skillId] = {
+        level: typeof progress.level === 'number' ? Math.max(0, Math.floor(progress.level)) : 0,
+        experience: typeof progress.experience === 'number' ? Math.max(0, Math.floor(progress.experience)) : 0
+      };
+    }
+
+    return skills;
+  }, {});
 }
 
 export function createInitialPlayer(): Player {
@@ -115,7 +140,8 @@ export function loadGameState(): GameState | undefined {
           ...parsed.player,
           completedShifts: parsed.player.completedShifts ?? {},
           jobExperience: parsed.player.jobExperience ?? {},
-          jobLevels: parsed.player.jobLevels ?? {}
+          jobLevels: parsed.player.jobLevels ?? {},
+          skills: normalizePlayerSkills(parsed.player.skills)
         }
       };
     }

@@ -8,6 +8,7 @@ export type LocationId = Brand<string, 'LocationId'>;
 export type ShopId = Brand<string, 'ShopId'>;
 export type ProductId = Brand<string, 'ProductId'>;
 export type JobId = Brand<string, 'JobId'>;
+export type SkillId = Brand<string, 'SkillId'>;
 export type EducationProgramId = Brand<string, 'EducationProgramId'>;
 export type SportId = Brand<string, 'SportId'>;
 export type LeagueId = Brand<string, 'LeagueId'>;

@@ -6,3 +6,5 @@ export * from './products/basicProducts';
 export * from './shops/basicShops';
 export * from './jobs/basicJobs';
 export * from './housing/basicHousing';
+export * from './skills/basicSkills';
+export * from './education/basicPrograms';

@@ -10,3 +10,4 @@ export * from './TransportOptionCard';
 export * from './ShopPanel';
 export * from './StatCard';
 export * from './EffectList';
+export * from './DevelopmentPanel';

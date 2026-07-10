@@ -2,8 +2,7 @@ import type { CityId, DistrictId, JobId, LocationId, PlayerId } from './ids';
 import type { HousingId } from './housing';
 import type { InventoryItem } from './inventory';
 import type { NeedsState } from './needs';
-
-export type PlayerSkills = Record<string, number>;
+import type { PlayerSkills } from './skill';
 
 export type Player = {
   id: PlayerId;

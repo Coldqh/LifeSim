@@ -34,7 +34,9 @@ export type IconName =
   | 'package'
   | 'star'
   | 'building'
-  | 'gym';
+  | 'gym'
+  | 'growth'
+  | 'book';
 
 type IconProps = SVGProps<SVGSVGElement> & {
   name: IconName;
@@ -75,7 +77,9 @@ const PATHS: Record<IconName, ReactNode> = {
   package: <><path d="m4 7 8-4 8 4-8 4-8-4Z"/><path d="M4 7v10l8 4 8-4V7M12 11v10"/></>,
   star: <path d="m12 2 3 6 7 .9-5 4.8 1.3 6.8L12 17l-6.3 3.5L7 13.7 2 8.9 9 8l3-6Z"/>,
   building: <><path d="M5 21V4h10v17M15 9h4v12M8 8h4M8 12h4M8 16h4"/></>,
-  gym: <><path d="M6 9v6M3 10v4M18 9v6M21 10v4M6 12h12"/></>
+  gym: <><path d="M6 9v6M3 10v4M18 9v6M21 10v4M6 12h12"/></>,
+  growth: <><path d="M4 19V9M10 19V5M16 19v-7M3 19h18"/><path d="m4 10 5-4 5 3 6-6"/></>,
+  book: <><path d="M4 5a3 3 0 0 1 3-2h5v17H7a3 3 0 0 0-3 2V5Z"/><path d="M20 5a3 3 0 0 0-3-2h-5v17h5a3 3 0 0 1 3 2V5Z"/></>
 };
 
 export function Icon({ name, size = 20, ...props }: IconProps) {

@@ -2,6 +2,7 @@ import { formatRubles } from '../../core/economy';
 import type { Job, JobLevel } from '../../types/job';
 import type { JobId } from '../../types/ids';
 import type { District, Location } from '../../types/location';
+import { getSkillById } from '../../data/skills/basicSkills';
 import { Icon } from '../icons';
 import { WorkplaceScene } from '../visuals';
 import { createNeedsEffectItems, EffectList, type EffectListItem } from './EffectList';
@@ -29,6 +30,7 @@ type JobView = {
   shiftFailure?: string;
   canPromote: boolean;
   promotionFailure?: string;
+  missingSkillRequirements: Array<{ name: string; currentLevel: number; minLevel: number }>;
 };
 
 type JobPanelProps = {
@@ -48,7 +50,13 @@ function formatDuration(minutes: number): string {
 function getJobShiftEffects(job: Job, jobLevel: JobLevel): EffectListItem[] {
   return [
     { label: 'Деньги', value: jobLevel.wagePerShift, unit: '₽', tone: 'positive' },
-    { label: 'Опыт', value: job.experiencePerShift, unit: 'XP', tone: 'positive' },
+    { label: 'Опыт работы', value: job.experiencePerShift, unit: 'XP', tone: 'positive' },
+    ...(job.skillRewards ?? []).map((reward) => ({
+      label: getSkillById(reward.skillId)?.name ?? 'Навык',
+      value: reward.experience,
+      unit: 'XP',
+      tone: 'positive' as const
+    })),
     { label: 'Время', value: -job.shiftDurationMinutes, unit: 'мин', tone: 'negative' },
     ...createNeedsEffectItems(job.effects.needsDelta)
   ];

@@ -23,6 +23,7 @@ type LocationJobView = {
   applicationFailure?: string;
   canWorkShift: boolean;
   shiftFailure?: string;
+  missingSkillRequirements: Array<{ name: string; currentLevel: number; minLevel: number }>;
 };
 
 type LocationPanelProps = {
@@ -244,6 +245,13 @@ export function LocationPanel({
                     <strong>{view.job.title}</strong>
                     <span>{formatDuration(view.job.shiftDurationMinutes)} · {formatRubles(view.job.wagePerShift)} · +{view.job.experiencePerShift} XP</span>
                     <EffectList items={getVacancyEffects(view.job)} />
+                    {view.missingSkillRequirements.length > 0 ? (
+                      <div className="vacancy-skill-requirements">
+                        {view.missingSkillRequirements.map((requirement) => (
+                          <span key={requirement.name}>{requirement.name}: {requirement.currentLevel}/{requirement.minLevel}</span>
+                        ))}
+                      </div>
+                    ) : null}
                   </div>
                   <button
                     className="row-action-button row-action-button--compact"

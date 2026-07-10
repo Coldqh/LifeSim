@@ -6,10 +6,13 @@ import { getHousingById } from '../../data/housing/basicHousing';
 import { formatGameTime, formatWeekday } from '../../core/time';
 import type { GameState } from '../../state';
 import type { LifeAction } from '../../types/actions';
-import type { DistrictId, LocationId, ActionId, ProductId, JobId } from '../../types/ids';
+import type { DistrictId, LocationId, ActionId, ProductId, JobId, EducationProgramId } from '../../types/ids';
 import type { TravelModeId } from '../../types/transport';
 import type { City, District, Location } from '../../types/location';
 import type { Job, JobLevel } from '../../types/job';
+import type { EducationProgram } from '../../types/education';
+import type { SkillDefinition } from '../../types/skill';
+import type { SkillProgressView } from '../../core/progression';
 import type { Product, Shop } from '../../types/product';
 import type { DistrictTravelOption, LocationTravelOption } from '../../types/travel';
 import { Icon, type IconName } from '../icons';
@@ -17,6 +20,7 @@ import { CharacterScene } from '../visuals';
 import { ActionCard } from './ActionCard';
 import { createNeedsEffectItems, EffectList } from './EffectList';
 import { HousingPanel } from './HousingPanel';
+import { DevelopmentPanel } from './DevelopmentPanel';
 import { InventoryPanel } from './InventoryPanel';
 import { JobPanel } from './JobPanel';
 import { LifeLog } from './LifeLog';
@@ -24,7 +28,7 @@ import { LocationPanel } from './LocationPanel';
 import { ShopPanel } from './ShopPanel';
 import { StatCard } from './StatCard';
 
-type DashboardTab = 'character' | 'city' | 'jobs' | 'log';
+type DashboardTab = 'character' | 'city' | 'jobs' | 'development' | 'log';
 
 type JobView = {
   job: Job;
@@ -49,6 +53,7 @@ type JobView = {
   shiftFailure?: string;
   canPromote: boolean;
   promotionFailure?: string;
+  missingSkillRequirements: Array<{ name: string; currentLevel: number; minLevel: number }>;
 };
 
 type DashboardProps = {
@@ -71,6 +76,16 @@ type DashboardProps = {
     currentJobView?: JobView;
     currentLocationJobs: JobView[];
   };
+  educationState: {
+    skills: Array<{ skill: SkillDefinition; progress: SkillProgressView }>;
+    programs: Array<{
+      program: EducationProgram;
+      skill?: SkillDefinition;
+      location?: Location;
+      canStudy: boolean;
+      failure?: string;
+    }>;
+  };
   onPerformAction: (actionId: ActionId) => void;
   onMoveDistrict: (districtId: DistrictId, modeId: TravelModeId) => void;
   onMoveLocation: (locationId: LocationId, modeId: TravelModeId) => void;
@@ -79,6 +94,7 @@ type DashboardProps = {
   onApplyForJob: (jobId: JobId) => void;
   onPromoteJob: (jobId: JobId) => void;
   onWorkShift: (jobId: JobId) => void;
+  onStudyProgram: (programId: EducationProgramId) => void;
   onReset: () => void;
 };
 
@@ -88,6 +104,7 @@ const NAVIGATION: NavigationItem[] = [
   { id: 'character', label: 'Персонаж', icon: 'character' },
   { id: 'city', label: 'Город', icon: 'city' },
   { id: 'jobs', label: 'Работа', icon: 'work' },
+  { id: 'development', label: 'Развитие', icon: 'growth' },
   { id: 'log', label: 'Журнал', icon: 'log' }
 ];
 
@@ -95,6 +112,7 @@ const PAGE_TITLES: Record<DashboardTab, { title: string; eyebrow: string }> = {
   character: { title: 'Состояние', eyebrow: 'Личная панель' },
   city: { title: 'Город', eyebrow: 'Москва' },
   jobs: { title: 'Работа', eyebrow: 'Карьера' },
+  development: { title: 'Развитие', eyebrow: 'Навыки и обучение' },
   log: { title: 'Журнал', eyebrow: 'Хронология' }
 };
 
@@ -109,6 +127,7 @@ export function Dashboard({
   actions,
   locationState,
   jobState,
+  educationState,
   onPerformAction,
   onMoveDistrict,
   onMoveLocation,
@@ -117,6 +136,7 @@ export function Dashboard({
   onApplyForJob,
   onPromoteJob,
   onWorkShift,
+  onStudyProgram,
   onReset
 }: DashboardProps) {
   const { player, time, lastResult } = gameState;
@@ -282,6 +302,7 @@ export function Dashboard({
           ) : null}
 
           {activeTab === 'jobs' ? <section className="screen screen-enter narrow-screen"><JobPanel currentJobView={jobState.currentJobView} onPromoteJob={onPromoteJob} onWorkShift={onWorkShift} /></section> : null}
+          {activeTab === 'development' ? <section className="screen screen-enter narrow-screen"><DevelopmentPanel skills={educationState.skills} programs={educationState.programs} onStudyProgram={onStudyProgram} /></section> : null}
           {activeTab === 'log' ? <section className="screen screen-enter narrow-screen"><LifeLog entries={gameState.lifeLog} /></section> : null}
         </div>
       </section>
