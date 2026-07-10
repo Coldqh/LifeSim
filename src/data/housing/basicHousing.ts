@@ -17,7 +17,7 @@ function districtId(value: string): DistrictId {
 export const basicHousing: Housing[] = [
   {
     id: housingId('housing_room_danilovsky'),
-    name: 'Комната в Даниловском',
+    name: 'Комната в старом доме',
     locationId: locationId('msk_danilovsky_home'),
     districtId: districtId('msk_danilovsky'),
     rentPerWeek: 7000,
@@ -25,7 +25,7 @@ export const basicHousing: Housing[] = [
     dailyUtilities: 250,
     comfort: 35,
     sleepRecoveryBonus: 10,
-    description: 'Съёмная стартовая комната в жилом комплексе «ЗИЛАРТ».',
+    description: 'Простая съёмная комната с базовой мебелью в старом жилом доме.',
     imageSrc: housingRoomDanilovskyImage
   }
 ];

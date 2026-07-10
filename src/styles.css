@@ -4051,3 +4051,21 @@ body {
     height: 52px;
   }
 }
+
+
+/* Real product packshots / modest housing photo patch */
+.product-glyph--image {
+  overflow: hidden;
+  padding: 2px;
+  background: radial-gradient(circle at 50% 45%, rgba(255,255,255,.08), rgba(255,255,255,.015) 62%, transparent 80%);
+}
+
+.product-glyph--image img {
+  transform: scale(1.08);
+  image-rendering: auto;
+}
+
+.housing-scene__image {
+  object-position: center 48%;
+  filter: saturate(.82) contrast(.98) brightness(.9);
+}

@@ -91,7 +91,7 @@ export function LocationScene({ type, title, subtitle }: LocationSceneProps) {
 export function HousingScene({ imageSrc }: { imageSrc?: string }) {
   return (
     <div className="housing-scene" aria-hidden="true">
-      {imageSrc ? <img className="housing-scene__image" alt="" src={imageSrc} /> : null}
+      {imageSrc ? <img className="housing-scene__image" alt="" decoding="async" src={imageSrc} /> : null}
       {!imageSrc ? <svg viewBox="0 0 420 220" preserveAspectRatio="xMidYMid slice">
         <defs>
           <linearGradient id="wall" x1="0" x2="1" y1="0" y2="1"><stop stopColor="#172735"/><stop offset="1" stopColor="#080b10"/></linearGradient>
@@ -146,7 +146,7 @@ const PRODUCT_ICONS: Record<ProductCategory, IconName> = {
 export function ProductGlyph({ category = 'other', imageSrc, alt = '' }: ProductGlyphProps) {
   return (
     <span className={`product-glyph product-glyph--${category} ${imageSrc ? 'product-glyph--image' : ''}`} aria-hidden={imageSrc ? undefined : true}>
-      {imageSrc ? <img alt={alt} src={imageSrc} /> : <><i /><Icon name={PRODUCT_ICONS[category]} size={20} /></>}
+      {imageSrc ? <img alt={alt} decoding="async" loading="lazy" src={imageSrc} /> : <><i /><Icon name={PRODUCT_ICONS[category]} size={20} /></>}
     </span>
   );
 }

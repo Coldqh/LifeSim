@@ -32,8 +32,8 @@ export const moscowLocations: Location[] = [
     id: locationId('msk_danilovsky_home'),
     cityId: moscow,
     districtId: districtId('msk_danilovsky'),
-    name: 'Комната в ЖК «ЗИЛАРТ»',
-    address: 'ул. Архитектора Щусева, 2к1',
+    name: 'Комната в старом доме',
+    address: 'Восточная ул., 5',
     type: 'home',
     description: 'Стартовая точка. Здесь можно спать и восстанавливаться.',
     availableActionIds: [actionId('sleep_eight_hours'), actionId('rest_one_hour')]
