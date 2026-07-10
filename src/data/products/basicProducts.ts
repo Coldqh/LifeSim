@@ -119,9 +119,9 @@ export const basicProducts: Product[] = [
     name: 'Burn Original 0.449 л',
     category: 'drink',
     price: 190,
-    description: 'Быстрая бодрость ценой жажды.',
+    description: 'Быстро бодрит и немного утоляет жажду.',
     imageSrc: energy_drinkImage,
-    effects: { energy: 18, thirst: -10, mood: 2 }
+    effects: { energy: 18, thirst: 10, mood: 2 }
   },
   {
     id: productId('shawarma'),
