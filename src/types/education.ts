@@ -2,6 +2,7 @@ import type { EducationProgramId, LocationId, SkillId } from './ids';
 import type { NeedsState } from './needs';
 import type { SkillProgressUpdate } from './skill';
 import type { WeeklySchedule } from './schedule';
+import type { LocationType } from './location';
 
 export type EducationMode = 'self_study' | 'course';
 
@@ -11,6 +12,7 @@ export type EducationProgram = {
   mode: EducationMode;
   skillId: SkillId;
   locationId: LocationId;
+  requiredLocationType?: LocationType;
   durationMinutes: number;
   price: number;
   experienceReward: number;

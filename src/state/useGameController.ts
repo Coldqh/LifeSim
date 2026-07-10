@@ -1,6 +1,18 @@
 import { useEffect, useMemo, useState } from 'react';
 import { applyLifeAction } from '../core/actions';
-import { applyHousingDayChanges } from '../core/housing';
+import {
+  applyHousingDayChanges,
+  applyHousingSleepRecovery,
+  getHousingAffordability,
+  HOUSING_MOVING_DURATION_MINUTES,
+  HOUSING_VIEWING_DURATION_MINUTES,
+  isHousingListingActive,
+  isHousingViewed,
+  markHousingViewed,
+  moveIntoHousing,
+  refreshHousingMarket,
+  scheduleHousingViewing
+} from '../core/housing';
 import { applyMoneyDelta, canAfford } from '../core/economy';
 import { applyEducationProgram, getEducationProgramFailure } from '../core/education';
 import {
@@ -79,7 +91,7 @@ import { populationDataSource } from '../data/population/config';
 import { getNpcRoleById } from '../data/population/npcRoles';
 import { getNpcInteractionById, npcInteractionTemplates } from '../data/social/interactionTemplates';
 import { socialEventTemplates } from '../data/social/socialEventTemplates';
-import { getHousingById } from '../data/housing/basicHousing';
+import { basicHousing, getHousingById } from '../data/housing/basicHousing';
 import { basicEducationPrograms, getEducationProgramById } from '../data/education/basicPrograms';
 import { basicJobs, getJobById, getJobsForLocation } from '../data/jobs/basicJobs';
 import { getProductById } from '../data/products/basicProducts';
@@ -105,6 +117,7 @@ import type {
   NpcInteractionId,
   SocialEventChoiceId
 } from '../types/ids';
+import type { HousingId, HousingMarketState } from '../types/housing';
 import type { TravelModeId } from '../types/transport';
 import type { NeedsState } from '../types/needs';
 import type { Player } from '../types/player';
@@ -150,8 +163,9 @@ function applyElapsedTimeConsequences(
   player: Player,
   nextTime: GameTime,
   decayProfile: NeedsDecayProfile = 'active',
-  socialOverride: SocialState = currentState.world.social
-): { player: Player; population: GameState['world']['population']; social: SocialState; lifeLogEntries: LifeLogEntry[]; needsDelta?: Partial<NeedsState>; messages: string[] } {
+  socialOverride: SocialState = currentState.world.social,
+  housingMarketOverride: HousingMarketState = currentState.world.housingMarket
+): { player: Player; population: GameState['world']['population']; social: SocialState; housingMarket: HousingMarketState; lifeLogEntries: LifeLogEntry[]; needsDelta?: Partial<NeedsState>; messages: string[] } {
   const elapsedMinutes = getElapsedMinutes(currentState.time, nextTime);
   const lifeLogEntries: LifeLogEntry[] = [];
   const messages: string[] = [];
@@ -161,6 +175,8 @@ function applyElapsedTimeConsequences(
     ...player,
     needs: decayApplied.needs
   };
+  let housingMarket = housingMarketOverride;
+  let comfortNeedsDelta: Partial<NeedsState> = {};
 
   if (decayMessage) {
     messages.push(decayMessage);
@@ -190,12 +206,35 @@ function applyElapsedTimeConsequences(
       nextPlayer = applied.player;
       lifeLogEntries.push(...applied.events.map((event) => createLifeLogEntry({ time: nextTime }, event.title, event.text)));
     }
+    housingMarket = refreshHousingMarket({
+      market: housingMarket,
+      day: nextTime.day,
+      currentHousingId: nextPlayer.housingId,
+      catalogue: basicHousing
+    });
   }
 
   nextPlayer = {
     ...nextPlayer,
     boxing: applyBoxingRecovery(nextPlayer.boxing, elapsedMinutes, decayProfile)
   };
+  if (decayProfile === 'sleeping') {
+    const comfortApplied = applyHousingSleepRecovery({
+      player: nextPlayer,
+      housing: getHousingById(nextPlayer.housingId),
+      elapsedMinutes
+    });
+    nextPlayer = comfortApplied.player;
+    comfortNeedsDelta = comfortApplied.needsDelta;
+    if (Object.keys(comfortNeedsDelta).length > 0 || comfortApplied.fatigueDelta < 0) {
+      const parts = [
+        comfortNeedsDelta.energy ? `энергия +${comfortNeedsDelta.energy}` : undefined,
+        comfortNeedsDelta.mood ? `настроение +${comfortNeedsDelta.mood}` : undefined,
+        comfortApplied.fatigueDelta < 0 ? `спортивная усталость ${comfortApplied.fatigueDelta}` : undefined
+      ].filter((entry): entry is string => Boolean(entry));
+      if (parts.length > 0) messages.push(`Комфорт жилья: ${parts.join(', ')}.`);
+    }
+  }
   const population = simulatePopulation({
     population: currentState.world.population,
     fromTime: currentState.time,
@@ -231,8 +270,9 @@ function applyElapsedTimeConsequences(
     player: nextPlayer,
     population,
     social,
+    housingMarket,
     lifeLogEntries,
-    needsDelta: decayApplied.delta,
+    needsDelta: mergeNeedsDelta(decayApplied.delta, comfortNeedsDelta),
     messages
   };
 }
@@ -262,7 +302,7 @@ function applyBoxingOperationState(
   return {
     ...currentState,
     player: elapsedApplied.player,
-    world: { ...currentState.world, population: elapsedApplied.population, social: elapsedApplied.social },
+    world: { ...currentState.world, population: elapsedApplied.population, social: elapsedApplied.social, housingMarket: elapsedApplied.housingMarket },
     time: applied.time,
     lastResult: {
       ok: true,
@@ -308,7 +348,13 @@ export function useGameController() {
     const district = getDistrictById(gameState.player.districtId);
     const location = getLocationById(gameState.player.locationId);
     const districts = city ? getDistrictsForCity(city.id) : [];
-    const locations = district ? getLocationsForDistrict(district.id) : [];
+    const allDistrictLocations = district ? getLocationsForDistrict(district.id) : [];
+    const currentHomeLocationId = getHousingById(gameState.player.housingId)?.locationId;
+    const locations = allDistrictLocations.filter((candidate) => (
+      !candidate.hiddenFromCityBrowser
+      || candidate.id === location?.id
+      || candidate.id === currentHomeLocationId
+    ));
     const actions = getActionsForLocation(location?.id);
     const shop = getShopForLocation(location);
     const shopProducts = getShopProducts(shop?.id);
@@ -421,11 +467,12 @@ export function useGameController() {
     }));
 
     const programs = basicEducationPrograms.map((program) => {
-      const failure = getEducationProgramFailure(gameState.player, program, gameState.time);
+      const currentLocation = getLocationById(gameState.player.locationId);
+      const failure = getEducationProgramFailure(gameState.player, program, gameState.time, currentLocation?.type);
       return {
         program,
         skill: getSkillById(program.skillId),
-        location: getLocationById(program.locationId),
+        location: program.mode === 'self_study' ? currentLocation : getLocationById(program.locationId),
         canStudy: !failure,
         failure,
         scheduleStatus: getScheduleStatus(program.availabilitySchedule, gameState.time),
@@ -515,6 +562,46 @@ export function useGameController() {
     conditions: getNeedConditions(gameState.player.needs),
     consequences: getNeedsConsequences(gameState.player.needs)
   }), [gameState.player.needs]);
+
+  const housingState = useMemo(() => {
+    const currentHousing = getHousingById(gameState.player.housingId);
+    const currentDistrict = currentHousing ? getDistrictById(currentHousing.districtId) : undefined;
+    const currentLocation = getLocationById(gameState.player.locationId);
+    const travelContext = {
+      playerMoney: gameState.player.money,
+      playerNeeds: gameState.player.needs
+    };
+    const listings = gameState.world.housingMarket.activeHousingIds
+      .map((id) => getHousingById(id))
+      .filter((housing): housing is NonNullable<typeof housing> => Boolean(housing))
+      .map((housing) => {
+        const location = getLocationById(housing.locationId);
+        const district = getDistrictById(housing.districtId);
+        const route = location
+          ? createLocationTravelOptions(currentLocation, [location], travelContext)[0]
+          : undefined;
+        return {
+          housing,
+          location,
+          district,
+          route,
+          affordability: getHousingAffordability(gameState.player, housing),
+          isViewed: isHousingViewed(gameState.world.housingMarket, housing.id),
+          isScheduled: gameState.world.housingMarket.scheduledViewingHousingId === housing.id,
+          isAtLocation: gameState.player.locationId === housing.locationId
+        };
+      })
+      .sort((left, right) => left.housing.rentPerWeek - right.housing.rentPerWeek);
+
+    return {
+      currentHousing,
+      currentDistrict,
+      contract: gameState.player.rentalContract,
+      market: gameState.world.housingMarket,
+      listings,
+      daysUntilRefresh: Math.max(0, gameState.world.housingMarket.lastRefreshDay + 4 - gameState.time.day)
+    };
+  }, [gameState.player, gameState.time.day, gameState.world.housingMarket]);
 
   const populationState = useMemo(() => ({
     presence: getLocationPopulationPresence(gameState.world.population, gameState.player.locationId),
@@ -659,7 +746,7 @@ export function useGameController() {
       return {
         ...currentState,
         player: elapsedApplied.player,
-        world: { ...currentState.world, population: elapsedApplied.population, social: elapsedApplied.social },
+        world: { ...currentState.world, population: elapsedApplied.population, social: elapsedApplied.social, housingMarket: elapsedApplied.housingMarket },
         time: applied.time,
         lastResult: {
           ...applied.result,
@@ -723,7 +810,7 @@ export function useGameController() {
         ...currentState,
         time: nextTime,
         player: elapsedApplied.player,
-        world: { ...currentState.world, population: elapsedApplied.population, social: elapsedApplied.social },
+        world: { ...currentState.world, population: elapsedApplied.population, social: elapsedApplied.social, housingMarket: elapsedApplied.housingMarket },
         lastResult: {
           ok: true,
           timeDeltaMinutes: travel.durationMinutes,
@@ -787,7 +874,7 @@ export function useGameController() {
         ...currentState,
         time: nextTime,
         player: elapsedApplied.player,
-        world: { ...currentState.world, population: elapsedApplied.population, social: elapsedApplied.social },
+        world: { ...currentState.world, population: elapsedApplied.population, social: elapsedApplied.social, housingMarket: elapsedApplied.housingMarket },
         lastResult: {
           ok: true,
           timeDeltaMinutes: travel.durationMinutes,
@@ -912,7 +999,7 @@ export function useGameController() {
         ...currentState,
         time: nextTime,
         player: elapsedApplied.player,
-        world: { ...currentState.world, population: elapsedApplied.population, social: elapsedApplied.social },
+        world: { ...currentState.world, population: elapsedApplied.population, social: elapsedApplied.social, housingMarket: elapsedApplied.housingMarket },
         lastResult: {
           ok: true,
           timeDeltaMinutes: product.useDurationMinutes,
@@ -1009,7 +1096,7 @@ export function useGameController() {
       return {
         ...currentState,
         player: elapsedApplied.player,
-        world: { ...currentState.world, population: elapsedApplied.population, social: elapsedApplied.social },
+        world: { ...currentState.world, population: elapsedApplied.population, social: elapsedApplied.social, housingMarket: elapsedApplied.housingMarket },
         time: applied.time,
         lastResult: {
           ok: applied.result.ok,
@@ -1032,7 +1119,8 @@ export function useGameController() {
       const applied = applyEducationProgram({
         player: currentState.player,
         time: currentState.time,
-        program
+        program,
+        currentLocationType: getLocationById(currentState.player.locationId)?.type
       });
 
       if (!applied.result.ok) {
@@ -1064,7 +1152,7 @@ export function useGameController() {
       return {
         ...currentState,
         player: elapsedApplied.player,
-        world: { ...currentState.world, population: elapsedApplied.population, social: elapsedApplied.social },
+        world: { ...currentState.world, population: elapsedApplied.population, social: elapsedApplied.social, housingMarket: elapsedApplied.housingMarket },
         time: applied.time,
         lastResult: {
           ok: true,
@@ -1164,6 +1252,142 @@ export function useGameController() {
     });
   }
 
+  function scheduleHousingViewingAction(housingId: HousingId): void {
+    setGameState((currentState) => {
+      const housing = getHousingById(housingId);
+      if (!housing) return currentState;
+      const scheduled = scheduleHousingViewing(currentState.world.housingMarket, housingId);
+      const logEntry = createLifeLogEntry(
+        currentState,
+        scheduled.ok ? 'Просмотр жилья' : 'Объявление недоступно',
+        scheduled.ok ? `${housing.name}. ${scheduled.message}` : scheduled.message
+      );
+      return {
+        ...currentState,
+        world: { ...currentState.world, housingMarket: scheduled.market },
+        lastResult: {
+          ok: scheduled.ok,
+          actionName: 'Просмотр жилья',
+          timeDeltaMinutes: 0,
+          messages: [scheduled.message]
+        },
+        lifeLog: mergeLifeLog([logEntry], currentState.lifeLog)
+      };
+    });
+  }
+
+  function viewHousing(housingId: HousingId): void {
+    setGameState((currentState) => {
+      const housing = getHousingById(housingId);
+      if (!housing) return currentState;
+      let failure: string | undefined;
+      if (!isHousingListingActive(currentState.world.housingMarket, housingId)) failure = 'Объявление больше не активно.';
+      else if (currentState.world.housingMarket.scheduledViewingHousingId !== housingId) failure = 'Сначала назначь просмотр.';
+      else if (currentState.player.locationId !== housing.locationId) failure = 'Нужно приехать по адресу объявления.';
+
+      if (failure) {
+        const logEntry = createLifeLogEntry(currentState, 'Просмотр недоступен', failure);
+        return {
+          ...currentState,
+          lastResult: { ok: false, actionName: 'Просмотр жилья', timeDeltaMinutes: 0, messages: [failure] },
+          lifeLog: mergeLifeLog([logEntry], currentState.lifeLog)
+        };
+      }
+
+      const nextTime = addMinutes(currentState.time, HOUSING_VIEWING_DURATION_MINUTES);
+      const market = markHousingViewed(currentState.world.housingMarket, housingId);
+      const elapsedApplied = applyElapsedTimeConsequences(
+        currentState,
+        currentState.player,
+        nextTime,
+        'active',
+        currentState.world.social,
+        market
+      );
+      const message = `Жильё осмотрено: ${housing.name}. Характеристики объявления подтверждены.`;
+      const messages = [message, ...elapsedApplied.messages];
+      const logEntry = createLifeLogEntry({ time: nextTime }, 'Просмотр жилья', messages.join(' '));
+      return {
+        ...currentState,
+        time: nextTime,
+        player: elapsedApplied.player,
+        world: {
+          ...currentState.world,
+          population: elapsedApplied.population,
+          social: elapsedApplied.social,
+          housingMarket: elapsedApplied.housingMarket
+        },
+        lastResult: {
+          ok: true,
+          actionName: 'Просмотр жилья',
+          timeDeltaMinutes: HOUSING_VIEWING_DURATION_MINUTES,
+          needsDelta: elapsedApplied.needsDelta,
+          messages
+        },
+        lifeLog: mergeLifeLog([logEntry, ...elapsedApplied.lifeLogEntries], currentState.lifeLog)
+      };
+    });
+  }
+
+  function rentHousing(housingId: HousingId): void {
+    setGameState((currentState) => {
+      const housing = getHousingById(housingId);
+      if (!housing) return currentState;
+      const moved = moveIntoHousing({
+        player: currentState.player,
+        market: currentState.world.housingMarket,
+        housing,
+        currentDay: currentState.time.day
+      });
+      if (!moved.result.ok) {
+        const logEntry = createLifeLogEntry(currentState, 'Переезд недоступен', moved.result.messages.join(' '));
+        return {
+          ...currentState,
+          lastResult: {
+            ok: false,
+            actionName: moved.result.actionName,
+            timeDeltaMinutes: 0,
+            messages: moved.result.messages
+          },
+          lifeLog: mergeLifeLog([logEntry], currentState.lifeLog)
+        };
+      }
+
+      const nextTime = addMinutes(currentState.time, HOUSING_MOVING_DURATION_MINUTES);
+      const elapsedApplied = applyElapsedTimeConsequences(
+        currentState,
+        moved.player,
+        nextTime,
+        'active',
+        currentState.world.social,
+        moved.market
+      );
+      const messages = [...moved.result.messages, ...elapsedApplied.messages];
+      const logEntry = createLifeLogEntry({ time: nextTime }, 'Новое жильё', messages.join(' '));
+      return {
+        ...currentState,
+        time: nextTime,
+        player: elapsedApplied.player,
+        world: {
+          ...currentState.world,
+          population: elapsedApplied.population,
+          social: elapsedApplied.social,
+          housingMarket: elapsedApplied.housingMarket
+        },
+        lastResult: {
+          ok: true,
+          actionName: moved.result.actionName,
+          timeDeltaMinutes: HOUSING_MOVING_DURATION_MINUTES,
+          moneyDelta: moved.result.moneyDelta,
+          needsDelta: elapsedApplied.needsDelta,
+          locationDelta: housing.locationId,
+          messages
+        },
+        lifeLog: mergeLifeLog([logEntry, ...elapsedApplied.lifeLogEntries], currentState.lifeLog)
+      };
+    });
+  }
+
   function interactWithNpc(npcId: NpcId, interactionId: NpcInteractionId): void {
     const interaction = getNpcInteractionById(interactionId);
     if (!interaction) return;
@@ -1225,7 +1449,8 @@ export function useGameController() {
         world: {
           ...currentState.world,
           population: elapsedApplied.population,
-          social: nextSocial
+          social: nextSocial,
+          housingMarket: elapsedApplied.housingMarket
         },
         lastResult: {
           ok: true,
@@ -1291,7 +1516,8 @@ export function useGameController() {
         world: {
           ...currentState.world,
           population: elapsedApplied.population,
-          social: elapsedApplied.social
+          social: elapsedApplied.social,
+          housingMarket: elapsedApplied.housingMarket
         },
         lastResult: {
           ok: true,
@@ -1321,6 +1547,7 @@ export function useGameController() {
     conditionState,
     populationState,
     socialState,
+    housingState,
     performAction,
     moveToDistrict,
     moveToLocation,
@@ -1337,6 +1564,9 @@ export function useGameController() {
     enterBoxingTournament,
     interactWithNpc,
     chooseSocialEvent,
+    scheduleHousingViewing: scheduleHousingViewingAction,
+    viewHousing,
+    rentHousing,
     resetGame
   };
 }

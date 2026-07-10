@@ -23,6 +23,7 @@ import type {
   NpcInteractionId,
   SocialEventChoiceId
 } from '../../types/ids';
+import type { HousingId } from '../../types/housing';
 import type { TravelModeId } from '../../types/transport';
 import type { City, District, Location } from '../../types/location';
 import type { Job, JobLevel } from '../../types/job';
@@ -42,6 +43,7 @@ import { CharacterScene } from '../visuals';
 import { ActionCard } from './ActionCard';
 import { createNeedsEffectItems, EffectList } from './EffectList';
 import { HousingPanel } from './HousingPanel';
+import { HousingMarketPanel, type HousingMarketPanelState } from './HousingMarketPanel';
 import { ConditionPanel } from './ConditionPanel';
 import { DevelopmentPanel } from './DevelopmentPanel';
 import { InventoryPanel } from './InventoryPanel';
@@ -55,7 +57,7 @@ import { LocationPeoplePanel } from './LocationPeoplePanel';
 import { PeoplePanel } from './PeoplePanel';
 import { SocialEventModal } from './SocialEventModal';
 
-type DashboardTab = 'character' | 'city' | 'jobs' | 'development' | 'sport' | 'people' | 'log';
+type DashboardTab = 'character' | 'city' | 'housing' | 'jobs' | 'development' | 'sport' | 'people' | 'log';
 
 type JobView = {
   job: Job;
@@ -140,6 +142,7 @@ type DashboardProps = {
     history: SocialHistoryEntry[];
     scheduledCount: number;
   };
+  housingState: HousingMarketPanelState;
   onPerformAction: (actionId: ActionId) => void;
   onMoveDistrict: (districtId: DistrictId, modeId: TravelModeId) => void;
   onMoveLocation: (locationId: LocationId, modeId: TravelModeId) => void;
@@ -156,6 +159,9 @@ type DashboardProps = {
   onBoxingTournament: (tournamentId: BoxingTournamentId) => void;
   onInteractWithNpc: (npcId: NpcId, interactionId: NpcInteractionId) => void;
   onChooseSocialEvent: (choiceId: SocialEventChoiceId) => void;
+  onScheduleHousingViewing: (housingId: HousingId) => void;
+  onViewHousing: (housingId: HousingId) => void;
+  onRentHousing: (housingId: HousingId) => void;
   onReset: () => void;
 };
 
@@ -164,6 +170,7 @@ type NavigationItem = { id: DashboardTab; label: string; icon: IconName };
 const NAVIGATION: NavigationItem[] = [
   { id: 'character', label: 'Персонаж', icon: 'character' },
   { id: 'city', label: 'Город', icon: 'city' },
+  { id: 'housing', label: 'Жильё', icon: 'home' },
   { id: 'jobs', label: 'Работа', icon: 'work' },
   { id: 'development', label: 'Развитие', icon: 'growth' },
   { id: 'sport', label: 'Спорт', icon: 'boxing' },
@@ -174,6 +181,7 @@ const NAVIGATION: NavigationItem[] = [
 const PAGE_TITLES: Record<DashboardTab, { title: string; eyebrow: string }> = {
   character: { title: 'Состояние', eyebrow: 'Личная панель' },
   city: { title: 'Город', eyebrow: 'Москва' },
+  housing: { title: 'Жильё', eyebrow: 'Рынок аренды' },
   jobs: { title: 'Работа', eyebrow: 'Карьера' },
   development: { title: 'Развитие', eyebrow: 'Навыки и обучение' },
   sport: { title: 'Спорт', eyebrow: 'Боксёрская карьера' },
@@ -200,6 +208,7 @@ export function Dashboard({
   conditionState,
   populationState,
   socialState,
+  housingState,
   onPerformAction,
   onMoveDistrict,
   onMoveLocation,
@@ -216,6 +225,9 @@ export function Dashboard({
   onBoxingTournament,
   onInteractWithNpc,
   onChooseSocialEvent,
+  onScheduleHousingViewing,
+  onViewHousing,
+  onRentHousing,
   onReset
 }: DashboardProps) {
   const { player, time, lastResult } = gameState;
@@ -397,6 +409,19 @@ export function Dashboard({
                   )}
                 </section>
               </aside>
+            </section>
+          ) : null}
+
+          {activeTab === 'housing' ? (
+            <section className="screen screen-enter housing-market-screen">
+              <HousingMarketPanel
+                state={housingState}
+                currentLocationId={player.locationId}
+                onMoveLocation={onMoveLocation}
+                onScheduleViewing={onScheduleHousingViewing}
+                onViewHousing={onViewHousing}
+                onRentHousing={onRentHousing}
+              />
             </section>
           ) : null}
 

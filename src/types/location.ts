@@ -56,4 +56,5 @@ export type Location = {
   shopId?: ShopId;
   jobIds?: JobId[];
   openingHours?: WeeklySchedule;
+  hiddenFromCityBrowser?: boolean;
 };

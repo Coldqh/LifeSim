@@ -7,6 +7,7 @@ export * as events from './events';
 export * as progression from './progression';
 export * as jobs from './jobs';
 export * as education from './education';
+export * as housing from './housing';
 export * as sport from './sport';
 export * as risk from './risk';
 export * as business from './business';

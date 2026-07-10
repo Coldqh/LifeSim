@@ -2,7 +2,7 @@ import type { ActionResult } from '../types/actions';
 import type { CityId, DistrictId, LocationId, PlayerId, ProductId, SkillId } from '../types/ids';
 import type { Player } from '../types/player';
 import type { PlayerSkills } from '../types/skill';
-import type { HousingId } from '../types/housing';
+import type { HousingId, HousingMarketState, RentalContract } from '../types/housing';
 import type { GameTime } from '../types/time';
 import { createInitialTime, formatGameTime } from '../core/time';
 import { createInitialBoxingProfile } from '../core/sport';
@@ -13,9 +13,11 @@ import { createInitialSocialState, createNpcPersonality } from '../core/relation
 import type { SocialState } from '../types/socialEvent';
 import { moscowLocations } from '../data/locations/moscowLocations';
 import { populationDataSource } from '../data/population/config';
+import { basicHousing } from '../data/housing/basicHousing';
+import { createHousingMarket } from '../core/housing';
 
-export const GAME_STATE_STORAGE_KEY = 'lifesim.gameState.v14';
-const LEGACY_GAME_STATE_STORAGE_KEYS = ['lifesim.gameState.v13', 'lifesim.gameState.v12', 'lifesim.gameState.v11', 'lifesim.gameState.v10', 'lifesim.gameState.v9', 'lifesim.gameState.v8', 'lifesim.gameState.v7'];
+export const GAME_STATE_STORAGE_KEY = 'lifesim.gameState.v15';
+const LEGACY_GAME_STATE_STORAGE_KEYS = ['lifesim.gameState.v14', 'lifesim.gameState.v13', 'lifesim.gameState.v12', 'lifesim.gameState.v11', 'lifesim.gameState.v10', 'lifesim.gameState.v9', 'lifesim.gameState.v8', 'lifesim.gameState.v7'];
 const STARTER_INVENTORY_BACKFILL_KEYS = new Set(['lifesim.gameState.v9', 'lifesim.gameState.v8', 'lifesim.gameState.v7']);
 const REMOVED_PRODUCT_IDS = new Set(['hygiene_kit', 'toothpaste', 'laundry_powder']);
 
@@ -30,6 +32,7 @@ export type LifeLogEntry = {
 export type WorldState = {
   population: PopulationState;
   social: SocialState;
+  housingMarket: HousingMarketState;
 };
 
 export type GameState = {
@@ -162,6 +165,12 @@ export function createInitialPlayer(): Player {
     housingId: housingId('housing_room_danilovsky'),
     rentDebt: 0,
     daysUntilRent: 7,
+    rentalContract: {
+      housingId: housingId('housing_room_danilovsky'),
+      startedDay: 1,
+      nextPaymentDay: 8,
+      depositPaid: 0
+    },
     boxing: createInitialBoxingProfile()
   };
 }
@@ -185,7 +194,16 @@ export function createInitialGameState(): GameState {
   return {
     player: createInitialPlayer(),
     time,
-    world: { population, social: createInitialSocialState() },
+    world: {
+      population,
+      social: createInitialSocialState(),
+      housingMarket: createHousingMarket({
+        seed: population.seed ^ 0x48a3f2,
+        day: time.day,
+        currentHousingId: housingId('housing_room_danilovsky'),
+        catalogue: basicHousing
+      })
+    },
     lifeLog: [
       {
         id: 'log_start',
@@ -255,6 +273,57 @@ function normalizeSocialState(value: unknown): SocialState {
   };
 }
 
+
+function normalizeRentalContract(value: unknown, playerHousingId: HousingId, time: GameTime, daysUntilRent: number): RentalContract {
+  if (!value || typeof value !== 'object') {
+    return {
+      housingId: playerHousingId,
+      startedDay: Math.max(1, time.day - 1),
+      nextPaymentDay: time.day + Math.max(1, daysUntilRent || 7),
+      depositPaid: 0
+    };
+  }
+  const candidate = value as Partial<RentalContract>;
+  return {
+    housingId: candidate.housingId ?? playerHousingId,
+    startedDay: typeof candidate.startedDay === 'number' ? Math.max(1, Math.floor(candidate.startedDay)) : Math.max(1, time.day - 1),
+    nextPaymentDay: typeof candidate.nextPaymentDay === 'number' ? Math.max(time.day, Math.floor(candidate.nextPaymentDay)) : time.day + Math.max(1, daysUntilRent || 7),
+    depositPaid: typeof candidate.depositPaid === 'number' ? Math.max(0, Math.floor(candidate.depositPaid)) : 0
+  };
+}
+
+function normalizeHousingMarket(value: unknown, time: GameTime, populationSeed: number, currentHousingId: HousingId): HousingMarketState {
+  if (!value || typeof value !== 'object') {
+    return createHousingMarket({
+      seed: populationSeed ^ 0x48a3f2,
+      day: time.day,
+      currentHousingId,
+      catalogue: basicHousing
+    });
+  }
+  const candidate = value as Partial<HousingMarketState>;
+  if (typeof candidate.seed !== 'number' || !Array.isArray(candidate.activeHousingIds)) {
+    return createHousingMarket({
+      seed: populationSeed ^ 0x48a3f2,
+      day: time.day,
+      currentHousingId,
+      catalogue: basicHousing
+    });
+  }
+  const knownIds = new Set(basicHousing.map((housing) => housing.id));
+  return {
+    seed: candidate.seed,
+    lastRefreshDay: typeof candidate.lastRefreshDay === 'number' ? candidate.lastRefreshDay : time.day,
+    activeHousingIds: candidate.activeHousingIds.filter((id): id is HousingId => knownIds.has(id) && id !== currentHousingId),
+    viewedHousingIds: Array.isArray(candidate.viewedHousingIds)
+      ? candidate.viewedHousingIds.filter((id): id is HousingId => knownIds.has(id))
+      : [],
+    scheduledViewingHousingId: candidate.scheduledViewingHousingId && knownIds.has(candidate.scheduledViewingHousingId)
+      ? candidate.scheduledViewingHousingId
+      : undefined
+  };
+}
+
 export function loadGameState(): GameState | undefined {
   try {
     const storageKeys = [GAME_STATE_STORAGE_KEY, ...LEGACY_GAME_STATE_STORAGE_KEYS];
@@ -270,19 +339,26 @@ export function loadGameState(): GameState | undefined {
       const sanitizedInventory = inventory.filter((item) => !REMOVED_PRODUCT_IDS.has(String(item.productId)));
       const shouldBackfillStarterInventory = STARTER_INVENTORY_BACKFILL_KEYS.has(storageKey) && sanitizedInventory.length === 0;
 
+      const population = normalizePopulation(parsed.world?.population, parsed.time);
+      const playerHousingId = parsed.player.housingId ?? housingId('housing_room_danilovsky');
+      const daysUntilRent = parsed.player.daysUntilRent ?? 7;
       return {
         ...parsed,
         world: {
-          population: normalizePopulation(parsed.world?.population, parsed.time),
-          social: normalizeSocialState(parsed.world?.social)
+          population,
+          social: normalizeSocialState(parsed.world?.social),
+          housingMarket: normalizeHousingMarket(parsed.world?.housingMarket, parsed.time, population.seed, playerHousingId)
         },
         player: {
           ...parsed.player,
+          housingId: playerHousingId,
           inventory: shouldBackfillStarterInventory ? createStarterInventory() : sanitizedInventory,
           completedShifts: parsed.player.completedShifts ?? {},
           jobExperience: parsed.player.jobExperience ?? {},
           jobLevels: parsed.player.jobLevels ?? {},
           skills: normalizePlayerSkills(parsed.player.skills),
+          daysUntilRent,
+          rentalContract: normalizeRentalContract(parsed.player.rentalContract, playerHousingId, parsed.time, daysUntilRent),
           boxing: normalizeBoxingProfile(parsed.player.boxing)
         }
       };

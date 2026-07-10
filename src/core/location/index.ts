@@ -29,7 +29,7 @@ export function getLocationsForDistrict(districtId: DistrictId): Location[] {
 }
 
 export function getDefaultLocationForDistrict(districtId: DistrictId): Location | undefined {
-  return getLocationsForDistrict(districtId)[0];
+  return getLocationsForDistrict(districtId).find((location) => !location.hiddenFromCityBrowser);
 }
 
 export function getJobIdsForLocation(locationId: LocationId | undefined): JobId[] {

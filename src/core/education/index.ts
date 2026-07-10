@@ -10,11 +10,13 @@ import { getScheduleActivityFailure } from '../schedule';
 import type { EducationProgram, EducationResult } from '../../types/education';
 import type { Player } from '../../types/player';
 import type { GameTime } from '../../types/time';
+import type { LocationType } from '../../types/location';
 
 export type ApplyEducationProgramInput = {
   player: Player;
   time: GameTime;
   program: EducationProgram;
+  currentLocationType?: LocationType;
 };
 
 export type ApplyEducationProgramOutput = {
@@ -23,8 +25,11 @@ export type ApplyEducationProgramOutput = {
   result: EducationResult;
 };
 
-export function getEducationProgramFailure(player: Player, program: EducationProgram, time: GameTime): string | undefined {
-  if (player.locationId !== program.locationId) {
+export function getEducationProgramFailure(player: Player, program: EducationProgram, time: GameTime, currentLocationType?: LocationType): string | undefined {
+  const locationMatches = program.requiredLocationType
+    ? currentLocationType === program.requiredLocationType
+    : player.locationId === program.locationId;
+  if (!locationMatches) {
     return program.mode === 'self_study'
       ? 'Самообучение доступно дома.'
       : 'Нужно находиться в образовательном центре.';
@@ -51,8 +56,8 @@ export function getEducationProgramFailure(player: Player, program: EducationPro
 }
 
 export function applyEducationProgram(input: ApplyEducationProgramInput): ApplyEducationProgramOutput {
-  const { player, time, program } = input;
-  const failure = getEducationProgramFailure(player, program, time);
+  const { player, time, program, currentLocationType } = input;
+  const failure = getEducationProgramFailure(player, program, time, currentLocationType);
 
   if (failure) {
     return {

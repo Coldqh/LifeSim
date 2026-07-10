@@ -4,6 +4,13 @@ import type { Player } from '../../types/player';
 import { Icon } from '../icons';
 import { HousingScene } from '../visuals';
 
+const CONDITION_LABELS: Record<Housing['condition'], string> = {
+  poor: 'плохое состояние',
+  standard: 'обычное состояние',
+  good: 'хорошее состояние',
+  excellent: 'отличное состояние'
+};
+
 type HousingPanelProps = {
   housing?: Housing;
   player: Player;
@@ -31,6 +38,7 @@ export function HousingPanel({ housing, player }: HousingPanelProps) {
           <div>
             <span className="section-kicker">Текущее жильё</span>
             <h2>{housing.name}</h2>
+            <p className="housing-panel__address">{housing.address}</p>
           </div>
           <span className={rentWarning ? 'status-label status-label--warning' : 'status-label'}>
             {player.rentDebt > 0 ? 'Есть долг' : `${player.daysUntilRent} дн. до оплаты`}
@@ -40,8 +48,10 @@ export function HousingPanel({ housing, player }: HousingPanelProps) {
         <dl className="data-ledger housing-ledger">
           <div><dt>Аренда</dt><dd>{formatRubles(housing.rentPerWeek)}</dd><small>раз в {housing.rentPeriodDays} дней</small></div>
           <div><dt>Бытовые расходы</dt><dd>{formatRubles(housing.dailyUtilities)}</dd><small>в сутки</small></div>
+          <div><dt>Залог</dt><dd>{formatRubles(player.rentalContract.depositPaid)}</dd><small>возврат при переезде</small></div>
           <div><dt>Долг</dt><dd className={player.rentDebt > 0 ? 'text-negative' : ''}>{formatRubles(player.rentDebt)}</dd><small>по жилью</small></div>
           <div><dt>Комфорт</dt><dd>{housing.comfort}</dd><small>из 100</small></div>
+          <div><dt>Площадь</dt><dd>{housing.areaSqm} м²</dd><small>{CONDITION_LABELS[housing.condition]}</small></div>
         </dl>
       </div>
     </section>

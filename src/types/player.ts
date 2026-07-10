@@ -1,5 +1,5 @@
 import type { CityId, DistrictId, JobId, LocationId, PlayerId } from './ids';
-import type { HousingId } from './housing';
+import type { HousingId, RentalContract } from './housing';
 import type { InventoryItem } from './inventory';
 import type { NeedsState } from './needs';
 import type { PlayerSkills } from './skill';
@@ -23,5 +23,6 @@ export type Player = {
   housingId: HousingId;
   rentDebt: number;
   daysUntilRent: number;
+  rentalContract: RentalContract;
   boxing: BoxingProfile;
 };

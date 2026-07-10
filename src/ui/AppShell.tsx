@@ -12,6 +12,7 @@ export function AppShell() {
     conditionState,
     populationState,
     socialState,
+    housingState,
     performAction,
     moveToDistrict,
     moveToLocation,
@@ -28,6 +29,9 @@ export function AppShell() {
     enterBoxingTournament,
     interactWithNpc,
     chooseSocialEvent,
+    scheduleHousingViewing,
+    viewHousing,
+    rentHousing,
     resetGame
   } = useGameController();
 
@@ -41,6 +45,7 @@ export function AppShell() {
       conditionState={conditionState}
       populationState={populationState}
       socialState={socialState}
+      housingState={housingState}
       locationState={locationState}
       onApplyForJob={applyForJob}
       onBuyProduct={buyProduct}
@@ -59,6 +64,9 @@ export function AppShell() {
       onBoxingTournament={enterBoxingTournament}
       onInteractWithNpc={interactWithNpc}
       onChooseSocialEvent={chooseSocialEvent}
+      onScheduleHousingViewing={scheduleHousingViewing}
+      onViewHousing={viewHousing}
+      onRentHousing={rentHousing}
     />
   );
 }
