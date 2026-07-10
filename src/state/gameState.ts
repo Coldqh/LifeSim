@@ -5,9 +5,11 @@ import type { PlayerSkills } from '../types/skill';
 import type { HousingId } from '../types/housing';
 import type { GameTime } from '../types/time';
 import { createInitialTime, formatGameTime } from '../core/time';
+import { createInitialBoxingProfile } from '../core/sport';
+import type { BoxingProfile } from '../types/boxing';
 
-export const GAME_STATE_STORAGE_KEY = 'lifesim.gameState.v11';
-const LEGACY_GAME_STATE_STORAGE_KEYS = ['lifesim.gameState.v10', 'lifesim.gameState.v9', 'lifesim.gameState.v8', 'lifesim.gameState.v7'];
+export const GAME_STATE_STORAGE_KEY = 'lifesim.gameState.v12';
+const LEGACY_GAME_STATE_STORAGE_KEYS = ['lifesim.gameState.v11', 'lifesim.gameState.v10', 'lifesim.gameState.v9', 'lifesim.gameState.v8', 'lifesim.gameState.v7'];
 const STARTER_INVENTORY_BACKFILL_KEYS = new Set(['lifesim.gameState.v9', 'lifesim.gameState.v8', 'lifesim.gameState.v7']);
 const REMOVED_PRODUCT_IDS = new Set(['hygiene_kit', 'toothpaste', 'laundry_powder']);
 
@@ -61,6 +63,46 @@ function createStarterInventory() {
   ];
 }
 
+
+function normalizeBoxingProfile(value: unknown): BoxingProfile {
+  const initial = createInitialBoxingProfile();
+  if (!value || typeof value !== 'object') return initial;
+  const profile = value as Partial<BoxingProfile>;
+  const stats = profile.stats && typeof profile.stats === 'object' ? profile.stats : initial.stats;
+  const normalizeRecord = (record: unknown) => {
+    if (!record || typeof record !== 'object') return { wins: 0, losses: 0, draws: 0 };
+    const raw = record as { wins?: unknown; losses?: unknown; draws?: unknown };
+    return {
+      wins: typeof raw.wins === 'number' ? Math.max(0, Math.floor(raw.wins)) : 0,
+      losses: typeof raw.losses === 'number' ? Math.max(0, Math.floor(raw.losses)) : 0,
+      draws: typeof raw.draws === 'number' ? Math.max(0, Math.floor(raw.draws)) : 0
+    };
+  };
+  const numberOr = (raw: unknown, fallback: number) => typeof raw === 'number' ? raw : fallback;
+
+  return {
+    ...initial,
+    ...profile,
+    level: Math.max(1, Math.floor(numberOr(profile.level, initial.level))),
+    experience: Math.max(0, Math.floor(numberOr(profile.experience, initial.experience))),
+    stats: {
+      technique: numberOr(stats.technique, initial.stats.technique),
+      speed: numberOr(stats.speed, initial.stats.speed),
+      power: numberOr(stats.power, initial.stats.power),
+      defense: numberOr(stats.defense, initial.stats.defense),
+      stamina: numberOr(stats.stamina, initial.stats.stamina)
+    },
+    form: Math.min(100, Math.max(0, numberOr(profile.form, initial.form))),
+    fatigue: Math.min(100, Math.max(0, numberOr(profile.fatigue, initial.fatigue))),
+    rating: Math.max(0, Math.floor(numberOr(profile.rating, initial.rating))),
+    officialRecord: normalizeRecord(profile.officialRecord),
+    sparringRecord: normalizeRecord(profile.sparringRecord),
+    sparringCount: Math.max(0, Math.floor(numberOr(profile.sparringCount, 0))),
+    fightHistory: Array.isArray(profile.fightHistory) ? profile.fightHistory.slice(0, 20) : [],
+    tournamentWins: Math.max(0, Math.floor(numberOr(profile.tournamentWins, 0)))
+  };
+}
+
 function normalizePlayerSkills(value: unknown): PlayerSkills {
   if (!value || typeof value !== 'object') return {};
 
@@ -107,7 +149,8 @@ export function createInitialPlayer(): Player {
     jobLevels: {},
     housingId: housingId('housing_room_danilovsky'),
     rentDebt: 0,
-    daysUntilRent: 7
+    daysUntilRent: 7,
+    boxing: createInitialBoxingProfile()
   };
 }
 
@@ -162,7 +205,8 @@ export function loadGameState(): GameState | undefined {
           completedShifts: parsed.player.completedShifts ?? {},
           jobExperience: parsed.player.jobExperience ?? {},
           jobLevels: parsed.player.jobLevels ?? {},
-          skills: normalizePlayerSkills(parsed.player.skills)
+          skills: normalizePlayerSkills(parsed.player.skills),
+          boxing: normalizeBoxingProfile(parsed.player.boxing)
         }
       };
     }

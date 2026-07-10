@@ -487,8 +487,8 @@ const baseMoscowLocations: Location[] = [
     name: 'Академия бокса «Лужники»',
     address: 'ул. Лужники, 24с10',
     type: 'boxing_gym',
-    description: 'Будущая точка для боксёрской системы. Пока доступна лёгкая тренировка.',
-    availableActionIds: [actionId('light_training')]
+    description: 'Боксёрский зал с тренерами, тренировками, спаррингами и клубным турниром.',
+    availableActionIds: []
   },
   {
     id: locationId('msk_khamovniki_sport_goods'),

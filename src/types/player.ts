@@ -3,6 +3,7 @@ import type { HousingId } from './housing';
 import type { InventoryItem } from './inventory';
 import type { NeedsState } from './needs';
 import type { PlayerSkills } from './skill';
+import type { BoxingProfile } from './boxing';
 
 export type Player = {
   id: PlayerId;
@@ -22,4 +23,5 @@ export type Player = {
   housingId: HousingId;
   rentDebt: number;
   daysUntilRent: number;
+  boxing: BoxingProfile;
 };

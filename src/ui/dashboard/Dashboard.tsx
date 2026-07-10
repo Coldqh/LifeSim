@@ -7,7 +7,19 @@ import { getHousingById } from '../../data/housing/basicHousing';
 import { formatGameTime, formatWeekday } from '../../core/time';
 import type { GameState } from '../../state';
 import type { LifeAction } from '../../types/actions';
-import type { DistrictId, LocationId, ActionId, ProductId, JobId, EducationProgramId } from '../../types/ids';
+import type {
+  DistrictId,
+  LocationId,
+  ActionId,
+  ProductId,
+  JobId,
+  EducationProgramId,
+  BoxingGymId,
+  BoxingTrainerId,
+  BoxingTrainingId,
+  BoxingOpponentId,
+  BoxingTournamentId
+} from '../../types/ids';
 import type { TravelModeId } from '../../types/transport';
 import type { City, District, Location } from '../../types/location';
 import type { Job, JobLevel } from '../../types/job';
@@ -31,8 +43,9 @@ import { LifeLog } from './LifeLog';
 import { LocationPanel } from './LocationPanel';
 import { ShopPanel } from './ShopPanel';
 import { StatCard } from './StatCard';
+import { SportPanel, type BoxingPanelState } from './SportPanel';
 
-type DashboardTab = 'character' | 'city' | 'jobs' | 'development' | 'log';
+type DashboardTab = 'character' | 'city' | 'jobs' | 'development' | 'sport' | 'log';
 
 type JobView = {
   job: Job;
@@ -99,6 +112,7 @@ type DashboardProps = {
       effectiveNeedsDelta: Partial<import('../../types/needs').NeedsState>;
     }>;
   };
+  boxingState: BoxingPanelState;
   conditionState: {
     conditions: NeedCondition[];
     consequences: NeedsConsequences;
@@ -112,6 +126,11 @@ type DashboardProps = {
   onPromoteJob: (jobId: JobId) => void;
   onWorkShift: (jobId: JobId) => void;
   onStudyProgram: (programId: EducationProgramId) => void;
+  onBuyBoxingMembership: (gymId: BoxingGymId) => void;
+  onChooseBoxingTrainer: (trainerId: BoxingTrainerId) => void;
+  onBoxingTraining: (trainingId: BoxingTrainingId) => void;
+  onBoxingSparring: (opponentId: BoxingOpponentId) => void;
+  onBoxingTournament: (tournamentId: BoxingTournamentId) => void;
   onReset: () => void;
 };
 
@@ -122,6 +141,7 @@ const NAVIGATION: NavigationItem[] = [
   { id: 'city', label: 'Город', icon: 'city' },
   { id: 'jobs', label: 'Работа', icon: 'work' },
   { id: 'development', label: 'Развитие', icon: 'growth' },
+  { id: 'sport', label: 'Спорт', icon: 'boxing' },
   { id: 'log', label: 'Журнал', icon: 'log' }
 ];
 
@@ -130,6 +150,7 @@ const PAGE_TITLES: Record<DashboardTab, { title: string; eyebrow: string }> = {
   city: { title: 'Город', eyebrow: 'Москва' },
   jobs: { title: 'Работа', eyebrow: 'Карьера' },
   development: { title: 'Развитие', eyebrow: 'Навыки и обучение' },
+  sport: { title: 'Спорт', eyebrow: 'Боксёрская карьера' },
   log: { title: 'Журнал', eyebrow: 'Хронология' }
 };
 
@@ -148,6 +169,7 @@ export function Dashboard({
   locationState,
   jobState,
   educationState,
+  boxingState,
   conditionState,
   onPerformAction,
   onMoveDistrict,
@@ -158,6 +180,11 @@ export function Dashboard({
   onPromoteJob,
   onWorkShift,
   onStudyProgram,
+  onBuyBoxingMembership,
+  onChooseBoxingTrainer,
+  onBoxingTraining,
+  onBoxingSparring,
+  onBoxingTournament,
   onReset
 }: DashboardProps) {
   const { player, time, lastResult } = gameState;
@@ -343,6 +370,7 @@ export function Dashboard({
 
           {activeTab === 'jobs' ? <section className="screen screen-enter narrow-screen"><JobPanel currentJobView={jobState.currentJobView} onPromoteJob={onPromoteJob} onWorkShift={onWorkShift} /></section> : null}
           {activeTab === 'development' ? <section className="screen screen-enter narrow-screen"><DevelopmentPanel skills={educationState.skills} programs={educationState.programs} onStudyProgram={onStudyProgram} /></section> : null}
+          {activeTab === 'sport' ? <section className="screen screen-enter sport-screen"><SportPanel state={boxingState} currentDay={time.day} onBuyMembership={onBuyBoxingMembership} onChooseTrainer={onChooseBoxingTrainer} onTraining={onBoxingTraining} onSparring={onBoxingSparring} onTournament={onBoxingTournament} /></section> : null}
           {activeTab === 'log' ? <section className="screen screen-enter narrow-screen"><LifeLog entries={gameState.lifeLog} /></section> : null}
         </div>
       </section>

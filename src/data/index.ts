@@ -10,3 +10,4 @@ export * from './skills/basicSkills';
 export * from './education/basicPrograms';
 
 export * from './schedules/basicSchedules';
+export * from './sports';

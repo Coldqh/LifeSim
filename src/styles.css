@@ -4152,3 +4152,482 @@ body {
     white-space: normal;
   }
 }
+
+/* Boxing career vertical slice */
+.sport-screen,
+.boxing-screen {
+  width: 100%;
+}
+
+.boxing-screen {
+  display: grid;
+  gap: 18px;
+  max-width: 1440px;
+  margin: 0 auto;
+}
+
+.boxing-hero {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1.45fr) minmax(280px, .7fr);
+  min-height: 300px;
+  overflow: hidden;
+  border-color: color-mix(in srgb, var(--negative) 32%, var(--line));
+  background:
+    radial-gradient(circle at 76% 34%, rgba(255, 91, 95, .18), transparent 28%),
+    linear-gradient(135deg, #180f12 0%, var(--panel) 42%, #0c1118 100%);
+}
+
+.boxing-hero::before,
+.boxing-hero::after {
+  position: absolute;
+  content: "";
+  pointer-events: none;
+}
+
+.boxing-hero::before {
+  inset: 0;
+  background: linear-gradient(110deg, transparent 40%, rgba(255,255,255,.035) 40.5%, transparent 41%);
+  background-size: 54px 54px;
+  opacity: .45;
+}
+
+.boxing-hero::after {
+  right: -120px;
+  bottom: -150px;
+  width: 420px;
+  height: 420px;
+  border: 1px solid rgba(255, 99, 104, .18);
+  border-radius: 50% !important;
+  box-shadow: 0 0 0 42px rgba(255, 99, 104, .025), 0 0 0 92px rgba(255, 99, 104, .018);
+}
+
+.boxing-hero__grid {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(255,255,255,.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,.025) 1px, transparent 1px);
+  background-size: 38px 38px;
+  mask-image: linear-gradient(to right, #000, transparent 88%);
+}
+
+.boxing-hero__glove {
+  position: absolute;
+  right: 11%;
+  top: 36px;
+  display: grid;
+  place-items: center;
+  width: 122px;
+  height: 122px;
+  border: 1px solid rgba(255, 105, 110, .28);
+  color: #ff777b;
+  background: rgba(255, 95, 100, .08);
+  transform: rotate(-8deg);
+  filter: drop-shadow(0 0 30px rgba(255, 80, 88, .25));
+  animation: boxingPulse 4.2s ease-in-out infinite;
+}
+
+@keyframes boxingPulse {
+  0%, 100% { transform: rotate(-8deg) translateY(0); }
+  50% { transform: rotate(-5deg) translateY(-8px); }
+}
+
+.boxing-hero__content,
+.boxing-hero__records {
+  position: relative;
+  z-index: 2;
+}
+
+.boxing-hero__content {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  min-height: 300px;
+  padding: 38px;
+}
+
+.boxing-hero__content h2 {
+  max-width: 680px;
+  margin: 7px 0 8px;
+  font-size: clamp(34px, 4vw, 62px);
+  line-height: .95;
+  letter-spacing: -.045em;
+}
+
+.boxing-hero__content > p {
+  margin: 0;
+  color: var(--muted-strong);
+}
+
+.boxing-hero__metrics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1px;
+  margin-top: 28px;
+  border: 1px solid rgba(255,255,255,.08);
+  background: rgba(0,0,0,.18);
+  width: fit-content;
+}
+
+.boxing-hero__metrics div {
+  min-width: 120px;
+  padding: 12px 16px;
+  border-right: 1px solid rgba(255,255,255,.08);
+}
+
+.boxing-hero__metrics div:last-child { border-right: 0; }
+.boxing-hero__metrics span,
+.boxing-record-line span,
+.boxing-membership-status span,
+.boxing-card__meta span,
+.boxing-readiness-row > span {
+  display: block;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .09em;
+  text-transform: uppercase;
+}
+
+.boxing-hero__metrics strong {
+  display: block;
+  margin-top: 4px;
+  font-size: 20px;
+}
+
+.boxing-hero__records {
+  align-self: end;
+  margin: 34px;
+  padding: 18px;
+  border: 1px solid rgba(255,255,255,.1);
+  background: rgba(5, 8, 12, .72);
+  backdrop-filter: blur(16px);
+}
+
+.boxing-record-line,
+.boxing-level-progress > div,
+.boxing-card__meta,
+.boxing-membership-status,
+.boxing-readiness-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.boxing-record-line {
+  padding: 11px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.boxing-record-line strong { font-size: 18px; }
+.boxing-level-progress { margin-top: 16px; }
+.boxing-level-progress > div { margin-bottom: 8px; }
+
+.progress-track {
+  display: block;
+  overflow: hidden;
+  height: 6px;
+  background: var(--panel-deep);
+  border: 1px solid var(--line);
+}
+
+.progress-track i {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, #ff575d, #f2b45c);
+  box-shadow: 0 0 16px rgba(255, 87, 93, .38);
+}
+
+.boxing-overview-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(300px, .85fr);
+  gap: 18px;
+}
+
+.boxing-gym-panel,
+.boxing-readiness-panel,
+.boxing-stats-panel,
+.boxing-trainers-panel,
+.boxing-training-panel,
+.boxing-sparring-panel,
+.boxing-history-panel {
+  padding: 22px;
+}
+
+.boxing-location-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 0;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+
+.boxing-location-row svg { color: var(--accent); }
+.boxing-location-row strong,
+.boxing-location-row span { display: block; }
+.boxing-location-row span { margin-top: 3px; color: var(--muted); font-size: 11px; }
+.boxing-membership-status { padding: 16px 0; }
+.boxing-membership-status > div { flex: 1; }
+.boxing-membership-status strong { display: block; margin-top: 5px; }
+.boxing-primary-action { width: 100%; margin-top: 6px; }
+.boxing-warning { margin: 0 0 10px; color: var(--warning); font-size: 11px; }
+
+.boxing-readiness-panel > p {
+  margin: 18px 0 0;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.55;
+}
+
+.boxing-readiness-row {
+  display: grid;
+  grid-template-columns: 90px 52px minmax(0, 1fr);
+  padding: 13px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.boxing-readiness-row i {
+  display: block;
+  height: 8px;
+  background: var(--panel-deep);
+}
+
+.boxing-readiness-row b {
+  display: block;
+  height: 100%;
+  background: var(--positive);
+}
+
+.boxing-readiness-row--fatigue b { background: var(--negative); }
+
+.boxing-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  border: 1px solid var(--line);
+}
+
+.boxing-stat {
+  padding: 16px;
+  border-right: 1px solid var(--line);
+}
+
+.boxing-stat:last-child { border-right: 0; }
+.boxing-stat > div { display: flex; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
+.boxing-stat span { color: var(--muted); font-size: 11px; }
+.boxing-stat strong { font-size: 20px; }
+
+.boxing-card-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.boxing-card-grid--trainers { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+
+.boxing-card {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  padding: 16px;
+  border: 1px solid var(--line);
+  background: var(--panel-raised);
+  transition: border-color .2s ease, transform .2s ease, background .2s ease;
+}
+
+.boxing-card:hover {
+  transform: translateY(-3px);
+  border-color: color-mix(in srgb, var(--negative) 46%, var(--line));
+  background: var(--panel-hover);
+}
+
+.boxing-card--selected {
+  border-color: var(--positive);
+  box-shadow: inset 3px 0 0 var(--positive);
+}
+
+.boxing-card__top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: #ff787d;
+}
+
+.boxing-card__top span {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.boxing-card h3 {
+  margin: 16px 0;
+  font-size: 17px;
+  line-height: 1.15;
+}
+
+.boxing-card__meta { padding: 7px 0; border-top: 1px solid var(--line); }
+.boxing-card__meta strong { font-size: 12px; }
+
+.boxing-card button,
+.boxing-opponent-row button {
+  min-height: 38px;
+  margin-top: auto;
+  padding: 9px 12px;
+  border: 1px solid var(--line-strong);
+  color: var(--text);
+  background: var(--panel-deep);
+  font-weight: 800;
+}
+
+.boxing-card button:hover:not(:disabled),
+.boxing-opponent-row button:hover:not(:disabled) {
+  border-color: #ff686e;
+  color: #fff;
+  background: #7d2429;
+}
+
+.boxing-card button:disabled,
+.boxing-opponent-row button:disabled { opacity: .44; }
+
+.boxing-reward-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px 9px;
+  margin: 0 0 12px;
+}
+
+.boxing-reward-list span {
+  color: var(--positive);
+  font-size: 10px;
+  font-weight: 750;
+}
+
+.boxing-training-card .effect-list { margin-bottom: 14px; }
+.unavailable-reason { display: block; margin-top: 8px; color: var(--warning); font-size: 10px; line-height: 1.35; }
+
+.boxing-opponents-list,
+.boxing-history-list { display: grid; gap: 8px; }
+
+.boxing-opponent-row {
+  display: grid;
+  grid-template-columns: 66px minmax(0, 1fr) 130px 110px;
+  align-items: center;
+  gap: 14px;
+  padding: 13px;
+  border: 1px solid var(--line);
+  background: var(--panel-raised);
+}
+
+.boxing-opponent-row__rank {
+  color: #ff777b;
+  font-family: ui-monospace, Consolas, monospace;
+  font-size: 18px;
+  font-weight: 900;
+}
+
+.boxing-opponent-row__identity strong,
+.boxing-opponent-row__identity span { display: block; }
+.boxing-opponent-row__identity span { margin-top: 4px; color: var(--muted); font-size: 10px; }
+.boxing-opponent-row__style { color: var(--muted-strong); font-size: 11px; }
+.boxing-opponent-row .unavailable-reason { grid-column: 2 / -1; margin: -4px 0 0; }
+
+.boxing-tournament-panel {
+  position: relative;
+  display: grid;
+  grid-template-columns: 88px minmax(0, 1fr) 220px;
+  align-items: center;
+  gap: 22px;
+  overflow: hidden;
+  padding: 24px;
+  border-color: rgba(241, 189, 88, .36);
+  background: linear-gradient(110deg, rgba(241, 189, 88, .12), var(--panel) 42%);
+}
+
+.boxing-tournament-panel__mark {
+  display: grid;
+  place-items: center;
+  width: 72px;
+  height: 72px;
+  border: 1px solid rgba(241, 189, 88, .42);
+  color: var(--warning);
+  background: rgba(241, 189, 88, .09);
+}
+
+.boxing-tournament-panel h2 { margin: 5px 0 12px; }
+.boxing-tournament-requirements { display: flex; flex-wrap: wrap; gap: 7px 14px; }
+.boxing-tournament-requirements span { color: var(--muted-strong); font-size: 10px; }
+.boxing-tournament-panel .primary-action { width: 100%; }
+
+.boxing-history-row {
+  display: grid;
+  grid-template-columns: 120px minmax(0, 1fr) 90px 48px;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  background: var(--panel-raised);
+}
+
+.boxing-history-row > span { color: var(--muted); font-size: 10px; text-transform: uppercase; }
+.boxing-history-row div strong,
+.boxing-history-row div small { display: block; }
+.boxing-history-row div small { margin-top: 3px; color: var(--muted); }
+.boxing-history-row b { font-size: 11px; text-transform: uppercase; }
+.boxing-history-row em { font-style: normal; font-weight: 900; }
+.boxing-history-row--win b,
+.boxing-history-row--win em { color: var(--positive); }
+.boxing-history-row--loss b,
+.boxing-history-row--loss em { color: var(--negative); }
+.boxing-history-row--draw b,
+.boxing-history-row--draw em { color: var(--warning); }
+
+@media (max-width: 1180px) {
+  .boxing-card-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .boxing-stats-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .boxing-stat:nth-child(3) { border-right: 0; }
+  .boxing-stat:nth-child(n + 4) { border-top: 1px solid var(--line); }
+}
+
+@media (max-width: 900px) {
+  .mobile-navigation { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+  .boxing-hero { grid-template-columns: 1fr; }
+  .boxing-hero__content { min-height: 270px; padding: 26px; }
+  .boxing-hero__records { margin: 0; border-right: 0; border-bottom: 0; border-left: 0; }
+  .boxing-hero__glove { right: 26px; top: 28px; width: 92px; height: 92px; opacity: .7; }
+  .boxing-overview-grid { grid-template-columns: 1fr; }
+  .boxing-tournament-panel { grid-template-columns: 72px minmax(0, 1fr); }
+  .boxing-tournament-panel > .primary-action { grid-column: 1 / -1; }
+}
+
+@media (max-width: 680px) {
+  .boxing-screen { gap: 12px; }
+  .boxing-hero__content h2 { font-size: 38px; }
+  .boxing-hero__metrics { display: grid; grid-template-columns: repeat(2, 1fr); width: 100%; }
+  .boxing-hero__metrics div { min-width: 0; }
+  .boxing-card-grid,
+  .boxing-card-grid--trainers { grid-template-columns: 1fr; }
+  .boxing-stats-grid { grid-template-columns: 1fr 1fr; }
+  .boxing-stat,
+  .boxing-stat:nth-child(3) { border-right: 1px solid var(--line); border-top: 1px solid var(--line); }
+  .boxing-stat:nth-child(1),
+  .boxing-stat:nth-child(2) { border-top: 0; }
+  .boxing-stat:nth-child(2n) { border-right: 0; }
+  .boxing-opponent-row { grid-template-columns: 56px minmax(0, 1fr); }
+  .boxing-opponent-row__style { grid-column: 2; }
+  .boxing-opponent-row button { grid-column: 1 / -1; margin-top: 0; }
+  .boxing-opponent-row .unavailable-reason { grid-column: 1 / -1; }
+  .boxing-tournament-panel { grid-template-columns: 1fr; }
+  .boxing-tournament-panel__mark { width: 56px; height: 56px; }
+  .boxing-history-row { grid-template-columns: 80px minmax(0, 1fr) 56px; }
+  .boxing-history-row em { grid-column: 3; grid-row: 2; }
+  .boxing-history-row b { text-align: right; }
+  .mobile-navigation__item span { font-size: 7px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .boxing-hero__glove { animation: none; }
+  .boxing-card { transition: none; }
+}

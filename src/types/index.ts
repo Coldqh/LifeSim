@@ -15,6 +15,7 @@ export * from './housing';
 export * from './job';
 export * from './education';
 export * from './sport';
+export * from './boxing';
 export * from './events';
 export * from './actions';
 export * from './progression';

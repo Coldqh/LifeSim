@@ -8,6 +8,7 @@ export function AppShell() {
     locationState,
     jobState,
     educationState,
+    boxingState,
     conditionState,
     performAction,
     moveToDistrict,
@@ -18,6 +19,11 @@ export function AppShell() {
     promoteJob,
     workShift,
     studyProgram,
+    buyBoxingMembership,
+    chooseBoxingTrainer,
+    performBoxingTraining,
+    startBoxingSparring,
+    enterBoxingTournament,
     resetGame
   } = useGameController();
 
@@ -27,6 +33,7 @@ export function AppShell() {
       gameState={gameState}
       jobState={jobState}
       educationState={educationState}
+      boxingState={boxingState}
       conditionState={conditionState}
       locationState={locationState}
       onApplyForJob={applyForJob}
@@ -39,6 +46,11 @@ export function AppShell() {
       onUseInventoryItem={useInventoryItem}
       onWorkShift={workShift}
       onStudyProgram={studyProgram}
+      onBuyBoxingMembership={buyBoxingMembership}
+      onChooseBoxingTrainer={chooseBoxingTrainer}
+      onBoxingTraining={performBoxingTraining}
+      onBoxingSparring={startBoxingSparring}
+      onBoxingTournament={enterBoxingTournament}
     />
   );
 }

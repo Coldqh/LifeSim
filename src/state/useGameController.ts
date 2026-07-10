@@ -37,6 +37,23 @@ import {
 } from '../core/needs';
 import { getShopForLocation, getShopProducts, isProductSoldByShop } from '../core/shop';
 import { getScheduleActivityFailure, getScheduleStatus } from '../core/schedule';
+import {
+  applyBoxingMembership,
+  applyBoxingRecovery,
+  applyBoxingSparring,
+  applyBoxingTournament,
+  applyBoxingTraining,
+  getBoxingFatigueLabel,
+  getBoxingLevelProgress,
+  getBoxingMembershipFailure,
+  getBoxingSparringFailure,
+  getBoxingTournamentFailure,
+  getBoxingTrainerSelectionFailure,
+  getBoxingTrainingFailure,
+  hasActiveBoxingMembership,
+  selectBoxingTrainer,
+  type BoxingOperationOutput
+} from '../core/sport';
 import { addMinutes, getElapsedMinutes } from '../core/time';
 import {
   calculateDistrictTravel,
@@ -50,7 +67,24 @@ import { basicEducationPrograms, getEducationProgramById } from '../data/educati
 import { basicJobs, getJobById, getJobsForLocation } from '../data/jobs/basicJobs';
 import { getProductById } from '../data/products/basicProducts';
 import { basicSkills, getSkillById } from '../data/skills/basicSkills';
-import type { ActionId, DistrictId, EducationProgramId, JobId, LocationId, ProductId } from '../types/ids';
+import { boxingGyms, getBoxingGymById } from '../data/sports/boxingGyms';
+import { boxingTrainers, getBoxingTrainerById } from '../data/sports/boxingTrainers';
+import { boxingTrainings, getBoxingTrainingById } from '../data/sports/boxingTrainings';
+import { boxingOpponents, getBoxingOpponentById } from '../data/sports/boxingOpponents';
+import { boxingTournaments, getBoxingTournamentById } from '../data/sports/boxingTournaments';
+import type {
+  ActionId,
+  BoxingGymId,
+  BoxingOpponentId,
+  BoxingTournamentId,
+  BoxingTrainerId,
+  BoxingTrainingId,
+  DistrictId,
+  EducationProgramId,
+  JobId,
+  LocationId,
+  ProductId
+} from '../types/ids';
 import type { TravelModeId } from '../types/transport';
 import type { NeedsState } from '../types/needs';
 import type { Player } from '../types/player';
@@ -134,11 +168,54 @@ function applyElapsedTimeConsequences(
     }
   }
 
+  nextPlayer = {
+    ...nextPlayer,
+    boxing: applyBoxingRecovery(nextPlayer.boxing, elapsedMinutes, decayProfile)
+  };
+
   return {
     player: nextPlayer,
     lifeLogEntries,
     needsDelta: decayApplied.delta,
     messages
+  };
+}
+
+function applyBoxingOperationState(
+  currentState: GameState,
+  applied: BoxingOperationOutput,
+  logTitle: string
+): GameState {
+  if (!applied.result.ok) {
+    const logEntry = createLifeLogEntry(currentState, `${logTitle} недоступно`, applied.result.messages.join(' '));
+    return {
+      ...currentState,
+      lastResult: {
+        ok: false,
+        actionName: applied.result.actionName,
+        timeDeltaMinutes: 0,
+        messages: applied.result.messages
+      },
+      lifeLog: mergeLifeLog([logEntry], currentState.lifeLog)
+    };
+  }
+
+  const elapsedApplied = applyElapsedTimeConsequences(currentState, applied.player, applied.time, 'active');
+  const messages = [...applied.result.messages, ...elapsedApplied.messages];
+  const logEntry = createLifeLogEntry({ time: applied.time }, logTitle, messages.join(' '));
+  return {
+    ...currentState,
+    player: elapsedApplied.player,
+    time: applied.time,
+    lastResult: {
+      ok: true,
+      actionName: applied.result.actionName,
+      timeDeltaMinutes: applied.result.timeDeltaMinutes,
+      moneyDelta: applied.result.moneyDelta,
+      needsDelta: mergeNeedsDelta(applied.result.needsDelta, elapsedApplied.needsDelta),
+      messages
+    },
+    lifeLog: mergeLifeLog([logEntry, ...elapsedApplied.lifeLogEntries], currentState.lifeLog)
   };
 }
 
@@ -292,6 +369,77 @@ export function useGameController() {
     });
 
     return { skills, programs };
+  }, [gameState.player, gameState.time]);
+
+  const boxingState = useMemo(() => {
+    const gym = boxingGyms[0];
+    const gymLocation = getLocationById(gym?.locationId);
+    const selectedTrainer = getBoxingTrainerById(gameState.player.boxing.selectedTrainerId);
+    const membershipActive = gym ? hasActiveBoxingMembership(gameState.player.boxing, gym, gameState.time.day) : false;
+    const membershipFailure = gym
+      ? getBoxingMembershipFailure(gameState.player, gameState.time, gym, gymLocation?.openingHours)
+      : 'Боксёрский зал не найден.';
+    const trainers = boxingTrainers
+      .filter((trainer) => gym?.trainerIds.includes(trainer.id))
+      .map((trainer) => {
+        const failure = gym ? getBoxingTrainerSelectionFailure(gameState.player, gameState.time, gym, trainer) : 'Зал не найден.';
+        return { trainer, selected: selectedTrainer?.id === trainer.id, canSelect: !failure, failure };
+      });
+    const trainings = boxingTrainings.map((training) => {
+      const failure = gym ? getBoxingTrainingFailure({
+        player: gameState.player,
+        time: gameState.time,
+        gym,
+        training,
+        trainer: selectedTrainer,
+        schedule: gymLocation?.openingHours
+      }) : 'Зал не найден.';
+      return {
+        training,
+        canTrain: !failure,
+        failure,
+        sessionPrice: selectedTrainer?.sessionPrice ?? 0,
+        effectiveNeedsDelta: adjustActivityNeedsDelta(gameState.player.needs, training.needsDelta, { scaleEnergyCost: true })
+      };
+    });
+    const opponents = boxingOpponents.map((opponent) => {
+      const failure = gym ? getBoxingSparringFailure({
+        player: gameState.player,
+        time: gameState.time,
+        gym,
+        opponent,
+        trainer: selectedTrainer,
+        schedule: gymLocation?.openingHours
+      }) : 'Зал не найден.';
+      return { opponent, canSpar: !failure, failure };
+    });
+    const tournaments = boxingTournaments.map((tournament) => {
+      const failure = gym ? getBoxingTournamentFailure({
+        player: gameState.player,
+        time: gameState.time,
+        gym,
+        tournament,
+        schedule: gymLocation?.openingHours
+      }) : 'Зал не найден.';
+      return { tournament, canEnter: !failure, failure };
+    });
+
+    return {
+      profile: gameState.player.boxing,
+      levelProgress: getBoxingLevelProgress(gameState.player.boxing),
+      fatigueLabel: getBoxingFatigueLabel(gameState.player.boxing.fatigue),
+      gym,
+      gymLocation,
+      gymScheduleStatus: getScheduleStatus(gymLocation?.openingHours, gameState.time),
+      isAtGym: gameState.player.locationId === gym?.locationId,
+      membershipActive,
+      membershipFailure,
+      selectedTrainer,
+      trainers,
+      trainings,
+      opponents,
+      tournaments
+    };
   }, [gameState.player, gameState.time]);
 
   const conditionState = useMemo(() => ({
@@ -779,6 +927,91 @@ export function useGameController() {
     });
   }
 
+  function buyBoxingMembership(gymId: BoxingGymId): void {
+    const gym = getBoxingGymById(gymId);
+    if (!gym) return;
+    setGameState((currentState) => {
+      const location = getLocationById(gym.locationId);
+      return applyBoxingOperationState(currentState, applyBoxingMembership({
+        player: currentState.player,
+        time: currentState.time,
+        gym,
+        schedule: location?.openingHours
+      }), 'Бокс');
+    });
+  }
+
+  function chooseBoxingTrainer(trainerId: BoxingTrainerId): void {
+    const trainer = getBoxingTrainerById(trainerId);
+    if (!trainer) return;
+    setGameState((currentState) => {
+      const gym = boxingGyms.find((candidate) => candidate.trainerIds.includes(trainer.id));
+      if (!gym) return currentState;
+      return applyBoxingOperationState(currentState, selectBoxingTrainer({
+        player: currentState.player,
+        time: currentState.time,
+        gym,
+        trainer
+      }), 'Бокс');
+    });
+  }
+
+  function performBoxingTraining(trainingId: BoxingTrainingId): void {
+    const training = getBoxingTrainingById(trainingId);
+    if (!training) return;
+    setGameState((currentState) => {
+      const gym = boxingGyms[0];
+      const location = getLocationById(gym.locationId);
+      const trainer = getBoxingTrainerById(currentState.player.boxing.selectedTrainerId);
+      return applyBoxingOperationState(currentState, applyBoxingTraining({
+        player: currentState.player,
+        time: currentState.time,
+        gym,
+        training,
+        trainer,
+        schedule: location?.openingHours
+      }), 'Тренировка');
+    });
+  }
+
+  function startBoxingSparring(opponentId: BoxingOpponentId): void {
+    const opponent = getBoxingOpponentById(opponentId);
+    if (!opponent) return;
+    setGameState((currentState) => {
+      const gym = boxingGyms[0];
+      const location = getLocationById(gym.locationId);
+      const trainer = getBoxingTrainerById(currentState.player.boxing.selectedTrainerId);
+      return applyBoxingOperationState(currentState, applyBoxingSparring({
+        player: currentState.player,
+        time: currentState.time,
+        gym,
+        opponent,
+        trainer,
+        schedule: location?.openingHours
+      }), 'Спарринг');
+    });
+  }
+
+  function enterBoxingTournament(tournamentId: BoxingTournamentId): void {
+    const tournament = getBoxingTournamentById(tournamentId);
+    if (!tournament) return;
+    setGameState((currentState) => {
+      const gym = boxingGyms[0];
+      const location = getLocationById(gym.locationId);
+      const opponents = tournament.opponentIds
+        .map((opponentId) => getBoxingOpponentById(opponentId))
+        .filter((opponent): opponent is NonNullable<typeof opponent> => Boolean(opponent));
+      return applyBoxingOperationState(currentState, applyBoxingTournament({
+        player: currentState.player,
+        time: currentState.time,
+        gym,
+        tournament,
+        opponents,
+        schedule: location?.openingHours
+      }), 'Турнир');
+    });
+  }
+
   function resetGame(): void {
     clearSavedGameState();
     setGameState(createInitialGameState());
@@ -790,6 +1023,7 @@ export function useGameController() {
     locationState,
     jobState,
     educationState,
+    boxingState,
     conditionState,
     performAction,
     moveToDistrict,
@@ -800,6 +1034,11 @@ export function useGameController() {
     promoteJob,
     workShift,
     studyProgram,
+    buyBoxingMembership,
+    chooseBoxingTrainer,
+    performBoxingTraining,
+    startBoxingSparring,
+    enterBoxingTournament,
     resetGame
   };
 }
