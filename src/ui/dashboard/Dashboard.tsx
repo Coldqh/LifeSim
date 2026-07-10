@@ -12,6 +12,7 @@ import type { City, District, Location } from '../../types/location';
 import type { Job } from '../../types/job';
 import type { Product, Shop } from '../../types/product';
 import type { DistrictTravelOption, LocationTravelOption } from '../../types/travel';
+import { Icon, type IconName } from '../icons';
 import { ActionCard } from './ActionCard';
 import { createNeedsEffectItems, EffectList } from './EffectList';
 import { HousingPanel } from './HousingPanel';
@@ -68,15 +69,30 @@ type DashboardProps = {
   onReset: () => void;
 };
 
+type NavigationItem = {
+  id: DashboardTab;
+  label: string;
+  icon: IconName;
+};
+
+const NAVIGATION: NavigationItem[] = [
+  { id: 'character', label: 'Персонаж', icon: 'character' },
+  { id: 'city', label: 'Город', icon: 'city' },
+  { id: 'jobs', label: 'Работа', icon: 'work' },
+  { id: 'log', label: 'Журнал', icon: 'log' }
+];
+
+const PAGE_TITLES: Record<DashboardTab, { title: string; eyebrow: string }> = {
+  character: { title: 'Состояние', eyebrow: 'Личная панель' },
+  city: { title: 'Город', eyebrow: 'Москва' },
+  jobs: { title: 'Работа', eyebrow: 'Карьера' },
+  log: { title: 'Журнал', eyebrow: 'Хронология' }
+};
+
 function needTone(value: number): 'default' | 'good' | 'warning' {
   if (value <= 25) return 'warning';
   if (value >= 75) return 'good';
-
   return 'default';
-}
-
-function getTabClassName(tab: DashboardTab, activeTab: DashboardTab): string {
-  return `side-tab ${tab === activeTab ? 'side-tab--active' : ''}`;
 }
 
 export function Dashboard({
@@ -98,140 +114,220 @@ export function Dashboard({
   const [activeTab, setActiveTab] = useState<DashboardTab>('character');
   const { theme, toggleTheme } = useUiTheme();
   const activeHourDecayItems = createNeedsEffectItems(getNeedsDecayDelta(60, 'active'));
+  const page = PAGE_TITLES[activeTab];
 
   function handleResetClick(): void {
-    if (window.confirm('Сбросить сохранение LifeSim?')) {
+    if (window.confirm('Сбросить сохранение LifeSim? Это действие нельзя отменить.')) {
       onReset();
     }
   }
 
   return (
-    <main className="app-layout">
-      <aside className="side-panel" aria-label="Навигация LifeSim">
-        <div className="side-panel__brand">
-          <span>LifeSim</span>
-          <small>management sim</small>
+    <main className="app-frame">
+      <aside className="desktop-navigation" aria-label="Навигация LifeSim">
+        <div className="brand-block" aria-label="LifeSim">
+          <span className="brand-block__mark">LS</span>
+          <div>
+            <strong>LIFESIM</strong>
+            <small>CITY MANAGEMENT</small>
+          </div>
         </div>
 
-        <button className="theme-toggle" type="button" onClick={toggleTheme}>
-          <span>{theme === 'dark' ? 'Тёмная тема' : 'Светлая тема'}</span>
-          <small>Переключить на {theme === 'dark' ? 'светлую' : 'тёмную'}</small>
-        </button>
-
-        <nav className="side-tabs" aria-label="Основные вкладки">
-          <button className={getTabClassName('character', activeTab)} type="button" onClick={() => setActiveTab('character')}>
-            <span>Персонаж</span>
-            <small>state</small>
-          </button>
-          <button className={getTabClassName('city', activeTab)} type="button" onClick={() => setActiveTab('city')}>
-            <span>Город</span>
-            <small>city</small>
-          </button>
-          <button className={getTabClassName('jobs', activeTab)} type="button" onClick={() => setActiveTab('jobs')}>
-            <span>Работа</span>
-            <small>jobs</small>
-          </button>
-          <button className={getTabClassName('log', activeTab)} type="button" onClick={() => setActiveTab('log')}>
-            <span>Лог</span>
-            <small>log</small>
-          </button>
+        <nav className="primary-navigation" aria-label="Разделы игры">
+          {NAVIGATION.map((item) => (
+            <button
+              aria-current={activeTab === item.id ? 'page' : undefined}
+              className={`navigation-item ${activeTab === item.id ? 'navigation-item--active' : ''}`}
+              key={item.id}
+              type="button"
+              onClick={() => setActiveTab(item.id)}
+            >
+              <Icon name={item.icon} size={20} />
+              <span>{item.label}</span>
+            </button>
+          ))}
         </nav>
 
-        <div className="side-panel__footer">
-          <button className="reset-button reset-button--wide" type="button" onClick={handleResetClick}>
-            Сбросить сохранение
+        <div className="desktop-navigation__footer">
+          <button className="utility-button" type="button" onClick={toggleTheme}>
+            <Icon name={theme === 'dark' ? 'sun' : 'moon'} size={18} />
+            <span>{theme === 'dark' ? 'Светлая тема' : 'Тёмная тема'}</span>
+          </button>
+          <button className="utility-button utility-button--danger" type="button" onClick={handleResetClick}>
+            <Icon name="reset" size={18} />
+            <span>Сбросить игру</span>
           </button>
         </div>
       </aside>
 
-      <section className="dashboard-shell">
-        <section className="hero-panel">
-          <div>
-            <p className="hero-panel__eyebrow">LifeSim MVP</p>
-            <h1 className="hero-panel__title">
-              {locationState.city?.name ?? 'Город'} · {locationState.district?.name ?? 'Район'}
-            </h1>
+      <section className="app-workspace">
+        <header className="top-status-bar">
+          <div className="page-identity">
+            <span>{page.eyebrow}</span>
+            <h1>{page.title}</h1>
           </div>
-        </section>
 
-        {lastResult ? (
-          <section className={`result-panel ${lastResult.ok ? 'result-panel--ok' : 'result-panel--fail'}`}>
-            <p className="result-panel__eyebrow">Последний результат</p>
-            <h2>{lastResult.actionName ?? 'Действие'}</h2>
-            {lastResult.messages.map((message) => (
-              <p key={message}>{message}</p>
-            ))}
-          </section>
-        ) : null}
-
-        {activeTab === 'character' ? (
-          <>
-            <section className="stats-grid" aria-label="Состояние игрока">
-              <StatCard label="День" value={time.day} helper={formatWeekday(time.weekday)} />
-              <StatCard label="Время" value={formatGameTime(time)} helper="часы уходят за действия" />
-              <StatCard label="Деньги" value={formatRubles(player.money)} helper="наличные" tone="good" />
-              <StatCard label="Энергия" value={player.needs.energy} helper="0–100" tone={needTone(player.needs.energy)} />
-              <StatCard label="Еда" value={player.needs.hunger} helper="голод" tone={needTone(player.needs.hunger)} />
-              <StatCard label="Вода" value={player.needs.thirst} helper="жажда" tone={needTone(player.needs.thirst)} />
-              <StatCard label="Здоровье" value={player.needs.health} helper="тело" tone={needTone(player.needs.health)} />
-              <StatCard label="Настроение" value={player.needs.mood} helper="фон" tone={needTone(player.needs.mood)} />
-            </section>
-
-            <section className="panel needs-decay-panel">
-              <div className="panel__header">
-                <p className="panel__eyebrow">Ритм дня</p>
-                <h2 className="panel__title">Расход за активный час</h2>
+          <div className="global-status" aria-label="Текущее состояние">
+            <div className="global-status__item global-status__item--location">
+              <Icon name="pin" size={17} />
+              <div>
+                <span>{locationState.district?.name ?? 'Район'}</span>
+                <strong>{locationState.location?.name ?? 'Место'}</strong>
               </div>
-              <EffectList items={activeHourDecayItems} />
-            </section>
-
-            <HousingPanel housing={housing} player={player} />
-
-            <InventoryPanel inventory={player.inventory} onUseInventoryItem={onUseInventoryItem} />
-          </>
-        ) : null}
-
-        {activeTab === 'city' ? (
-          <>
-            <LocationPanel
-              city={locationState.city}
-              district={locationState.district}
-              location={locationState.location}
-              districtTravelOptions={locationState.districtTravelOptions}
-              locationTravelOptions={locationState.locationTravelOptions}
-              locationJobs={jobState.currentLocationJobs}
-              onMoveDistrict={onMoveDistrict}
-              onMoveLocation={onMoveLocation}
-              onApplyForJob={onApplyForJob}
-            />
-
-            <ShopPanel shop={locationState.shop} products={locationState.shopProducts} onBuyProduct={onBuyProduct} />
-
-            <section className="panel actions-panel">
-              <div className="panel__header">
-                <p className="panel__eyebrow">Действия</p>
-                <h2 className="panel__title">Доступно здесь</h2>
+            </div>
+            <div className="global-status__item">
+              <Icon name="clock" size={17} />
+              <div>
+                <span>День {time.day} · {formatWeekday(time.weekday)}</span>
+                <strong>{formatGameTime(time)}</strong>
               </div>
+            </div>
+            <div className="global-status__item">
+              <Icon name="wallet" size={17} />
+              <div>
+                <span>Баланс</span>
+                <strong>{formatRubles(player.money)}</strong>
+              </div>
+            </div>
+            <button className="icon-button top-theme-toggle" aria-label="Переключить тему" type="button" onClick={toggleTheme}>
+              <Icon name={theme === 'dark' ? 'sun' : 'moon'} size={19} />
+            </button>
+          </div>
+        </header>
 
-              {actions.length > 0 ? (
-                <div className="actions-grid">
-                  {actions.map((action) => (
-                    <ActionCard action={action} key={action.id} onPerform={onPerformAction} />
-                  ))}
+        <div className="workspace-content">
+          {lastResult ? (
+            <section className={`activity-notice ${lastResult.ok ? 'activity-notice--success' : 'activity-notice--error'}`}>
+              <div className="activity-notice__icon">
+                <Icon name={lastResult.ok ? 'pulse' : 'close'} size={18} />
+              </div>
+              <div>
+                <span>{lastResult.actionName ?? 'Последнее действие'}</span>
+                <strong>{lastResult.messages[0] ?? 'Состояние обновлено'}</strong>
+              </div>
+              {lastResult.messages.length > 1 ? <small>+{lastResult.messages.length - 1}</small> : null}
+            </section>
+          ) : null}
+
+          {activeTab === 'character' ? (
+            <section className="screen character-screen">
+              <section className="profile-command-panel">
+                <div className="profile-command-panel__identity">
+                  <div className="profile-avatar" aria-hidden="true">{player.name.slice(0, 1).toUpperCase()}</div>
+                  <div>
+                    <span className="section-kicker">Персонаж</span>
+                    <h2>{player.name}</h2>
+                    <p>{player.age} лет · {locationState.city?.name ?? 'Москва'}</p>
+                  </div>
                 </div>
-              ) : (
-                <p className="empty-state">Нет доступных действий в этой локации.</p>
-              )}
+                <div className="profile-command-panel__quick">
+                  <div>
+                    <span>Жильё</span>
+                    <strong>{housing?.name ?? 'Нет жилья'}</strong>
+                  </div>
+                  <div>
+                    <span>Работа</span>
+                    <strong>{jobState.currentJob?.title ?? 'Нет работы'}</strong>
+                  </div>
+                </div>
+              </section>
+
+              <section className="panel vitals-panel">
+                <div className="section-heading">
+                  <div>
+                    <span className="section-kicker">Состояние</span>
+                    <h2>Показатели жизни</h2>
+                  </div>
+                  <div className="decay-summary">
+                    <span>Расход за активный час</span>
+                    <EffectList items={activeHourDecayItems} />
+                  </div>
+                </div>
+
+                <div className="vitals-grid" aria-label="Состояние игрока">
+                  <StatCard label="Энергия" value={player.needs.energy} progress={player.needs.energy} tone={needTone(player.needs.energy)} />
+                  <StatCard label="Сытость" value={player.needs.hunger} progress={player.needs.hunger} tone={needTone(player.needs.hunger)} />
+                  <StatCard label="Вода" value={player.needs.thirst} progress={player.needs.thirst} tone={needTone(player.needs.thirst)} />
+                  <StatCard label="Здоровье" value={player.needs.health} progress={player.needs.health} tone={needTone(player.needs.health)} />
+                  <StatCard label="Настроение" value={player.needs.mood} progress={player.needs.mood} tone={needTone(player.needs.mood)} />
+                </div>
+              </section>
+
+              <div className="character-data-grid">
+                <HousingPanel housing={housing} player={player} />
+                <InventoryPanel inventory={player.inventory} onUseInventoryItem={onUseInventoryItem} />
+              </div>
             </section>
-          </>
-        ) : null}
+          ) : null}
 
-        {activeTab === 'jobs' ? (
-          <JobPanel currentJobView={jobState.currentJobView} onWorkShift={onWorkShift} />
-        ) : null}
+          {activeTab === 'city' ? (
+            <section className="screen city-screen">
+              <LocationPanel
+                city={locationState.city}
+                district={locationState.district}
+                location={locationState.location}
+                districtTravelOptions={locationState.districtTravelOptions}
+                locationTravelOptions={locationState.locationTravelOptions}
+                locationJobs={jobState.currentLocationJobs}
+                onMoveDistrict={onMoveDistrict}
+                onMoveLocation={onMoveLocation}
+                onApplyForJob={onApplyForJob}
+              />
 
-        {activeTab === 'log' ? <LifeLog entries={gameState.lifeLog} /> : null}
+              <aside className="context-column">
+                <ShopPanel shop={locationState.shop} products={locationState.shopProducts} onBuyProduct={onBuyProduct} />
+
+                <section className="panel actions-panel">
+                  <div className="section-heading section-heading--compact">
+                    <div>
+                      <span className="section-kicker">Текущее место</span>
+                      <h2>Действия</h2>
+                    </div>
+                    <span className="section-counter">{actions.length}</span>
+                  </div>
+
+                  {actions.length > 0 ? (
+                    <div className="actions-list">
+                      {actions.map((action) => (
+                        <ActionCard action={action} key={action.id} onPerform={onPerformAction} />
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="empty-state compact-empty-state">Нет доступных действий</div>
+                  )}
+                </section>
+              </aside>
+            </section>
+          ) : null}
+
+          {activeTab === 'jobs' ? (
+            <section className="screen narrow-screen">
+              <JobPanel currentJobView={jobState.currentJobView} onWorkShift={onWorkShift} />
+            </section>
+          ) : null}
+
+          {activeTab === 'log' ? (
+            <section className="screen narrow-screen">
+              <LifeLog entries={gameState.lifeLog} />
+            </section>
+          ) : null}
+        </div>
       </section>
+
+      <nav className="mobile-navigation" aria-label="Мобильная навигация">
+        {NAVIGATION.map((item) => (
+          <button
+            aria-current={activeTab === item.id ? 'page' : undefined}
+            className={activeTab === item.id ? 'mobile-navigation__item mobile-navigation__item--active' : 'mobile-navigation__item'}
+            key={item.id}
+            type="button"
+            onClick={() => setActiveTab(item.id)}
+          >
+            <Icon name={item.icon} size={21} />
+            <span>{item.label}</span>
+          </button>
+        ))}
+      </nav>
     </main>
   );
 }

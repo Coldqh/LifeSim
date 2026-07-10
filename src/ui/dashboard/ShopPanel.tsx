@@ -1,6 +1,7 @@
 import { formatRubles } from '../../core/economy';
 import type { Product, Shop } from '../../types/product';
 import type { ProductId } from '../../types/ids';
+import { Icon } from '../icons';
 import { createNeedsEffectItems, EffectList, type EffectListItem } from './EffectList';
 
 type ShopPanelProps = {
@@ -11,12 +12,7 @@ type ShopPanelProps = {
 
 function getProductPurchaseEffects(product: Product): EffectListItem[] {
   return [
-    {
-      label: 'Деньги',
-      value: -product.price,
-      unit: '₽',
-      tone: 'negative'
-    },
+    { label: 'Деньги', value: -product.price, unit: '₽', tone: 'negative' },
     ...createNeedsEffectItems(product.effects)
   ];
 }
@@ -25,24 +21,26 @@ export function ShopPanel({ shop, products, onBuyProduct }: ShopPanelProps) {
   if (!shop) return null;
 
   return (
-    <section className="panel shop-panel">
-      <div className="panel__header">
-        <p className="panel__eyebrow">Магазин</p>
-        <h2 className="panel__title">{shop.name}</h2>
+    <section className="panel commerce-panel">
+      <div className="section-heading section-heading--compact">
+        <div>
+          <span className="section-kicker">Торговая точка</span>
+          <h2>{shop.name}</h2>
+        </div>
+        <span className="section-counter">{products.length}</span>
       </div>
 
-      <div className="shop-list">
+      <div className="commerce-list">
         {products.map((product) => (
-          <article className="shop-item" key={product.id}>
-            <div className="shop-item__main">
+          <article className="commerce-row" key={product.id}>
+            <div className="commerce-row__icon"><Icon name="shop" size={18} /></div>
+            <div className="commerce-row__content">
               <strong>{product.name}</strong>
               <EffectList items={getProductPurchaseEffects(product)} />
             </div>
-            <div className="shop-item__side">
+            <div className="commerce-row__action">
               <span>{formatRubles(product.price)}</span>
-              <button type="button" onClick={() => onBuyProduct(product.id)}>
-                Купить
-              </button>
+              <button type="button" onClick={() => onBuyProduct(product.id)}>Купить</button>
             </div>
           </article>
         ))}

@@ -1,4 +1,5 @@
 import type { LifeLogEntry } from '../../state';
+import { Icon } from '../icons';
 
 type LifeLogProps = {
   entries: LifeLogEntry[];
@@ -6,20 +7,27 @@ type LifeLogProps = {
 
 export function LifeLog({ entries }: LifeLogProps) {
   return (
-    <section className="panel">
-      <div className="panel__header">
-        <p className="panel__eyebrow">Архив</p>
-        <h2 className="panel__title">Лог жизни</h2>
+    <section className="panel log-panel">
+      <div className="section-heading section-heading--compact">
+        <div>
+          <span className="section-kicker">Хронология</span>
+          <h2>Журнал жизни</h2>
+        </div>
+        <span className="section-counter">{entries.length}</span>
       </div>
 
-      <div className="life-log">
-        {entries.map((entry) => (
-          <article className="life-log__entry" key={entry.id}>
-            <span className="life-log__time">
-              День {entry.day}, {entry.timeLabel}
-            </span>
-            <strong>{entry.title}</strong>
-            <p>{entry.text}</p>
+      <div className="timeline-list">
+        {entries.map((entry, index) => (
+          <article className="timeline-entry" key={entry.id}>
+            <div className="timeline-entry__rail">
+              <span><Icon name="pulse" size={14} /></span>
+              {index < entries.length - 1 ? <i /> : null}
+            </div>
+            <div className="timeline-entry__content">
+              <time>День {entry.day} · {entry.timeLabel}</time>
+              <strong>{entry.title}</strong>
+              <p>{entry.text}</p>
+            </div>
           </article>
         ))}
       </div>

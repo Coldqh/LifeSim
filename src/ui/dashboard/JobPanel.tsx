@@ -2,6 +2,7 @@ import { formatRubles } from '../../core/economy';
 import type { Job } from '../../types/job';
 import type { JobId } from '../../types/ids';
 import type { District, Location } from '../../types/location';
+import { Icon } from '../icons';
 import { createNeedsEffectItems, EffectList, type EffectListItem } from './EffectList';
 
 type JobView = {
@@ -26,33 +27,16 @@ type JobPanelProps = {
 function formatDuration(minutes: number): string {
   const hours = Math.floor(minutes / 60);
   const restMinutes = minutes % 60;
-
   if (hours > 0 && restMinutes > 0) return `${hours} ч ${restMinutes} мин`;
   if (hours > 0) return `${hours} ч`;
-
   return `${restMinutes} мин`;
 }
 
 function getJobShiftEffects(job: Job): EffectListItem[] {
   return [
-    {
-      label: 'Деньги',
-      value: job.effects.moneyDelta,
-      unit: '₽',
-      tone: 'positive'
-    },
-    {
-      label: 'Опыт',
-      value: job.experiencePerShift,
-      unit: 'XP',
-      tone: 'positive'
-    },
-    {
-      label: 'Время',
-      value: -job.shiftDurationMinutes,
-      unit: 'мин',
-      tone: 'negative'
-    },
+    { label: 'Деньги', value: job.effects.moneyDelta, unit: '₽', tone: 'positive' },
+    { label: 'Опыт', value: job.experiencePerShift, unit: 'XP', tone: 'positive' },
+    { label: 'Время', value: -job.shiftDurationMinutes, unit: 'мин', tone: 'negative' },
     ...createNeedsEffectItems(job.effects.needsDelta)
   ];
 }
@@ -60,12 +44,11 @@ function getJobShiftEffects(job: Job): EffectListItem[] {
 export function JobPanel({ currentJobView, onWorkShift }: JobPanelProps) {
   if (!currentJobView) {
     return (
-      <section className="panel job-panel">
-        <div className="panel__header">
-          <p className="panel__eyebrow">Работа</p>
-          <h2 className="panel__title">Нет работы</h2>
-        </div>
-        <p className="empty-state">Ищи вакансии в городских местах: кофейни, магазины, салоны, склады, бизнес-центры.</p>
+      <section className="panel empty-workplace-panel">
+        <div className="empty-workplace-panel__icon"><Icon name="briefcase" size={28} /></div>
+        <span className="section-kicker">Работа</span>
+        <h2>Нет работы</h2>
+        <p>Вакансии доступны в городских локациях.</p>
       </section>
     );
   }
@@ -74,58 +57,53 @@ export function JobPanel({ currentJobView, onWorkShift }: JobPanelProps) {
   const progressPercent = Math.min(100, Math.round((jobExperience / job.promotionThreshold) * 100));
 
   return (
-    <section className="panel job-panel">
-      <div className="panel__header">
-        <p className="panel__eyebrow">Работа</p>
-        <h2 className="panel__title">{job.title}</h2>
-      </div>
+    <section className="workplace-screen">
+      <section className="workplace-command-panel">
+        <div className="workplace-command-panel__identity">
+          <div className="workplace-mark"><Icon name="work" size={24} /></div>
+          <div>
+            <span className="section-kicker">Текущая работа</span>
+            <h2>{job.title}</h2>
+            <p>{location?.name ?? 'Место не найдено'} · {district?.name ?? 'Район не найден'}</p>
+          </div>
+        </div>
+        <span className={canWorkShift ? 'status-label status-label--success' : 'status-label'}>
+          {canWorkShift ? 'На рабочем месте' : 'Вне рабочего места'}
+        </span>
+      </section>
 
-      <div className="current-job-card current-job-card--workplace">
-        <span>Рабочее место</span>
-        <strong>{location?.name ?? 'Место не найдено'}</strong>
-        <small>{district?.name ?? 'Район не найден'}</small>
-      </div>
+      <section className="panel workplace-progress-panel">
+        <div className="section-heading">
+          <div>
+            <span className="section-kicker">Профессиональный рост</span>
+            <h2>Опыт работы</h2>
+          </div>
+          <strong className="progress-value">{jobExperience} / {job.promotionThreshold} XP</strong>
+        </div>
+        <div className="premium-progress" aria-label="Прогресс работы">
+          <span style={{ width: `${progressPercent}%` }} />
+        </div>
+        <div className="progress-caption">
+          <span>Смен отработано: {completedShifts}</span>
+          <span>До повышения: {experienceRemaining} XP</span>
+        </div>
+      </section>
 
-      <dl className="job-card__meta workplace-meta">
-        <div>
-          <dt>Смена</dt>
-          <dd>{formatDuration(job.shiftDurationMinutes)}</dd>
+      <section className="panel shift-panel">
+        <div className="section-heading section-heading--compact">
+          <div>
+            <span className="section-kicker">Рабочая смена</span>
+            <h2>{formatDuration(job.shiftDurationMinutes)}</h2>
+          </div>
+          <strong className="shift-pay">{formatRubles(job.wagePerShift)}</strong>
         </div>
-        <div>
-          <dt>Оплата</dt>
-          <dd>{formatRubles(job.wagePerShift)}</dd>
-        </div>
-        <div>
-          <dt>Смены</dt>
-          <dd>{completedShifts}</dd>
-        </div>
-        <div>
-          <dt>Опыт</dt>
-          <dd>{jobExperience} / {job.promotionThreshold}</dd>
-        </div>
-        <div>
-          <dt>До повышения</dt>
-          <dd>{experienceRemaining} XP</dd>
-        </div>
-        <div>
-          <dt>Статус</dt>
-          <dd>{canWorkShift ? 'На месте' : 'Недоступно'}</dd>
-        </div>
-      </dl>
-
-      <div className="work-progress" aria-label="Прогресс работы">
-        <div className="work-progress__bar" style={{ width: `${progressPercent}%` }} />
-      </div>
-
-      <EffectList items={getJobShiftEffects(job)} />
-
-      <div className="job-card__actions">
-        <button className="action-card__button" disabled={!canWorkShift} type="button" onClick={() => onWorkShift(job.id)}>
-          Работать смену
+        <EffectList items={getJobShiftEffects(job)} />
+        <button className="primary-command-button" disabled={!canWorkShift} type="button" onClick={() => onWorkShift(job.id)}>
+          <span>Начать смену</span>
+          <Icon name="arrow" size={18} />
         </button>
-      </div>
-
-      {!canWorkShift ? <p className="job-card__warning">{shiftFailure}</p> : null}
+        {!canWorkShift ? <p className="inline-warning">{shiftFailure}</p> : null}
+      </section>
     </section>
   );
 }

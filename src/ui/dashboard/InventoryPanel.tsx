@@ -1,6 +1,7 @@
 import { getProductById } from '../../data/products/basicProducts';
 import type { InventoryItem } from '../../types/inventory';
 import type { ProductId } from '../../types/ids';
+import { Icon } from '../icons';
 import { createNeedsEffectItems, EffectList } from './EffectList';
 
 type InventoryPanelProps = {
@@ -9,11 +10,16 @@ type InventoryPanelProps = {
 };
 
 export function InventoryPanel({ inventory, onUseInventoryItem }: InventoryPanelProps) {
+  const totalItems = inventory.reduce((sum, item) => sum + item.quantity, 0);
+
   return (
     <section className="panel inventory-panel">
-      <div className="panel__header">
-        <p className="panel__eyebrow">Персонаж</p>
-        <h2 className="panel__title">Инвентарь</h2>
+      <div className="section-heading section-heading--compact">
+        <div>
+          <span className="section-kicker">Личные вещи</span>
+          <h2>Инвентарь</h2>
+        </div>
+        <span className="section-counter">{totalItems}</span>
       </div>
 
       {inventory.length > 0 ? (
@@ -22,13 +28,14 @@ export function InventoryPanel({ inventory, onUseInventoryItem }: InventoryPanel
             const product = getProductById(item.productId);
 
             return (
-              <article className="inventory-item" key={item.productId}>
-                <div className="inventory-item__main">
+              <article className="inventory-row" key={item.productId}>
+                <div className="inventory-row__icon"><Icon name="bag" size={18} /></div>
+                <div className="inventory-row__content">
                   <strong>{product?.name ?? 'Неизвестный предмет'}</strong>
-                  <p>Количество: {item.quantity}</p>
+                  <span>Количество: {item.quantity}</span>
                   <EffectList items={createNeedsEffectItems(product?.effects)} />
                 </div>
-                <button type="button" onClick={() => onUseInventoryItem(item.productId)}>
+                <button className="row-action-button row-action-button--compact" type="button" onClick={() => onUseInventoryItem(item.productId)}>
                   Использовать
                 </button>
               </article>
@@ -36,7 +43,10 @@ export function InventoryPanel({ inventory, onUseInventoryItem }: InventoryPanel
           })}
         </div>
       ) : (
-        <p className="empty-state">Инвентарь пуст. Зайди в магазин или кофейню.</p>
+        <div className="empty-state">
+          <Icon name="bag" size={22} />
+          <span>Инвентарь пуст</span>
+        </div>
       )}
     </section>
   );
