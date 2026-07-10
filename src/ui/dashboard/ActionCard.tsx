@@ -18,8 +18,8 @@ function getActionEffects(action: LifeAction): EffectListItem[] {
 
 export function ActionCard({ action, onPerform }: ActionCardProps) {
   return (
-    <article className="action-row">
-      <div className="action-row__icon"><Icon name="pulse" size={18} /></div>
+    <article className="action-row interactive-surface">
+      <div className="action-row__icon"><Icon name="sparkle" size={18} /></div>
       <div className="action-row__content">
         <span>{action.category}</span>
         <strong>{action.name}</strong>

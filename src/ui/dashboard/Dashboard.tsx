@@ -13,6 +13,7 @@ import type { Job } from '../../types/job';
 import type { Product, Shop } from '../../types/product';
 import type { DistrictTravelOption, LocationTravelOption } from '../../types/travel';
 import { Icon, type IconName } from '../icons';
+import { CharacterScene } from '../visuals';
 import { ActionCard } from './ActionCard';
 import { createNeedsEffectItems, EffectList } from './EffectList';
 import { HousingPanel } from './HousingPanel';
@@ -69,11 +70,7 @@ type DashboardProps = {
   onReset: () => void;
 };
 
-type NavigationItem = {
-  id: DashboardTab;
-  label: string;
-  icon: IconName;
-};
+type NavigationItem = { id: DashboardTab; label: string; icon: IconName };
 
 const NAVIGATION: NavigationItem[] = [
   { id: 'character', label: 'Персонаж', icon: 'character' },
@@ -117,20 +114,17 @@ export function Dashboard({
   const page = PAGE_TITLES[activeTab];
 
   function handleResetClick(): void {
-    if (window.confirm('Сбросить сохранение LifeSim? Это действие нельзя отменить.')) {
-      onReset();
-    }
+    if (window.confirm('Сбросить сохранение LifeSim? Это действие нельзя отменить.')) onReset();
   }
 
   return (
     <main className="app-frame">
+      <div className="ambient-canvas" aria-hidden="true"><i/><i/><i/><span/></div>
+
       <aside className="desktop-navigation" aria-label="Навигация LifeSim">
         <div className="brand-block" aria-label="LifeSim">
-          <span className="brand-block__mark">LS</span>
-          <div>
-            <strong>LIFESIM</strong>
-            <small>CITY MANAGEMENT</small>
-          </div>
+          <span className="brand-block__mark">LS<i /></span>
+          <div><strong>LIFESIM</strong><small>URBAN LIFE SYSTEM</small></div>
         </div>
 
         <nav className="primary-navigation" aria-label="Разделы игры">
@@ -142,11 +136,17 @@ export function Dashboard({
               type="button"
               onClick={() => setActiveTab(item.id)}
             >
-              <Icon name={item.icon} size={20} />
+              <span className="navigation-item__icon"><Icon name={item.icon} size={20} /></span>
               <span>{item.label}</span>
+              <i className="navigation-item__signal" />
             </button>
           ))}
         </nav>
+
+        <div className="navigation-motto">
+          <Icon name="sparkle" size={17} />
+          <span>Твой город.<br/>Твоя история.</span>
+        </div>
 
         <div className="desktop-navigation__footer">
           <button className="utility-button" type="button" onClick={toggleTheme}>
@@ -154,8 +154,7 @@ export function Dashboard({
             <span>{theme === 'dark' ? 'Светлая тема' : 'Тёмная тема'}</span>
           </button>
           <button className="utility-button utility-button--danger" type="button" onClick={handleResetClick}>
-            <Icon name="reset" size={18} />
-            <span>Сбросить игру</span>
+            <Icon name="reset" size={18} /><span>Сбросить игру</span>
           </button>
         </div>
       </aside>
@@ -170,24 +169,15 @@ export function Dashboard({
           <div className="global-status" aria-label="Текущее состояние">
             <div className="global-status__item global-status__item--location">
               <Icon name="pin" size={17} />
-              <div>
-                <span>{locationState.district?.name ?? 'Район'}</span>
-                <strong>{locationState.location?.name ?? 'Место'}</strong>
-              </div>
+              <div><span>{locationState.district?.name ?? 'Район'}</span><strong>{locationState.location?.name ?? 'Место'}</strong></div>
             </div>
             <div className="global-status__item">
               <Icon name="clock" size={17} />
-              <div>
-                <span>День {time.day} · {formatWeekday(time.weekday)}</span>
-                <strong>{formatGameTime(time)}</strong>
-              </div>
+              <div><span>День {time.day} · {formatWeekday(time.weekday)}</span><strong>{formatGameTime(time)}</strong></div>
             </div>
-            <div className="global-status__item">
+            <div className="global-status__item global-status__item--money">
               <Icon name="wallet" size={17} />
-              <div>
-                <span>Баланс</span>
-                <strong>{formatRubles(player.money)}</strong>
-              </div>
+              <div><span>Баланс</span><strong>{formatRubles(player.money)}</strong></div>
             </div>
             <button className="icon-button top-theme-toggle" aria-label="Переключить тему" type="button" onClick={toggleTheme}>
               <Icon name={theme === 'dark' ? 'sun' : 'moon'} size={19} />
@@ -198,58 +188,42 @@ export function Dashboard({
         <div className="workspace-content">
           {lastResult ? (
             <section className={`activity-notice ${lastResult.ok ? 'activity-notice--success' : 'activity-notice--error'}`}>
-              <div className="activity-notice__icon">
-                <Icon name={lastResult.ok ? 'pulse' : 'close'} size={18} />
-              </div>
-              <div>
-                <span>{lastResult.actionName ?? 'Последнее действие'}</span>
-                <strong>{lastResult.messages[0] ?? 'Состояние обновлено'}</strong>
-              </div>
+              <div className="activity-notice__icon"><Icon name={lastResult.ok ? 'sparkle' : 'close'} size={18} /></div>
+              <div><span>{lastResult.actionName ?? 'Последнее действие'}</span><strong>{lastResult.messages[0] ?? 'Состояние обновлено'}</strong></div>
               {lastResult.messages.length > 1 ? <small>+{lastResult.messages.length - 1}</small> : null}
             </section>
           ) : null}
 
           {activeTab === 'character' ? (
-            <section className="screen character-screen">
-              <section className="profile-command-panel">
-                <div className="profile-command-panel__identity">
-                  <div className="profile-avatar" aria-hidden="true">{player.name.slice(0, 1).toUpperCase()}</div>
-                  <div>
-                    <span className="section-kicker">Персонаж</span>
-                    <h2>{player.name}</h2>
-                    <p>{player.age} лет · {locationState.city?.name ?? 'Москва'}</p>
+            <section className="screen screen-enter character-screen">
+              <section className="profile-command-panel visual-panel">
+                <CharacterScene initial={player.name.slice(0, 1).toUpperCase()} cityName={locationState.city?.name ?? 'Москва'} day={time.day} />
+                <div className="profile-command-panel__overlay">
+                  <div className="profile-command-panel__identity">
+                    <div className="profile-avatar" aria-hidden="true">{player.name.slice(0, 1).toUpperCase()}</div>
+                    <div><span className="section-kicker">Персонаж</span><h2>{player.name}</h2><p>{player.age} лет · {locationState.city?.name ?? 'Москва'}</p></div>
                   </div>
-                </div>
-                <div className="profile-command-panel__quick">
-                  <div>
-                    <span>Жильё</span>
-                    <strong>{housing?.name ?? 'Нет жилья'}</strong>
-                  </div>
-                  <div>
-                    <span>Работа</span>
-                    <strong>{jobState.currentJob?.title ?? 'Нет работы'}</strong>
+                  <div className="profile-command-panel__quick">
+                    <div><span>Жильё</span><strong>{housing?.name ?? 'Нет жилья'}</strong></div>
+                    <div><span>Работа</span><strong>{jobState.currentJob?.title ?? 'Нет работы'}</strong></div>
+                    <div><span>Сейчас</span><strong>{formatGameTime(time)}</strong></div>
                   </div>
                 </div>
               </section>
 
-              <section className="panel vitals-panel">
+              <section className="panel vitals-panel visual-panel">
+                <div className="vitals-panel__aurora" aria-hidden="true" />
                 <div className="section-heading">
-                  <div>
-                    <span className="section-kicker">Состояние</span>
-                    <h2>Показатели жизни</h2>
-                  </div>
-                  <div className="decay-summary">
-                    <span>Расход за активный час</span>
-                    <EffectList items={activeHourDecayItems} />
-                  </div>
+                  <div><span className="section-kicker">Состояние</span><h2>Показатели жизни</h2></div>
+                  <div className="decay-summary"><span>Расход за активный час</span><EffectList items={activeHourDecayItems} /></div>
                 </div>
 
                 <div className="vitals-grid" aria-label="Состояние игрока">
-                  <StatCard label="Энергия" value={player.needs.energy} progress={player.needs.energy} tone={needTone(player.needs.energy)} />
-                  <StatCard label="Сытость" value={player.needs.hunger} progress={player.needs.hunger} tone={needTone(player.needs.hunger)} />
-                  <StatCard label="Вода" value={player.needs.thirst} progress={player.needs.thirst} tone={needTone(player.needs.thirst)} />
-                  <StatCard label="Здоровье" value={player.needs.health} progress={player.needs.health} tone={needTone(player.needs.health)} />
-                  <StatCard label="Настроение" value={player.needs.mood} progress={player.needs.mood} tone={needTone(player.needs.mood)} />
+                  <StatCard icon="energy" label="Энергия" value={player.needs.energy} progress={player.needs.energy} tone={needTone(player.needs.energy)} />
+                  <StatCard icon="food" label="Сытость" value={player.needs.hunger} progress={player.needs.hunger} tone={needTone(player.needs.hunger)} />
+                  <StatCard icon="water" label="Вода" value={player.needs.thirst} progress={player.needs.thirst} tone={needTone(player.needs.thirst)} />
+                  <StatCard icon="heart" label="Здоровье" value={player.needs.health} progress={player.needs.health} tone={needTone(player.needs.health)} />
+                  <StatCard icon="smile" label="Настроение" value={player.needs.mood} progress={player.needs.mood} tone={needTone(player.needs.mood)} />
                 </div>
               </section>
 
@@ -261,7 +235,7 @@ export function Dashboard({
           ) : null}
 
           {activeTab === 'city' ? (
-            <section className="screen city-screen">
+            <section className="screen screen-enter city-screen">
               <LocationPanel
                 city={locationState.city}
                 district={locationState.district}
@@ -276,22 +250,14 @@ export function Dashboard({
 
               <aside className="context-column">
                 <ShopPanel shop={locationState.shop} products={locationState.shopProducts} onBuyProduct={onBuyProduct} />
-
-                <section className="panel actions-panel">
+                <section className="panel actions-panel visual-panel">
+                  <div className="actions-panel__beam" aria-hidden="true" />
                   <div className="section-heading section-heading--compact">
-                    <div>
-                      <span className="section-kicker">Текущее место</span>
-                      <h2>Действия</h2>
-                    </div>
+                    <div><span className="section-kicker">Текущее место</span><h2>Действия</h2></div>
                     <span className="section-counter">{actions.length}</span>
                   </div>
-
                   {actions.length > 0 ? (
-                    <div className="actions-list">
-                      {actions.map((action) => (
-                        <ActionCard action={action} key={action.id} onPerform={onPerformAction} />
-                      ))}
-                    </div>
+                    <div className="actions-list">{actions.map((action) => <ActionCard action={action} key={action.id} onPerform={onPerformAction} />)}</div>
                   ) : (
                     <div className="empty-state compact-empty-state">Нет доступных действий</div>
                   )}
@@ -300,17 +266,8 @@ export function Dashboard({
             </section>
           ) : null}
 
-          {activeTab === 'jobs' ? (
-            <section className="screen narrow-screen">
-              <JobPanel currentJobView={jobState.currentJobView} onWorkShift={onWorkShift} />
-            </section>
-          ) : null}
-
-          {activeTab === 'log' ? (
-            <section className="screen narrow-screen">
-              <LifeLog entries={gameState.lifeLog} />
-            </section>
-          ) : null}
+          {activeTab === 'jobs' ? <section className="screen screen-enter narrow-screen"><JobPanel currentJobView={jobState.currentJobView} onWorkShift={onWorkShift} /></section> : null}
+          {activeTab === 'log' ? <section className="screen screen-enter narrow-screen"><LifeLog entries={gameState.lifeLog} /></section> : null}
         </div>
       </section>
 
@@ -323,8 +280,7 @@ export function Dashboard({
             type="button"
             onClick={() => setActiveTab(item.id)}
           >
-            <Icon name={item.icon} size={21} />
-            <span>{item.label}</span>
+            <Icon name={item.icon} size={21} /><span>{item.label}</span>
           </button>
         ))}
       </nav>

@@ -5,7 +5,8 @@ import type { DistrictId, JobId, LocationId } from '../../types/ids';
 import type { TravelModeId } from '../../types/transport';
 import type { City, District, Location, LocationType } from '../../types/location';
 import type { DistrictTravelOption, LocationTravelOption } from '../../types/travel';
-import { Icon } from '../icons';
+import { Icon, type IconName } from '../icons';
+import { LocationScene } from '../visuals';
 import { LocationTravelModal } from './LocationTravelModal';
 import { TransportOptionCard } from './TransportOptionCard';
 import { createNeedsEffectItems, EffectList, type EffectListItem } from './EffectList';
@@ -55,6 +56,14 @@ const LOCATION_TYPE_LABELS: Record<LocationType, string> = {
   clinic: 'Клиника', pharmacy: 'Аптека', restaurant: 'Ресторан', food_court: 'Фудкорт', pickup_point: 'Пункт выдачи',
   mall: 'ТЦ', electronics_store: 'Техника', clothing_store: 'Одежда', bank: 'Банк', education_center: 'Обучение',
   sports_store: 'Спорттовары', boxing_gym: 'Бокс', pool: 'Бассейн', other: 'Другое'
+};
+
+const LOCATION_ICONS: Partial<Record<LocationType, IconName>> = {
+  home: 'home', shop: 'shop', cafe: 'coffee', workplace: 'briefcase', business_center: 'building', park: 'sparkle',
+  sport_ground: 'gym', service: 'package', warehouse: 'package', fitness: 'gym', coworking: 'building', clinic: 'heart',
+  pharmacy: 'medicine', restaurant: 'food', food_court: 'food', pickup_point: 'package', mall: 'shop',
+  electronics_store: 'sparkle', clothing_store: 'bag', bank: 'wallet', education_center: 'star', sports_store: 'gym',
+  boxing_gym: 'gym', pool: 'water', other: 'pin'
 };
 
 const FOOD_TYPES: LocationType[] = ['cafe', 'restaurant', 'food_court'];
@@ -148,107 +157,108 @@ export function LocationPanel({
   }
 
   return (
-    <section className="panel city-browser-panel">
-      <header className="city-command-header">
-        <div className="city-command-header__identity">
-          <div className="city-command-header__icon"><Icon name="pin" size={22} /></div>
-          <div>
-            <span className="section-kicker">{city?.name ?? 'Город'}</span>
-            <h2>{location?.name ?? 'Место не найдено'}</h2>
-            <p>{district?.name ?? 'Район не найден'} · {location ? LOCATION_TYPE_LABELS[location.type] : '—'}</p>
-          </div>
-        </div>
-        <div className="city-command-header__actions">
-          <button className="secondary-command-button" type="button" onClick={() => setIsDistrictPickerOpen(true)}>
-            <Icon name="city" size={18} />
-            <span>Район</span>
-          </button>
-          <button className="primary-command-button primary-command-button--inline" type="button" onClick={() => openLocationPicker()}>
-            <span>Переместиться</span>
-            <Icon name="arrow" size={18} />
-          </button>
-        </div>
-      </header>
+    <section className="panel city-browser-panel visual-panel">
+      <LocationScene
+        type={location?.type}
+        title={location?.name ?? 'Место не найдено'}
+        subtitle={`${city?.name ?? 'Город'} · ${district?.name ?? 'Район'}`}
+      />
 
-      <div className="location-toolbar">
-        <label className="search-field location-search-field">
-          <Icon name="search" size={17} />
-          <input type="search" value={locationSearch} placeholder="Поиск по району" onChange={(event) => setLocationSearch(event.target.value)} />
-        </label>
-        <div className="segmented-filters" aria-label="Фильтры локаций">
-          {LOCATION_FILTERS.map((filter) => (
-            <button
-              className={filter.id === locationFilter ? 'segmented-filter segmented-filter--active' : 'segmented-filter'}
-              key={filter.id}
-              type="button"
-              onClick={() => setLocationFilter(filter.id)}
-            >
-              {filter.label}
+      <div className="city-browser-panel__content">
+        <header className="city-command-header">
+          <div className="city-command-header__identity">
+            <div className="city-command-header__icon"><Icon name="pin" size={22} /></div>
+            <div>
+              <span className="section-kicker">{city?.name ?? 'Город'}</span>
+              <h2>{location?.name ?? 'Место не найдено'}</h2>
+              <p>{district?.name ?? 'Район не найден'} · {location ? LOCATION_TYPE_LABELS[location.type] : '—'}</p>
+            </div>
+          </div>
+          <div className="city-command-header__actions">
+            <button className="secondary-command-button" type="button" onClick={() => setIsDistrictPickerOpen(true)}>
+              <Icon name="city" size={18} /><span>Район</span>
             </button>
-          ))}
-        </div>
-      </div>
-
-      <div className="location-directory" role="table" aria-label="Локации района">
-        <div className="location-directory__head" role="row">
-          <span>Место</span><span>Категория</span><span>Возможности</span><span>Маршрут</span>
-        </div>
-        <div className="location-directory__body">
-          {filteredLocationOptions.length > 0 ? filteredLocationOptions.map((option) => {
-            const markers = getLocationMarkers(option.location);
-            return (
-              <button
-                className={option.isCurrent ? 'location-directory__row location-directory__row--current' : 'location-directory__row'}
-                disabled={option.isCurrent}
-                key={option.location.id}
-                role="row"
-                type="button"
-                onClick={() => openLocationPicker(option.location.id)}
-              >
-                <span className="location-directory__name" role="cell">
-                  <i>{option.location.name.slice(0, 1).toUpperCase()}</i>
-                  <strong>{option.location.name}</strong>
-                </span>
-                <span role="cell">{LOCATION_TYPE_LABELS[option.location.type]}</span>
-                <span className="location-directory__markers" role="cell">{markers.join(' · ') || '—'}</span>
-                <span className="location-directory__travel" role="cell">
-                  {getMinTravelTimeLabel(option)}
-                  {!option.isCurrent ? <Icon name="chevron" size={16} /> : null}
-                </span>
-              </button>
-            );
-          }) : <div className="location-directory__empty">Ничего не найдено</div>}
-        </div>
-      </div>
-
-      {locationJobs.length > 0 ? (
-        <section className="vacancy-section">
-          <div className="section-heading section-heading--compact">
-            <div><span className="section-kicker">Текущее место</span><h3>Вакансии</h3></div>
-            <span className="section-counter">{locationJobs.length}</span>
+            <button className="primary-command-button primary-command-button--inline premium-cta" type="button" onClick={() => openLocationPicker()}>
+              <span>Переместиться</span><Icon name="arrow" size={18} />
+            </button>
           </div>
-          <div className="vacancy-list">
-            {locationJobs.map((view) => (
-              <article className={view.isCurrentJob ? 'vacancy-row vacancy-row--active' : 'vacancy-row'} key={view.job.id}>
-                <div className="vacancy-row__icon"><Icon name="briefcase" size={18} /></div>
-                <div className="vacancy-row__content">
-                  <strong>{view.job.title}</strong>
-                  <span>{formatDuration(view.job.shiftDurationMinutes)} · {formatRubles(view.job.wagePerShift)} · +{view.job.experiencePerShift} XP</span>
-                  <EffectList items={getVacancyEffects(view.job)} />
-                </div>
-                <button
-                  className="row-action-button row-action-button--compact"
-                  disabled={view.isCurrentJob || !view.canApply}
-                  type="button"
-                  onClick={() => onApplyForJob(view.job.id)}
-                >
-                  {view.isCurrentJob ? 'Текущая' : 'Устроиться'}
-                </button>
-              </article>
+        </header>
+
+        <div className="location-toolbar">
+          <label className="search-field location-search-field">
+            <Icon name="search" size={17} />
+            <input type="search" value={locationSearch} placeholder="Поиск по району" onChange={(event) => setLocationSearch(event.target.value)} />
+          </label>
+          <div className="segmented-filters" aria-label="Фильтры локаций">
+            {LOCATION_FILTERS.map((filter) => (
+              <button
+                className={filter.id === locationFilter ? 'segmented-filter segmented-filter--active' : 'segmented-filter'}
+                key={filter.id}
+                type="button"
+                onClick={() => setLocationFilter(filter.id)}
+              >
+                {filter.label}
+              </button>
             ))}
           </div>
-        </section>
-      ) : null}
+        </div>
+
+        <div className="location-directory" role="table" aria-label="Локации района">
+          <div className="location-directory__head" role="row"><span>Место</span><span>Категория</span><span>Возможности</span><span>Маршрут</span></div>
+          <div className="location-directory__body">
+            {filteredLocationOptions.length > 0 ? filteredLocationOptions.map((option) => {
+              const markers = getLocationMarkers(option.location);
+              return (
+                <button
+                  className={option.isCurrent ? 'location-directory__row location-directory__row--current' : 'location-directory__row'}
+                  disabled={option.isCurrent}
+                  key={option.location.id}
+                  role="row"
+                  type="button"
+                  onClick={() => openLocationPicker(option.location.id)}
+                >
+                  <span className="location-directory__name" role="cell">
+                    <i><Icon name={LOCATION_ICONS[option.location.type] ?? 'pin'} size={17}/></i>
+                    <strong>{option.location.name}</strong>
+                  </span>
+                  <span role="cell">{LOCATION_TYPE_LABELS[option.location.type]}</span>
+                  <span className="location-directory__markers" role="cell">{markers.join(' · ') || '—'}</span>
+                  <span className="location-directory__travel" role="cell">{getMinTravelTimeLabel(option)}{!option.isCurrent ? <Icon name="chevron" size={16} /> : null}</span>
+                </button>
+              );
+            }) : <div className="location-directory__empty">Ничего не найдено</div>}
+          </div>
+        </div>
+
+        {locationJobs.length > 0 ? (
+          <section className="vacancy-section">
+            <div className="section-heading section-heading--compact">
+              <div><span className="section-kicker">Текущее место</span><h3>Вакансии</h3></div>
+              <span className="section-counter">{locationJobs.length}</span>
+            </div>
+            <div className="vacancy-list">
+              {locationJobs.map((view) => (
+                <article className={view.isCurrentJob ? 'vacancy-row vacancy-row--active interactive-surface' : 'vacancy-row interactive-surface'} key={view.job.id}>
+                  <div className="vacancy-row__icon"><Icon name="briefcase" size={18} /></div>
+                  <div className="vacancy-row__content">
+                    <strong>{view.job.title}</strong>
+                    <span>{formatDuration(view.job.shiftDurationMinutes)} · {formatRubles(view.job.wagePerShift)} · +{view.job.experiencePerShift} XP</span>
+                    <EffectList items={getVacancyEffects(view.job)} />
+                  </div>
+                  <button
+                    className="row-action-button row-action-button--compact"
+                    disabled={view.isCurrentJob || !view.canApply}
+                    type="button"
+                    onClick={() => onApplyForJob(view.job.id)}
+                  >
+                    {view.isCurrentJob ? 'Текущая' : 'Устроиться'}
+                  </button>
+                </article>
+              ))}
+            </div>
+          </section>
+        ) : null}
+      </div>
 
       {isDistrictPickerOpen ? (
         <div className="modal-backdrop" role="presentation" onMouseDown={() => setIsDistrictPickerOpen(false)}>
@@ -280,9 +290,7 @@ export function LocationPanel({
                   <>
                     <div className="transport-column__heading"><span className="section-kicker">Маршрут</span><h4>{selectedDistrictOption.district.name}</h4></div>
                     <div className="transport-options">
-                      {selectedDistrictOption.transportOptions.map((option) => (
-                        <TransportOptionCard key={option.modeId} option={option} onSelect={handleDistrictTravel} />
-                      ))}
+                      {selectedDistrictOption.transportOptions.map((option) => <TransportOptionCard key={option.modeId} option={option} onSelect={handleDistrictTravel} />)}
                     </div>
                   </>
                 ) : (

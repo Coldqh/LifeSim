@@ -3,6 +3,7 @@ import type { LocationId } from '../../types/ids';
 import type { TravelModeId } from '../../types/transport';
 import type { LocationTravelOption } from '../../types/travel';
 import { Icon } from '../icons';
+import { LocationScene } from '../visuals';
 import { TransportOptionCard } from './TransportOptionCard';
 
 type LocationTravelModalProps = {
@@ -30,15 +31,10 @@ export function LocationTravelModal({ options, initialLocationId, onMoveLocation
 
   return (
     <div className="modal-backdrop" role="presentation" onMouseDown={onClose}>
-      <div className="travel-dialog" role="dialog" aria-modal="true" aria-label="Смена локации" onMouseDown={(event) => event.stopPropagation()}>
+      <div className="travel-dialog travel-dialog--premium" role="dialog" aria-modal="true" aria-label="Смена локации" onMouseDown={(event) => event.stopPropagation()}>
         <header className="dialog-header">
-          <div>
-            <span className="section-kicker">Перемещение</span>
-            <h3>Выбор локации</h3>
-          </div>
-          <button className="icon-button" aria-label="Закрыть" type="button" onClick={onClose}>
-            <Icon name="close" size={20} />
-          </button>
+          <div><span className="section-kicker">Перемещение</span><h3>Выбор локации</h3></div>
+          <button className="icon-button" aria-label="Закрыть" type="button" onClick={onClose}><Icon name="close" size={20} /></button>
         </header>
 
         <div className="travel-dialog__body">
@@ -67,10 +63,8 @@ export function LocationTravelModal({ options, initialLocationId, onMoveLocation
           <section className="transport-column">
             {selectedOption && !selectedOption.isCurrent ? (
               <>
-                <div className="transport-column__heading">
-                  <span className="section-kicker">Маршрут</span>
-                  <h4>{selectedOption.location.name}</h4>
-                </div>
+                <LocationScene type={selectedOption.location.type} title={selectedOption.location.name} subtitle="Выбранная точка" />
+                <div className="transport-column__heading"><span className="section-kicker">Маршрут</span><h4>Как добраться</h4></div>
                 <div className="transport-options">
                   {selectedOption.transportOptions.map((transportOption) => (
                     <TransportOptionCard key={transportOption.modeId} option={transportOption} onSelect={handleTravel} />
@@ -78,8 +72,8 @@ export function LocationTravelModal({ options, initialLocationId, onMoveLocation
                 </div>
               </>
             ) : (
-              <div className="dialog-empty-state">
-                <Icon name="pin" size={28} />
+              <div className="dialog-empty-state visual-empty-state">
+                <div className="empty-state__halo"><Icon name="pin" size={28} /></div>
                 <strong>Выберите место</strong>
                 <span>Способы перемещения появятся здесь.</span>
               </div>

@@ -8,11 +8,7 @@ type TransportOptionCardProps = {
   onSelect: (modeId: TravelModeId) => void;
 };
 
-const MODE_ICONS: Record<TravelModeId, IconName> = {
-  walk: 'walk',
-  metro: 'metro',
-  taxi: 'taxi'
-};
+const MODE_ICONS: Record<TravelModeId, IconName> = { walk: 'walk', metro: 'metro', taxi: 'taxi' };
 
 function getTransportEffects(option: TransportOption): EffectListItem[] {
   return [
@@ -25,11 +21,12 @@ function getTransportEffects(option: TransportOption): EffectListItem[] {
 export function TransportOptionCard({ option, onSelect }: TransportOptionCardProps) {
   return (
     <button
-      className={`transport-option ${!option.available ? 'transport-option--disabled' : ''}`}
+      className={`transport-option transport-option--${option.modeId} ${!option.available ? 'transport-option--disabled' : ''}`}
       disabled={!option.available}
       type="button"
       onClick={() => onSelect(option.modeId)}
     >
+      <span className="transport-option__route-line" aria-hidden="true" />
       <div className="transport-option__icon"><Icon name={MODE_ICONS[option.modeId]} size={21} /></div>
       <div className="transport-option__content">
         <strong>{option.name}</strong>

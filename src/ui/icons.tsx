@@ -22,7 +22,19 @@ export type IconName =
   | 'taxi'
   | 'pulse'
   | 'briefcase'
-  | 'chevron';
+  | 'chevron'
+  | 'energy'
+  | 'food'
+  | 'water'
+  | 'heart'
+  | 'smile'
+  | 'sparkle'
+  | 'coffee'
+  | 'medicine'
+  | 'package'
+  | 'star'
+  | 'building'
+  | 'gym';
 
 type IconProps = SVGProps<SVGSVGElement> & {
   name: IconName;
@@ -51,7 +63,19 @@ const PATHS: Record<IconName, ReactNode> = {
   taxi: <><path d="M4 17h16l-1-7-2-4H7l-2 4-1 7Z"/><path d="M7 6h10M6 13h12M7 20v-3M17 20v-3"/></>,
   pulse: <><path d="M3 12h4l2-5 4 10 2-5h6"/></>,
   briefcase: <><rect x="3" y="7" width="18" height="13"/><path d="M8 7V4h8v3M3 12h18"/></>,
-  chevron: <path d="m9 6 6 6-6 6"/>
+  chevron: <path d="m9 6 6 6-6 6"/>,
+  energy: <path d="M13 2 5 14h6l-1 8 9-13h-6V2Z"/>,
+  food: <><path d="M7 3v8M4 3v5a3 3 0 0 0 6 0V3M7 11v10"/><path d="M16 3v18M16 3c3 2 4 5 4 8h-4"/></>,
+  water: <path d="M12 2s6 7 6 12a6 6 0 1 1-12 0c0-5 6-12 6-12Z"/>,
+  heart: <path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 0 0 0-7.8Z"/>,
+  smile: <><circle cx="12" cy="12" r="9"/><path d="M8 14s1.5 2 4 2 4-2 4-2M9 9h.01M15 9h.01"/></>,
+  sparkle: <><path d="m12 2 1.5 5.5L19 9l-5.5 1.5L12 16l-1.5-5.5L5 9l5.5-1.5L12 2Z"/><path d="m19 15 .8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8L19 15Z"/></>,
+  coffee: <><path d="M5 8h11v7a5 5 0 0 1-5 5H10a5 5 0 0 1-5-5V8Z"/><path d="M16 10h2a3 3 0 0 1 0 6h-2M8 3v2M12 3v2"/></>,
+  medicine: <><path d="M9 3h6v4H9z"/><path d="M8 7h8l2 4v10H6V11l2-4Z"/><path d="M9 15h6M12 12v6"/></>,
+  package: <><path d="m4 7 8-4 8 4-8 4-8-4Z"/><path d="M4 7v10l8 4 8-4V7M12 11v10"/></>,
+  star: <path d="m12 2 3 6 7 .9-5 4.8 1.3 6.8L12 17l-6.3 3.5L7 13.7 2 8.9 9 8l3-6Z"/>,
+  building: <><path d="M5 21V4h10v17M15 9h4v12M8 8h4M8 12h4M8 16h4"/></>,
+  gym: <><path d="M6 9v6M3 10v4M18 9v6M21 10v4M6 12h12"/></>
 };
 
 export function Icon({ name, size = 20, ...props }: IconProps) {
