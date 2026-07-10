@@ -1,6 +1,7 @@
 import type { DistrictId, LocationId, NpcId, NpcRoleId } from './ids';
 import type { LocationType } from './location';
 import type { Weekday } from './time';
+import type { NpcPersonality } from './relationship';
 
 
 export type KnownNpcIdentity = {
@@ -41,6 +42,7 @@ export type Npc = {
   activationDay: number;
   preferredLocationTypes: LocationType[];
   employment?: NpcEmployment;
+  personality: NpcPersonality;
   worldState: NpcWorldState;
 };
 

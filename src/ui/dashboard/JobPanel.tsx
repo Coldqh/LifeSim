@@ -1,9 +1,11 @@
 import { formatRubles } from '../../core/economy';
 import type { Job, JobLevel } from '../../types/job';
-import type { JobId } from '../../types/ids';
+import type { JobId, NpcId, NpcInteractionId } from '../../types/ids';
 import type { District, Location } from '../../types/location';
 import type { NeedsState } from '../../types/needs';
 import type { ScheduleStatus } from '../../types/schedule';
+import type { SocialNpcView } from '../../types/relationship';
+import { getRelationshipStatusLabel } from '../../core/relationships';
 import { getSkillById } from '../../data/skills/basicSkills';
 import { Icon } from '../icons';
 import { WorkplaceScene } from '../visuals';
@@ -40,6 +42,8 @@ type JobView = {
 
 type JobPanelProps = {
   currentJobView?: JobView;
+  colleagues: SocialNpcView[];
+  onInteract: (npcId: NpcId, interactionId: NpcInteractionId) => void;
   onPromoteJob: (jobId: JobId) => void;
   onWorkShift: (jobId: JobId) => void;
 };
@@ -73,7 +77,7 @@ function getCareerLevelState(level: JobLevel, currentLevel: number): 'complete' 
   return 'locked';
 }
 
-export function JobPanel({ currentJobView, onPromoteJob, onWorkShift }: JobPanelProps) {
+export function JobPanel({ currentJobView, colleagues, onInteract, onPromoteJob, onWorkShift }: JobPanelProps) {
   if (!currentJobView) {
     return (
       <section className="panel empty-workplace-panel cinematic-empty-state">
@@ -132,6 +136,38 @@ export function JobPanel({ currentJobView, onPromoteJob, onWorkShift }: JobPanel
             </small>
           </div>
         </div>
+      </section>
+
+      <section className="panel workplace-team-panel visual-panel">
+        <div className="section-heading section-heading--compact">
+          <div><span className="section-kicker">Люди на работе</span><h2>Команда</h2></div>
+          <span className="section-counter">{colleagues.length}</span>
+        </div>
+        {colleagues.length > 0 ? (
+          <div className="workplace-team-list">
+            {colleagues.slice(0, 10).map((view) => {
+              const availableInteraction = view.interactions.find((item) => item.available);
+              return (
+                <article className="workplace-team-row" key={view.npc.id}>
+                  <span className="workplace-team-row__avatar">{view.npc.firstName.slice(0, 1)}{view.npc.lastName.slice(0, 1)}</span>
+                  <div>
+                    <strong>{view.npc.firstName} {view.npc.lastName}</strong>
+                    <small>{view.role?.name ?? 'Сотрудник'} · {getRelationshipStatusLabel(view.status)}</small>
+                  </div>
+                  <span className={view.isPresent ? 'status-label status-label--success' : 'status-label'}>{view.isPresent ? 'На месте' : 'Не на смене'}</span>
+                  <button
+                    disabled={!availableInteraction}
+                    title={availableInteraction?.failure}
+                    type="button"
+                    onClick={() => availableInteraction && onInteract(view.npc.id, availableInteraction.interaction.id)}
+                  >
+                    {availableInteraction?.interaction.label ?? 'Недоступно'}
+                  </button>
+                </article>
+              );
+            })}
+          </div>
+        ) : <div className="empty-state compact-empty-state">Сотрудники не найдены</div>}
       </section>
 
       <section className="panel workplace-progress-panel career-progress-panel visual-panel">

@@ -16,3 +16,7 @@ export * from './ConditionPanel';
 export * from './SportPanel';
 
 export * from './LocationPeoplePanel';
+
+export * from './PeoplePanel';
+
+export * from './SocialEventModal';

@@ -18,7 +18,10 @@ import type {
   BoxingTrainerId,
   BoxingTrainingId,
   BoxingOpponentId,
-  BoxingTournamentId
+  BoxingTournamentId,
+  NpcId,
+  NpcInteractionId,
+  SocialEventChoiceId
 } from '../../types/ids';
 import type { TravelModeId } from '../../types/transport';
 import type { City, District, Location } from '../../types/location';
@@ -29,6 +32,9 @@ import type { SkillProgressView } from '../../core/progression';
 import type { Product, Shop } from '../../types/product';
 import type { NeedCondition, NeedsConsequences } from '../../types/needs';
 import type { LocationPopulationPresence, PopulationSummary } from '../../types/population';
+import type { SocialNpcView } from '../../types/relationship';
+import type { ActiveSocialEvent, SocialHistoryEntry } from '../../types/socialEvent';
+import type { Npc } from '../../types/npc';
 import type { ScheduleStatus } from '../../types/schedule';
 import type { DistrictTravelOption, LocationTravelOption } from '../../types/travel';
 import { Icon, type IconName } from '../icons';
@@ -46,8 +52,10 @@ import { ShopPanel } from './ShopPanel';
 import { StatCard } from './StatCard';
 import { SportPanel, type BoxingPanelState } from './SportPanel';
 import { LocationPeoplePanel } from './LocationPeoplePanel';
+import { PeoplePanel } from './PeoplePanel';
+import { SocialEventModal } from './SocialEventModal';
 
-type DashboardTab = 'character' | 'city' | 'jobs' | 'development' | 'sport' | 'log';
+type DashboardTab = 'character' | 'city' | 'jobs' | 'development' | 'sport' | 'people' | 'log';
 
 type JobView = {
   job: Job;
@@ -123,6 +131,15 @@ type DashboardProps = {
     presence?: LocationPopulationPresence;
     summary: PopulationSummary;
   };
+  socialState: {
+    currentPeople: SocialNpcView[];
+    knownPeople: SocialNpcView[];
+    colleagues: SocialNpcView[];
+    activeEvent?: ActiveSocialEvent;
+    activeEventNpc?: Npc;
+    history: SocialHistoryEntry[];
+    scheduledCount: number;
+  };
   onPerformAction: (actionId: ActionId) => void;
   onMoveDistrict: (districtId: DistrictId, modeId: TravelModeId) => void;
   onMoveLocation: (locationId: LocationId, modeId: TravelModeId) => void;
@@ -137,6 +154,8 @@ type DashboardProps = {
   onBoxingTraining: (trainingId: BoxingTrainingId) => void;
   onBoxingSparring: (opponentId: BoxingOpponentId) => void;
   onBoxingTournament: (tournamentId: BoxingTournamentId) => void;
+  onInteractWithNpc: (npcId: NpcId, interactionId: NpcInteractionId) => void;
+  onChooseSocialEvent: (choiceId: SocialEventChoiceId) => void;
   onReset: () => void;
 };
 
@@ -148,6 +167,7 @@ const NAVIGATION: NavigationItem[] = [
   { id: 'jobs', label: 'Работа', icon: 'work' },
   { id: 'development', label: 'Развитие', icon: 'growth' },
   { id: 'sport', label: 'Спорт', icon: 'boxing' },
+  { id: 'people', label: 'Люди', icon: 'users' },
   { id: 'log', label: 'Журнал', icon: 'log' }
 ];
 
@@ -157,6 +177,7 @@ const PAGE_TITLES: Record<DashboardTab, { title: string; eyebrow: string }> = {
   jobs: { title: 'Работа', eyebrow: 'Карьера' },
   development: { title: 'Развитие', eyebrow: 'Навыки и обучение' },
   sport: { title: 'Спорт', eyebrow: 'Боксёрская карьера' },
+  people: { title: 'Люди', eyebrow: 'Знакомства и отношения' },
   log: { title: 'Журнал', eyebrow: 'Хронология' }
 };
 
@@ -178,6 +199,7 @@ export function Dashboard({
   boxingState,
   conditionState,
   populationState,
+  socialState,
   onPerformAction,
   onMoveDistrict,
   onMoveLocation,
@@ -192,6 +214,8 @@ export function Dashboard({
   onBoxingTraining,
   onBoxingSparring,
   onBoxingTournament,
+  onInteractWithNpc,
+  onChooseSocialEvent,
   onReset
 }: DashboardProps) {
   const { player, time, lastResult } = gameState;
@@ -376,12 +400,15 @@ export function Dashboard({
             </section>
           ) : null}
 
-          {activeTab === 'jobs' ? <section className="screen screen-enter narrow-screen"><JobPanel currentJobView={jobState.currentJobView} onPromoteJob={onPromoteJob} onWorkShift={onWorkShift} /></section> : null}
+          {activeTab === 'jobs' ? <section className="screen screen-enter narrow-screen"><JobPanel currentJobView={jobState.currentJobView} colleagues={socialState.colleagues} onInteract={onInteractWithNpc} onPromoteJob={onPromoteJob} onWorkShift={onWorkShift} /></section> : null}
           {activeTab === 'development' ? <section className="screen screen-enter narrow-screen"><DevelopmentPanel skills={educationState.skills} programs={educationState.programs} onStudyProgram={onStudyProgram} /></section> : null}
           {activeTab === 'sport' ? <section className="screen screen-enter sport-screen"><SportPanel state={boxingState} currentDay={time.day} onBuyMembership={onBuyBoxingMembership} onChooseTrainer={onChooseBoxingTrainer} onTraining={onBoxingTraining} onSparring={onBoxingSparring} onTournament={onBoxingTournament} /></section> : null}
+          {activeTab === 'people' ? <section className="screen screen-enter people-screen"><PeoplePanel currentPeople={socialState.currentPeople} knownPeople={socialState.knownPeople} scheduledCount={socialState.scheduledCount} history={socialState.history} onInteract={onInteractWithNpc} /></section> : null}
           {activeTab === 'log' ? <section className="screen screen-enter narrow-screen"><LifeLog entries={gameState.lifeLog} /></section> : null}
         </div>
       </section>
+
+      <SocialEventModal event={socialState.activeEvent} npc={socialState.activeEventNpc} onChoose={onChooseSocialEvent} />
 
       <nav className="mobile-navigation" aria-label="Мобильная навигация">
         {NAVIGATION.map((item) => (

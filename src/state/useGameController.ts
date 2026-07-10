@@ -39,6 +39,17 @@ import { getShopForLocation, getShopProducts, isProductSoldByShop } from '../cor
 import { getScheduleActivityFailure, getScheduleStatus } from '../core/schedule';
 import { getLocationPopulationPresence, getPopulationSummary, simulatePopulation } from '../core/population';
 import {
+  applyNpcInteraction,
+  getInteractionFailure,
+  getNpcRelationship,
+  getRelationshipStatus
+} from '../core/relationships';
+import {
+  applySocialEventChoice,
+  maybeActivateSocialEvent,
+  processScheduledSocialEvents
+} from '../core/events';
+import {
   applyBoxingMembership,
   applyBoxingRecovery,
   applyBoxingSparring,
@@ -65,6 +76,9 @@ import {
 import { getLifeAction } from '../data';
 import { moscowLocations } from '../data/locations/moscowLocations';
 import { populationDataSource } from '../data/population/config';
+import { getNpcRoleById } from '../data/population/npcRoles';
+import { getNpcInteractionById, npcInteractionTemplates } from '../data/social/interactionTemplates';
+import { socialEventTemplates } from '../data/social/socialEventTemplates';
 import { getHousingById } from '../data/housing/basicHousing';
 import { basicEducationPrograms, getEducationProgramById } from '../data/education/basicPrograms';
 import { basicJobs, getJobById, getJobsForLocation } from '../data/jobs/basicJobs';
@@ -86,12 +100,18 @@ import type {
   EducationProgramId,
   JobId,
   LocationId,
-  ProductId
+  ProductId,
+  NpcId,
+  NpcInteractionId,
+  SocialEventChoiceId
 } from '../types/ids';
 import type { TravelModeId } from '../types/transport';
 import type { NeedsState } from '../types/needs';
 import type { Player } from '../types/player';
 import type { GameTime } from '../types/time';
+import type { Npc } from '../types/npc';
+import type { SocialContext, SocialNpcView } from '../types/relationship';
+import type { SocialState } from '../types/socialEvent';
 import {
   clearSavedGameState,
   createInitialGameState,
@@ -129,8 +149,9 @@ function applyElapsedTimeConsequences(
   currentState: GameState,
   player: Player,
   nextTime: GameTime,
-  decayProfile: NeedsDecayProfile = 'active'
-): { player: Player; population: GameState['world']['population']; lifeLogEntries: LifeLogEntry[]; needsDelta?: Partial<NeedsState>; messages: string[] } {
+  decayProfile: NeedsDecayProfile = 'active',
+  socialOverride: SocialState = currentState.world.social
+): { player: Player; population: GameState['world']['population']; social: SocialState; lifeLogEntries: LifeLogEntry[]; needsDelta?: Partial<NeedsState>; messages: string[] } {
   const elapsedMinutes = getElapsedMinutes(currentState.time, nextTime);
   const lifeLogEntries: LifeLogEntry[] = [];
   const messages: string[] = [];
@@ -182,10 +203,34 @@ function applyElapsedTimeConsequences(
     locations: moscowLocations,
     getLocationProfile: populationDataSource.getLocationProfile
   });
+  let social = processScheduledSocialEvents({
+    social: socialOverride,
+    currentDay: nextTime.day,
+    npcs: population.npcs,
+    templates: socialEventTemplates
+  });
+  const currentLocation = getLocationById(currentState.player.locationId);
+  if (!social.activeEvent && elapsedMinutes >= 60 && currentLocation?.type === 'home') {
+    const neighbors = population.npcs.filter((npc) =>
+      npc.homeDistrictId === currentState.player.districtId && npc.activationDay <= nextTime.day
+    );
+    const neighbor = neighbors[(nextTime.day + population.seed) % Math.max(1, neighbors.length)];
+    if (neighbor) {
+      social = maybeActivateSocialEvent({
+        social,
+        npc: neighbor,
+        context: 'home',
+        day: nextTime.day,
+        eventWeight: 1,
+        templates: socialEventTemplates
+      });
+    }
+  }
 
   return {
     player: nextPlayer,
     population,
+    social,
     lifeLogEntries,
     needsDelta: decayApplied.delta,
     messages
@@ -217,7 +262,7 @@ function applyBoxingOperationState(
   return {
     ...currentState,
     player: elapsedApplied.player,
-    world: { ...currentState.world, population: elapsedApplied.population },
+    world: { ...currentState.world, population: elapsedApplied.population, social: elapsedApplied.social },
     time: applied.time,
     lastResult: {
       ok: true,
@@ -237,6 +282,18 @@ function mergeLifeLog(newEntries: LifeLogEntry[], oldEntries: LifeLogEntry[]): L
 
 function resolveInitialState(): GameState {
   return loadGameState() ?? createInitialGameState();
+}
+
+function getNpcSocialContext(npc: Npc, locationId: LocationId | undefined, isColleague: boolean): SocialContext {
+  if (isColleague) return 'work';
+  const location = getLocationById(locationId);
+  if (!location) return 'general';
+  if (location.type === 'boxing_gym') return 'boxing';
+  if (location.type === 'education_center') return 'education';
+  if (location.type === 'home') return 'home';
+  if (['cafe', 'restaurant', 'food_court'].includes(location.type)) return 'cafe';
+  if (['shop', 'pharmacy', 'pickup_point', 'mall', 'electronics_store', 'clothing_store', 'sports_store'].includes(location.type)) return 'shop';
+  return npc.employment?.locationId === location.id ? 'work' : 'general';
 }
 
 export function useGameController() {
@@ -464,6 +521,78 @@ export function useGameController() {
     summary: getPopulationSummary(gameState.world.population, gameState.time.day)
   }), [gameState.world.population, gameState.player.locationId, gameState.time.day]);
 
+  const socialState = useMemo(() => {
+    const presence = getLocationPopulationPresence(gameState.world.population, gameState.player.locationId);
+    const presentNpcs = [...(presence?.staff ?? []), ...(presence?.visitors ?? [])];
+    const presentIds = new Set(presentNpcs.map((npc) => String(npc.id)));
+    const staffIds = new Set((presence?.staff ?? []).map((npc) => String(npc.id)));
+    const currentJob = getJobById(gameState.player.currentJobId);
+
+    function buildSocialNpcView(npc: Npc, isPresent: boolean): SocialNpcView {
+      const relationship = getNpcRelationship(gameState.world.social, npc.id);
+      const isColleague = Boolean(currentJob && npc.employment?.locationId === currentJob.locationId);
+      const context = getNpcSocialContext(npc, gameState.player.locationId, isColleague);
+      const interactions = npcInteractionTemplates
+        .filter((interaction) => interaction.contexts.includes('general') || interaction.contexts.includes(context))
+        .map((interaction) => {
+          const failure = getInteractionFailure({
+            player: gameState.player,
+            npc,
+            relationship,
+            interaction,
+            context,
+            isPresent
+          });
+          return { interaction, available: !failure, failure };
+        });
+
+      return {
+        npc,
+        role: getNpcRoleById(npc.employment?.roleId),
+        relationship,
+        status: getRelationshipStatus(relationship),
+        context,
+        isPresent,
+        isStaff: staffIds.has(String(npc.id)),
+        isColleague,
+        isKnown: relationship.familiarity >= 5 || relationship.interactionCount > 0,
+        interactions
+      };
+    }
+
+    const currentPeople = presentNpcs.map((npc) => buildSocialNpcView(npc, true));
+    const knownPeople = gameState.world.population.npcs
+      .filter((npc) => {
+        const relationship = gameState.world.social.relationships[String(npc.id)];
+        return Boolean(relationship && (relationship.familiarity >= 5 || relationship.interactionCount > 0));
+      })
+      .map((npc) => buildSocialNpcView(npc, presentIds.has(String(npc.id))))
+      .sort((left, right) => (right.relationship.lastInteractionDay ?? 0) - (left.relationship.lastInteractionDay ?? 0));
+    const colleagues = currentJob
+      ? gameState.world.population.npcs
+          .filter((npc) => npc.employment?.locationId === currentJob.locationId)
+          .map((npc) => buildSocialNpcView(npc, presentIds.has(String(npc.id))))
+          .sort((left, right) => {
+            const leftManagement = left.role?.category === 'management' ? 0 : 1;
+            const rightManagement = right.role?.category === 'management' ? 0 : 1;
+            return leftManagement - rightManagement || left.npc.lastName.localeCompare(right.npc.lastName, 'ru');
+          })
+      : [];
+    const activeEventNpc = gameState.world.social.activeEvent
+      ? gameState.world.population.npcs.find((npc) => npc.id === gameState.world.social.activeEvent?.npcId)
+      : undefined;
+
+    return {
+      currentPeople,
+      knownPeople,
+      colleagues,
+      activeEvent: gameState.world.social.activeEvent,
+      activeEventNpc,
+      history: gameState.world.social.history,
+      scheduledCount: gameState.world.social.scheduledEvents.length
+    };
+  }, [gameState.player, gameState.world.population, gameState.world.social]);
+
   function performAction(actionId: ActionId): void {
     const action = getLifeAction(actionId);
     if (!action) return;
@@ -530,7 +659,7 @@ export function useGameController() {
       return {
         ...currentState,
         player: elapsedApplied.player,
-        world: { ...currentState.world, population: elapsedApplied.population },
+        world: { ...currentState.world, population: elapsedApplied.population, social: elapsedApplied.social },
         time: applied.time,
         lastResult: {
           ...applied.result,
@@ -594,7 +723,7 @@ export function useGameController() {
         ...currentState,
         time: nextTime,
         player: elapsedApplied.player,
-        world: { ...currentState.world, population: elapsedApplied.population },
+        world: { ...currentState.world, population: elapsedApplied.population, social: elapsedApplied.social },
         lastResult: {
           ok: true,
           timeDeltaMinutes: travel.durationMinutes,
@@ -658,7 +787,7 @@ export function useGameController() {
         ...currentState,
         time: nextTime,
         player: elapsedApplied.player,
-        world: { ...currentState.world, population: elapsedApplied.population },
+        world: { ...currentState.world, population: elapsedApplied.population, social: elapsedApplied.social },
         lastResult: {
           ok: true,
           timeDeltaMinutes: travel.durationMinutes,
@@ -783,7 +912,7 @@ export function useGameController() {
         ...currentState,
         time: nextTime,
         player: elapsedApplied.player,
-        world: { ...currentState.world, population: elapsedApplied.population },
+        world: { ...currentState.world, population: elapsedApplied.population, social: elapsedApplied.social },
         lastResult: {
           ok: true,
           timeDeltaMinutes: product.useDurationMinutes,
@@ -880,7 +1009,7 @@ export function useGameController() {
       return {
         ...currentState,
         player: elapsedApplied.player,
-        world: { ...currentState.world, population: elapsedApplied.population },
+        world: { ...currentState.world, population: elapsedApplied.population, social: elapsedApplied.social },
         time: applied.time,
         lastResult: {
           ok: applied.result.ok,
@@ -935,7 +1064,7 @@ export function useGameController() {
       return {
         ...currentState,
         player: elapsedApplied.player,
-        world: { ...currentState.world, population: elapsedApplied.population },
+        world: { ...currentState.world, population: elapsedApplied.population, social: elapsedApplied.social },
         time: applied.time,
         lastResult: {
           ok: true,
@@ -1035,6 +1164,148 @@ export function useGameController() {
     });
   }
 
+  function interactWithNpc(npcId: NpcId, interactionId: NpcInteractionId): void {
+    const interaction = getNpcInteractionById(interactionId);
+    if (!interaction) return;
+
+    setGameState((currentState) => {
+      const npc = currentState.world.population.npcs.find((candidate) => candidate.id === npcId);
+      if (!npc) return currentState;
+      const isPresent = npc.worldState.kind === 'at_location' && npc.worldState.locationId === currentState.player.locationId;
+      const currentJob = getJobById(currentState.player.currentJobId);
+      const isColleague = Boolean(currentJob && npc.employment?.locationId === currentJob.locationId);
+      const context = getNpcSocialContext(npc, currentState.player.locationId, isColleague);
+      const applied = applyNpcInteraction({
+        player: currentState.player,
+        time: currentState.time,
+        social: currentState.world.social,
+        npc,
+        interaction,
+        context,
+        locationId: currentState.player.locationId,
+        isPresent
+      });
+
+      if (!applied.result.ok) {
+        const logEntry = createLifeLogEntry(currentState, 'Взаимодействие недоступно', applied.result.messages.join(' '));
+        return {
+          ...currentState,
+          lastResult: {
+            ok: false,
+            actionName: interaction.label,
+            timeDeltaMinutes: 0,
+            messages: applied.result.messages
+          },
+          lifeLog: mergeLifeLog([logEntry], currentState.lifeLog)
+        };
+      }
+
+      const elapsedApplied = applyElapsedTimeConsequences(
+        currentState,
+        applied.player,
+        applied.time,
+        'active',
+        applied.social
+      );
+      const nextSocial = maybeActivateSocialEvent({
+        social: elapsedApplied.social,
+        npc,
+        context,
+        day: applied.time.day,
+        eventWeight: interaction.eventWeight ?? 0,
+        templates: socialEventTemplates
+      });
+      const messages = [...applied.result.messages, ...elapsedApplied.messages];
+      const logEntry = createLifeLogEntry({ time: applied.time }, 'Люди', messages.join(' '));
+
+      return {
+        ...currentState,
+        player: elapsedApplied.player,
+        time: applied.time,
+        world: {
+          ...currentState.world,
+          population: elapsedApplied.population,
+          social: nextSocial
+        },
+        lastResult: {
+          ok: true,
+          actionName: applied.result.actionName,
+          timeDeltaMinutes: applied.result.timeDeltaMinutes,
+          moneyDelta: applied.result.moneyDelta,
+          needsDelta: mergeNeedsDelta(applied.result.needsDelta, elapsedApplied.needsDelta),
+          messages
+        },
+        lifeLog: mergeLifeLog([logEntry, ...elapsedApplied.lifeLogEntries], currentState.lifeLog)
+      };
+    });
+  }
+
+  function chooseSocialEvent(choiceId: SocialEventChoiceId): void {
+    setGameState((currentState) => {
+      const event = currentState.world.social.activeEvent;
+      if (!event) return currentState;
+      const npc = currentState.world.population.npcs.find((candidate) => candidate.id === event.npcId);
+      if (!npc) {
+        return {
+          ...currentState,
+          world: {
+            ...currentState.world,
+            social: { ...currentState.world.social, activeEvent: undefined }
+          }
+        };
+      }
+
+      const applied = applySocialEventChoice({
+        player: currentState.player,
+        time: currentState.time,
+        social: currentState.world.social,
+        npc,
+        choiceId: String(choiceId)
+      });
+      if (!applied.result.ok) {
+        return {
+          ...currentState,
+          lastResult: {
+            ok: false,
+            actionName: applied.result.actionName,
+            timeDeltaMinutes: 0,
+            messages: applied.result.messages
+          }
+        };
+      }
+
+      const elapsedApplied = applyElapsedTimeConsequences(
+        currentState,
+        applied.player,
+        applied.time,
+        'active',
+        applied.social
+      );
+      const messages = [...applied.result.messages, ...elapsedApplied.messages];
+      const logEntry = createLifeLogEntry({ time: applied.time }, 'Социальное событие', messages.join(' '));
+
+      return {
+        ...currentState,
+        player: elapsedApplied.player,
+        time: applied.time,
+        world: {
+          ...currentState.world,
+          population: elapsedApplied.population,
+          social: elapsedApplied.social
+        },
+        lastResult: {
+          ok: true,
+          actionName: applied.result.actionName,
+          timeDeltaMinutes: applied.result.timeDeltaMinutes,
+          moneyDelta: applied.result.moneyDelta,
+          needsDelta: mergeNeedsDelta(applied.result.needsDelta, elapsedApplied.needsDelta),
+          messages
+        },
+        lifeLog: mergeLifeLog([logEntry, ...elapsedApplied.lifeLogEntries], currentState.lifeLog)
+      };
+    });
+  }
+
   function resetGame(): void {
     clearSavedGameState();
     setGameState(createInitialGameState());
@@ -1049,6 +1320,7 @@ export function useGameController() {
     boxingState,
     conditionState,
     populationState,
+    socialState,
     performAction,
     moveToDistrict,
     moveToLocation,
@@ -1063,6 +1335,8 @@ export function useGameController() {
     performBoxingTraining,
     startBoxingSparring,
     enterBoxingTournament,
+    interactWithNpc,
+    chooseSocialEvent,
     resetGame
   };
 }

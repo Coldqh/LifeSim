@@ -9,11 +9,13 @@ import { createInitialBoxingProfile } from '../core/sport';
 import type { BoxingProfile } from '../types/boxing';
 import type { PopulationState } from '../types/population';
 import { createPopulationSeed, generatePopulation, simulatePopulation } from '../core/population';
+import { createInitialSocialState, createNpcPersonality } from '../core/relationships';
+import type { SocialState } from '../types/socialEvent';
 import { moscowLocations } from '../data/locations/moscowLocations';
 import { populationDataSource } from '../data/population/config';
 
-export const GAME_STATE_STORAGE_KEY = 'lifesim.gameState.v13';
-const LEGACY_GAME_STATE_STORAGE_KEYS = ['lifesim.gameState.v12', 'lifesim.gameState.v11', 'lifesim.gameState.v10', 'lifesim.gameState.v9', 'lifesim.gameState.v8', 'lifesim.gameState.v7'];
+export const GAME_STATE_STORAGE_KEY = 'lifesim.gameState.v14';
+const LEGACY_GAME_STATE_STORAGE_KEYS = ['lifesim.gameState.v13', 'lifesim.gameState.v12', 'lifesim.gameState.v11', 'lifesim.gameState.v10', 'lifesim.gameState.v9', 'lifesim.gameState.v8', 'lifesim.gameState.v7'];
 const STARTER_INVENTORY_BACKFILL_KEYS = new Set(['lifesim.gameState.v9', 'lifesim.gameState.v8', 'lifesim.gameState.v7']);
 const REMOVED_PRODUCT_IDS = new Set(['hygiene_kit', 'toothpaste', 'laundry_powder']);
 
@@ -27,6 +29,7 @@ export type LifeLogEntry = {
 
 export type WorldState = {
   population: PopulationState;
+  social: SocialState;
 };
 
 export type GameState = {
@@ -182,7 +185,7 @@ export function createInitialGameState(): GameState {
   return {
     player: createInitialPlayer(),
     time,
-    world: { population },
+    world: { population, social: createInitialSocialState() },
     lifeLog: [
       {
         id: 'log_start',
@@ -231,7 +234,24 @@ function normalizePopulation(value: unknown, time: GameTime): PopulationState {
     lastSimulatedTotalMinutes: typeof candidate.lastSimulatedTotalMinutes === 'number'
       ? candidate.lastSimulatedTotalMinutes
       : 0,
-    npcs: candidate.npcs
+    npcs: candidate.npcs.map((npc) => ({
+      ...npc,
+      personality: npc.personality ?? createNpcPersonality(String(npc.id), npc.activityProfile)
+    }))
+  };
+}
+
+
+function normalizeSocialState(value: unknown): SocialState {
+  const initial = createInitialSocialState();
+  if (!value || typeof value !== 'object') return initial;
+  const candidate = value as Partial<SocialState>;
+  return {
+    relationships: candidate.relationships && typeof candidate.relationships === 'object' ? candidate.relationships : {},
+    scheduledEvents: Array.isArray(candidate.scheduledEvents) ? candidate.scheduledEvents : [],
+    activeEvent: candidate.activeEvent && typeof candidate.activeEvent === 'object' ? candidate.activeEvent : undefined,
+    eventCooldowns: candidate.eventCooldowns && typeof candidate.eventCooldowns === 'object' ? candidate.eventCooldowns : {},
+    history: Array.isArray(candidate.history) ? candidate.history.slice(0, 40) : []
   };
 }
 
@@ -253,7 +273,8 @@ export function loadGameState(): GameState | undefined {
       return {
         ...parsed,
         world: {
-          population: normalizePopulation(parsed.world?.population, parsed.time)
+          population: normalizePopulation(parsed.world?.population, parsed.time),
+          social: normalizeSocialState(parsed.world?.social)
         },
         player: {
           ...parsed.player,

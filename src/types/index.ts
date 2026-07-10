@@ -9,6 +9,8 @@ export * from './transport';
 export * from './player';
 export * from './npc';
 export * from './population';
+export * from './relationship';
+export * from './socialEvent';
 export * from './skill';
 export * from './product';
 export * from './shop';

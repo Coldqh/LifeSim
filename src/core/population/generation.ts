@@ -4,6 +4,7 @@ import type { PopulationDataSource, PopulationState } from '../../types/populati
 import type { DistrictId, NpcId } from '../../types/ids';
 import type { Weekday } from '../../types/time';
 import { getTotalMinutes } from '../time';
+import { createNpcPersonality } from '../relationships';
 
 const WEEKDAYS: Weekday[] = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
 const MINUTES_IN_DAY = 24 * 60;
@@ -112,8 +113,10 @@ function createNpc(input: {
     : pick(districts, random);
   const initialState: NpcWorldState = { kind: 'home', sinceTotalMinutes: 0 };
 
+  const id = npcId(`npc_${String(index + 1).padStart(4, '0')}`);
+
   return {
-    id: npcId(`npc_${String(index + 1).padStart(4, '0')}`),
+    id,
     firstName,
     lastName,
     age: knownIdentity?.age ?? Math.floor(18 + random() * 48),
@@ -122,6 +125,7 @@ function createNpc(input: {
     activationDay,
     preferredLocationTypes: getPreferences(activityProfile),
     employment,
+    personality: createNpcPersonality(String(id), activityProfile),
     worldState: initialState
   };
 }

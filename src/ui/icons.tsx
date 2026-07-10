@@ -2,6 +2,7 @@ import type { ReactNode, SVGProps } from 'react';
 
 export type IconName =
   | 'character'
+  | 'users'
   | 'city'
   | 'work'
   | 'log'
@@ -47,6 +48,7 @@ type IconProps = SVGProps<SVGSVGElement> & {
 
 const PATHS: Record<IconName, ReactNode> = {
   character: <><circle cx="12" cy="8" r="3"/><path d="M5.5 20a6.5 6.5 0 0 1 13 0"/></>,
+  users: <><circle cx="9" cy="8" r="3"/><circle cx="17" cy="9" r="2.5"/><path d="M3 20a6 6 0 0 1 12 0M14 15a5 5 0 0 1 7 5"/></>,
   city: <><path d="M3 21V7l6-3v17"/><path d="M9 21V10l6-3v14"/><path d="M15 21V5l6 3v13"/><path d="M6 10h.01M6 14h.01M12 13h.01M12 17h.01M18 10h.01M18 14h.01"/></>,
   work: <><rect x="3" y="7" width="18" height="13" rx="1"/><path d="M8 7V4h8v3M3 12h18M10 12v2h4v-2"/></>,
   log: <><path d="M6 3h12v18H6z"/><path d="M9 8h6M9 12h6M9 16h4"/></>,
