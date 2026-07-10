@@ -9,13 +9,11 @@ export const lifeActions: LifeAction[] = [
   {
     id: actionId('sleep_eight_hours'),
     name: 'Сон 8 часов',
-    description: 'Полное восстановление дома. Еда и вода падают за ночь.',
+    description: 'Полное восстановление дома. Еда и вода расходуются только от прошедшего времени.',
     category: 'sleep',
     durationMinutes: 480,
     needsDelta: {
       energy: 70,
-      hunger: -25,
-      thirst: -25,
       mood: 8,
       health: 2
     },
@@ -24,14 +22,12 @@ export const lifeActions: LifeAction[] = [
   {
     id: actionId('rest_one_hour'),
     name: 'Отдохнуть 1 час',
-    description: 'Короткая пауза дома. Силы немного возвращаются.',
+    description: 'Короткая пауза дома. Силы возвращаются, потребности меняются от прошедшего времени.',
     category: 'rest',
     durationMinutes: 60,
     needsDelta: {
       energy: 20,
-      hunger: -5,
-      thirst: -5,
-      mood: 8
+      mood: 6
     },
     resultMessage: 'Ты спокойно отдохнул час.'
   },
@@ -43,9 +39,9 @@ export const lifeActions: LifeAction[] = [
     durationMinutes: 60,
     needsDelta: {
       energy: -8,
-      hunger: -8,
-      thirst: -10,
-      mood: 10,
+      hunger: -1,
+      thirst: -2,
+      mood: 6,
       health: 1
     },
     resultMessage: 'Ты прогулялся час.'
@@ -57,14 +53,14 @@ export const lifeActions: LifeAction[] = [
     category: 'training',
     durationMinutes: 90,
     needsDelta: {
-      energy: -25,
-      hunger: -18,
-      thirst: -25,
+      energy: -28,
+      hunger: -5,
+      thirst: -8,
       health: 2,
       mood: 7
     },
     requirements: {
-      minEnergy: 25
+      minEnergy: 20
     },
     resultMessage: 'Ты провёл лёгкую тренировку.'
   }

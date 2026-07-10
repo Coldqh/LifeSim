@@ -15,7 +15,7 @@ export const basicShops: Shop[] = [
     id: shopId('shop_local_grocery'),
     name: 'Магазин у дома',
     description: 'Базовая еда и вода для обычного дня.',
-    productIds: products(['water_05l', 'water_15l', 'snack_bar', 'ready_meal', 'fruit_pack', 'yogurt', 'tea_cup', 'hygiene_kit', 'toothpaste', 'laundry_powder'])
+    productIds: products(['water_05l', 'water_15l', 'snack_bar', 'ready_meal', 'fruit_pack', 'yogurt', 'tea_cup'])
   },
   {
     id: shopId('shop_coffee_spot'),
@@ -27,8 +27,8 @@ export const basicShops: Shop[] = [
   {
     id: shopId('shop_pharmacy'),
     name: 'Аптека',
-    description: 'Здоровье, восстановление и базовые бытовые товары.',
-    productIds: products(['painkiller', 'vitamins_pack', 'bandage_kit', 'electrolyte_pack', 'cold_medicine', 'hygiene_kit', 'toothpaste'])
+    description: 'Лекарства и средства восстановления.',
+    productIds: products(['painkiller', 'vitamins_pack', 'bandage_kit', 'electrolyte_pack', 'cold_medicine'])
   },
   {
     id: shopId('shop_canteen'),

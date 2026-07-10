@@ -29,7 +29,7 @@ function getCategoryRequirements(action: LifeAction): {
 } {
   if (action.category === 'training') {
     return {
-      minEnergy: Math.max(25, action.requirements?.minEnergy ?? 0),
+      minEnergy: Math.max(20, action.requirements?.minEnergy ?? 0),
       minHealth: Math.max(30, action.requirements?.minHealth ?? 0),
       minHunger: Math.max(6, action.requirements?.minHunger ?? 0),
       minThirst: Math.max(6, action.requirements?.minThirst ?? 0)
@@ -38,7 +38,7 @@ function getCategoryRequirements(action: LifeAction): {
 
   if (action.category === 'walk') {
     return {
-      minEnergy: Math.max(8, action.requirements?.minEnergy ?? 0),
+      minEnergy: Math.max(6, action.requirements?.minEnergy ?? 0),
       minHealth: Math.max(15, action.requirements?.minHealth ?? 0)
     };
   }

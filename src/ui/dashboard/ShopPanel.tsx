@@ -16,6 +16,7 @@ type ShopPanelProps = {
 function getProductPurchaseEffects(product: Product): EffectListItem[] {
   return [
     { label: 'Деньги', value: -product.price, unit: '₽', tone: 'negative' },
+    { label: 'Использование', value: -product.useDurationMinutes, unit: 'мин', tone: 'negative' },
     ...createNeedsEffectItems(product.effects)
   ];
 }

@@ -23,7 +23,7 @@ export const basicEducationPrograms: EducationProgram[] = [
     durationMinutes: 120,
     price: 0,
     experienceReward: 14,
-    minEnergy: 15,
+    minEnergy: 8,
     needsDelta: { energy: -6, mood: -1 }
   },
   {
@@ -35,7 +35,7 @@ export const basicEducationPrograms: EducationProgram[] = [
     durationMinutes: 120,
     price: 0,
     experienceReward: 14,
-    minEnergy: 15,
+    minEnergy: 8,
     needsDelta: { energy: -6, mood: -1 }
   },
   {
@@ -47,7 +47,7 @@ export const basicEducationPrograms: EducationProgram[] = [
     durationMinutes: 180,
     price: 1200,
     experienceReward: 45,
-    minEnergy: 20,
+    minEnergy: 12,
     needsDelta: { energy: -10, mood: 2 }
   },
   {
@@ -59,7 +59,7 @@ export const basicEducationPrograms: EducationProgram[] = [
     durationMinutes: 180,
     price: 1400,
     experienceReward: 45,
-    minEnergy: 20,
+    minEnergy: 12,
     needsDelta: { energy: -10, mood: 2 }
   },
   {
@@ -71,7 +71,7 @@ export const basicEducationPrograms: EducationProgram[] = [
     durationMinutes: 240,
     price: 1800,
     experienceReward: 60,
-    minEnergy: 25,
+    minEnergy: 15,
     needsDelta: { energy: -12, mood: 2 }
   },
   {
@@ -83,7 +83,7 @@ export const basicEducationPrograms: EducationProgram[] = [
     durationMinutes: 240,
     price: 2200,
     experienceReward: 60,
-    minEnergy: 25,
+    minEnergy: 15,
     needsDelta: { energy: -12, mood: 2 }
   }
 ];

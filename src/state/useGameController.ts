@@ -544,26 +544,30 @@ export function useGameController() {
         };
       }
 
-      const nextNeeds = applyNeedsDelta(currentState.player.needs, product.effects);
-      const warning = getNeedWarning(nextNeeds);
-      const message = `Использовано: ${product.name}.`;
-      const messages = warning ? [message, warning] : [message];
-      const logEntry = createLifeLogEntry(currentState, 'Инвентарь', messages.join(' '));
+      const nextTime = addMinutes(currentState.time, product.useDurationMinutes);
+      const consumedPlayer = {
+        ...currentState.player,
+        needs: applyNeedsDelta(currentState.player.needs, product.effects),
+        inventory: removeInventoryItem(currentState.player.inventory, productId)
+      };
+      const elapsedApplied = applyElapsedTimeConsequences(currentState, consumedPlayer, nextTime, 'active');
+      const warning = getNeedWarning(elapsedApplied.player.needs);
+      const message = `Использовано: ${product.name}. Потрачено ${product.useDurationMinutes} мин.`;
+      const messages = [message, warning, ...elapsedApplied.messages]
+        .filter((entry): entry is string => Boolean(entry));
+      const logEntry = createLifeLogEntry({ time: nextTime }, 'Инвентарь', messages.join(' '));
 
       return {
         ...currentState,
-        player: {
-          ...currentState.player,
-          needs: nextNeeds,
-          inventory: removeInventoryItem(currentState.player.inventory, productId)
-        },
+        time: nextTime,
+        player: elapsedApplied.player,
         lastResult: {
           ok: true,
-          timeDeltaMinutes: 0,
-          needsDelta: product.effects,
+          timeDeltaMinutes: product.useDurationMinutes,
+          needsDelta: mergeNeedsDelta(product.effects, elapsedApplied.needsDelta),
           messages
         },
-        lifeLog: [logEntry, ...currentState.lifeLog].slice(0, 12)
+        lifeLog: mergeLifeLog([logEntry, ...elapsedApplied.lifeLogEntries], currentState.lifeLog)
       };
     });
   }

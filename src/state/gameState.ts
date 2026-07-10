@@ -6,8 +6,10 @@ import type { HousingId } from '../types/housing';
 import type { GameTime } from '../types/time';
 import { createInitialTime, formatGameTime } from '../core/time';
 
-export const GAME_STATE_STORAGE_KEY = 'lifesim.gameState.v10';
-const LEGACY_GAME_STATE_STORAGE_KEYS = ['lifesim.gameState.v9', 'lifesim.gameState.v8', 'lifesim.gameState.v7'];
+export const GAME_STATE_STORAGE_KEY = 'lifesim.gameState.v11';
+const LEGACY_GAME_STATE_STORAGE_KEYS = ['lifesim.gameState.v10', 'lifesim.gameState.v9', 'lifesim.gameState.v8', 'lifesim.gameState.v7'];
+const STARTER_INVENTORY_BACKFILL_KEYS = new Set(['lifesim.gameState.v9', 'lifesim.gameState.v8', 'lifesim.gameState.v7']);
+const REMOVED_PRODUCT_IDS = new Set(['hygiene_kit', 'toothpaste', 'laundry_powder']);
 
 export type LifeLogEntry = {
   id: string;
@@ -148,14 +150,15 @@ export function loadGameState(): GameState | undefined {
       const parsed = JSON.parse(raw) as GameState;
       if (!parsed.player || !parsed.time || !Array.isArray(parsed.lifeLog)) continue;
 
-      const isLegacySave = storageKey !== GAME_STATE_STORAGE_KEY;
       const inventory = Array.isArray(parsed.player.inventory) ? parsed.player.inventory : [];
+      const sanitizedInventory = inventory.filter((item) => !REMOVED_PRODUCT_IDS.has(String(item.productId)));
+      const shouldBackfillStarterInventory = STARTER_INVENTORY_BACKFILL_KEYS.has(storageKey) && sanitizedInventory.length === 0;
 
       return {
         ...parsed,
         player: {
           ...parsed.player,
-          inventory: isLegacySave && inventory.length === 0 ? createStarterInventory() : inventory,
+          inventory: shouldBackfillStarterInventory ? createStarterInventory() : sanitizedInventory,
           completedShifts: parsed.player.completedShifts ?? {},
           jobExperience: parsed.player.jobExperience ?? {},
           jobLevels: parsed.player.jobLevels ?? {},

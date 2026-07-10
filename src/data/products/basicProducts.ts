@@ -18,9 +18,6 @@ import painkillerImage from '../../assets/products/painkiller.png';
 import vitamins_packImage from '../../assets/products/vitamins_pack.png';
 import bandage_kitImage from '../../assets/products/bandage_kit.png';
 import cold_medicineImage from '../../assets/products/cold_medicine.png';
-import hygiene_kitImage from '../../assets/products/hygiene_kit.png';
-import toothpasteImage from '../../assets/products/toothpaste.png';
-import laundry_powderImage from '../../assets/products/laundry_powder.png';
 import fruit_packImage from '../../assets/products/fruit_pack.png';
 import yogurtImage from '../../assets/products/yogurt.png';
 import protein_shakeImage from '../../assets/products/protein_shake.png';
@@ -38,6 +35,7 @@ export const basicProducts: Product[] = [
     category: 'drink',
     price: 80,
     description: 'Обычная бутылка воды. Быстро закрывает жажду.',
+    useDurationMinutes: 2,
     imageSrc: water_05lImage,
     effects: {
       thirst: 35
@@ -49,6 +47,7 @@ export const basicProducts: Product[] = [
     category: 'drink',
     price: 140,
     description: 'Большая бутылка воды. Выгоднее маленькой.',
+    useDurationMinutes: 4,
     imageSrc: water_15lImage,
     effects: {
       thirst: 70
@@ -60,6 +59,7 @@ export const basicProducts: Product[] = [
     category: 'food',
     price: 120,
     description: 'Дешёвый перекус. Не еда на день, но выручает.',
+    useDurationMinutes: 5,
     imageSrc: snack_barImage,
     effects: {
       hunger: 20,
@@ -72,6 +72,7 @@ export const basicProducts: Product[] = [
     category: 'food',
     price: 350,
     description: 'Нормальный готовый обед из магазина.',
+    useDurationMinutes: 15,
     imageSrc: ready_mealImage,
     effects: {
       hunger: 55,
@@ -85,6 +86,7 @@ export const basicProducts: Product[] = [
     category: 'coffee',
     price: 250,
     description: 'Кофе из кофейни. Немного бодрит, но сушит.',
+    useDurationMinutes: 10,
     imageSrc: coffee_cupImage,
     effects: {
       energy: 12,
@@ -98,6 +100,7 @@ export const basicProducts: Product[] = [
     category: 'food',
     price: 320,
     description: 'Быстрый сэндвич из кофейни.',
+    useDurationMinutes: 10,
     imageSrc: cafe_sandwichImage,
     effects: {
       hunger: 35,
@@ -111,6 +114,7 @@ export const basicProducts: Product[] = [
     category: 'drink',
     price: 150,
     description: 'Горячий чай без сильного эффекта на энергию.',
+    useDurationMinutes: 10,
     imageSrc: tea_cupImage,
     effects: { thirst: 18, mood: 3 }
   },
@@ -120,6 +124,7 @@ export const basicProducts: Product[] = [
     category: 'drink',
     price: 190,
     description: 'Быстро бодрит и немного утоляет жажду.',
+    useDurationMinutes: 3,
     imageSrc: energy_drinkImage,
     effects: { energy: 18, thirst: 10, mood: 2 }
   },
@@ -129,6 +134,7 @@ export const basicProducts: Product[] = [
     category: 'food',
     price: 280,
     description: 'Плотный быстрый перекус.',
+    useDurationMinutes: 12,
     imageSrc: shawarmaImage,
     effects: { hunger: 45, thirst: -8, mood: 4 }
   },
@@ -138,6 +144,7 @@ export const basicProducts: Product[] = [
     category: 'food',
     price: 360,
     description: 'Лёгкая еда без тяжести.',
+    useDurationMinutes: 12,
     imageSrc: salad_bowlImage,
     effects: { hunger: 30, health: 3, mood: 2 }
   },
@@ -147,6 +154,7 @@ export const basicProducts: Product[] = [
     category: 'food',
     price: 520,
     description: 'Полноценный обед для рабочего дня.',
+    useDurationMinutes: 20,
     imageSrc: business_lunchImage,
     effects: { hunger: 70, thirst: -6, mood: 5 }
   },
@@ -156,6 +164,7 @@ export const basicProducts: Product[] = [
     category: 'food',
     price: 430,
     description: 'Сытная еда из столовой или фудкорта.',
+    useDurationMinutes: 15,
     imageSrc: pasta_boxImage,
     effects: { hunger: 58, thirst: -6, mood: 4 }
   },
@@ -165,6 +174,7 @@ export const basicProducts: Product[] = [
     category: 'food',
     price: 260,
     description: 'Простая горячая еда.',
+    useDurationMinutes: 12,
     imageSrc: soup_cupImage,
     effects: { hunger: 38, health: 2, mood: 3 }
   },
@@ -174,6 +184,7 @@ export const basicProducts: Product[] = [
     category: 'food',
     price: 210,
     description: 'Спортивный перекус.',
+    useDurationMinutes: 5,
     imageSrc: protein_barImage,
     effects: { hunger: 28, energy: 4, mood: 2 }
   },
@@ -183,6 +194,7 @@ export const basicProducts: Product[] = [
     category: 'drink',
     price: 180,
     description: 'Напиток после дороги или тренировки.',
+    useDurationMinutes: 3,
     imageSrc: isotonic_drinkImage,
     effects: { thirst: 42, energy: 5, health: 2 }
   },
@@ -192,6 +204,7 @@ export const basicProducts: Product[] = [
     category: 'medicine',
     price: 260,
     description: 'Помогают восстановиться после сильной усталости.',
+    useDurationMinutes: 5,
     imageSrc: electrolyte_packImage,
     effects: { thirst: 25, health: 4, energy: 4 }
   },
@@ -201,6 +214,7 @@ export const basicProducts: Product[] = [
     category: 'medicine',
     price: 220,
     description: 'Базовая аптечная покупка.',
+    useDurationMinutes: 5,
     imageSrc: painkillerImage,
     effects: { health: 6, mood: 1 }
   },
@@ -210,6 +224,7 @@ export const basicProducts: Product[] = [
     category: 'medicine',
     price: 480,
     description: 'Небольшая поддержка здоровья.',
+    useDurationMinutes: 5,
     imageSrc: vitamins_packImage,
     effects: { health: 8, energy: 3 }
   },
@@ -219,6 +234,7 @@ export const basicProducts: Product[] = [
     category: 'medicine',
     price: 160,
     description: 'Мелкая аптечная расходка.',
+    useDurationMinutes: 5,
     imageSrc: bandage_kitImage,
     effects: { health: 3 }
   },
@@ -228,35 +244,9 @@ export const basicProducts: Product[] = [
     category: 'medicine',
     price: 420,
     description: 'Базовое средство для восстановления здоровья.',
+    useDurationMinutes: 5,
     imageSrc: cold_medicineImage,
     effects: { health: 10, energy: -2 }
-  },
-  {
-    id: productId('hygiene_kit'),
-    name: 'Nivea Men Travel Set',
-    category: 'other',
-    price: 350,
-    description: 'Бытовая покупка для нормального дня.',
-    imageSrc: hygiene_kitImage,
-    effects: { mood: 4, health: 2 }
-  },
-  {
-    id: productId('toothpaste'),
-    name: 'Colgate Total',
-    category: 'other',
-    price: 180,
-    description: 'Базовая бытовая расходка.',
-    imageSrc: toothpasteImage,
-    effects: { mood: 2 }
-  },
-  {
-    id: productId('laundry_powder'),
-    name: 'Persil Color',
-    category: 'other',
-    price: 420,
-    description: 'Бытовой товар для поддержания порядка.',
-    imageSrc: laundry_powderImage,
-    effects: { mood: 3 }
   },
   {
     id: productId('fruit_pack'),
@@ -264,6 +254,7 @@ export const basicProducts: Product[] = [
     category: 'food',
     price: 240,
     description: 'Лёгкий полезный перекус.',
+    useDurationMinutes: 5,
     imageSrc: fruit_packImage,
     effects: { hunger: 24, health: 3, thirst: 5 }
   },
@@ -273,6 +264,7 @@ export const basicProducts: Product[] = [
     category: 'food',
     price: 130,
     description: 'Быстрый молочный перекус.',
+    useDurationMinutes: 5,
     imageSrc: yogurtImage,
     effects: { hunger: 18, health: 1, mood: 2 }
   },
@@ -282,6 +274,7 @@ export const basicProducts: Product[] = [
     category: 'drink',
     price: 290,
     description: 'Спортивный напиток после нагрузки.',
+    useDurationMinutes: 5,
     imageSrc: protein_shakeImage,
     effects: { hunger: 25, thirst: 25, energy: 6 }
   }

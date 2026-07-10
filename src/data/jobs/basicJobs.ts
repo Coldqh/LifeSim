@@ -59,20 +59,20 @@ const baseJobs: Job[] = [
     experiencePerShift: 12,
     promotionThreshold: 100,
     requirements: {
-      minEnergy: 20
+      minEnergy: 18
     },
     levels: createJobLevels(
       ['Бариста-стажёр', 'Бариста', 'Старший бариста'],
       1800,
       100,
-      20
+      18
     ),
     effects: {
       moneyDelta: 1800,
       needsDelta: {
-        energy: -22,
-        hunger: -18,
-        thirst: -18,
+        energy: -18,
+        hunger: -4,
+        thirst: -6,
         mood: -1
       }
     }
@@ -88,20 +88,20 @@ const baseJobs: Job[] = [
     experiencePerShift: 11,
     promotionThreshold: 100,
     requirements: {
-      minEnergy: 24
+      minEnergy: 18
     },
     levels: createJobLevels(
       ['Продавец продуктов', 'Продавец', 'Старший продавец'],
       2000,
       100,
-      24
+      18
     ),
     effects: {
       moneyDelta: 2000,
       needsDelta: {
-        energy: -26,
-        hunger: -20,
-        thirst: -22,
+        energy: -20,
+        hunger: -5,
+        thirst: -7,
         mood: -2
       }
     }
@@ -117,20 +117,20 @@ const baseJobs: Job[] = [
     experiencePerShift: 14,
     promotionThreshold: 110,
     requirements: {
-      minEnergy: 40
+      minEnergy: 25
     },
     levels: createJobLevels(
       ['Помощник на складе', 'Кладовщик', 'Старший кладовщик'],
       2800,
       110,
-      40
+      25
     ),
     effects: {
       moneyDelta: 2800,
       needsDelta: {
-        energy: -42,
-        hunger: -28,
-        thirst: -30,
+        energy: -30,
+        hunger: -8,
+        thirst: -12,
         mood: -4
       }
     }
@@ -146,21 +146,21 @@ const baseJobs: Job[] = [
     experiencePerShift: 12,
     promotionThreshold: 100,
     requirements: {
-      minEnergy: 25
+      minEnergy: 18
     },
     levels: createJobLevels(
       ['Офисный помощник на подработке', 'Офисный ассистент', 'Координатор офиса'],
       2500,
       100,
-      25
+      18
     ),
     effects: {
       moneyDelta: 2500,
       needsDelta: {
-        energy: -30,
-        hunger: -22,
-        thirst: -22,
-        mood: -3
+        energy: -20,
+        hunger: -4,
+        thirst: -6,
+        mood: -2
       }
     }
   },
@@ -175,21 +175,21 @@ const baseJobs: Job[] = [
     experiencePerShift: 16,
     promotionThreshold: 120,
     requirements: {
-      minEnergy: 45
+      minEnergy: 23
     },
     levels: createJobLevels(
       ['Помощник в бизнес-центре', 'Администратор бизнес-центра', 'Старший администратор'],
       4200,
       120,
-      45
+      23
     ),
     effects: {
       moneyDelta: 4200,
       needsDelta: {
-        energy: -45,
-        hunger: -30,
-        thirst: -30,
-        mood: -5
+        energy: -26,
+        hunger: -7,
+        thirst: -10,
+        mood: -4
       }
     }
   },
@@ -204,21 +204,21 @@ const baseJobs: Job[] = [
     experiencePerShift: 12,
     promotionThreshold: 100,
     requirements: {
-      minEnergy: 25
+      minEnergy: 17
     },
     levels: createJobLevels(
       ['Администратор салона', 'Старший администратор салона', 'Управляющий сменой'],
       2300,
       100,
-      25
+      17
     ),
     effects: {
       moneyDelta: 2300,
       needsDelta: {
-        energy: -24,
-        hunger: -18,
-        thirst: -20,
-        mood: -2
+        energy: -18,
+        hunger: -4,
+        thirst: -5,
+        mood: -1
       }
     }
   },
@@ -233,21 +233,21 @@ const baseJobs: Job[] = [
     experiencePerShift: 13,
     promotionThreshold: 110,
     requirements: {
-      minEnergy: 30
+      minEnergy: 19
     },
     levels: createJobLevels(
       ['Продавец-консультант', 'Ведущий консультант', 'Старший специалист салона'],
       2600,
       110,
-      30
+      19
     ),
     effects: {
       moneyDelta: 2600,
       needsDelta: {
-        energy: -32,
-        hunger: -24,
-        thirst: -24,
-        mood: -3
+        energy: -22,
+        hunger: -6,
+        thirst: -8,
+        mood: -2
       }
     }
   },
@@ -262,20 +262,20 @@ const baseJobs: Job[] = [
     experiencePerShift: 13,
     promotionThreshold: 100,
     requirements: {
-      minEnergy: 35
+      minEnergy: 22
     },
     levels: createJobLevels(
       ['Помощник в фитнес-зале', 'Администратор фитнес-зала', 'Старший администратор клуба'],
       2400,
       100,
-      35
+      22
     ),
     effects: {
       moneyDelta: 2400,
       needsDelta: {
-        energy: -36,
-        hunger: -25,
-        thirst: -28,
+        energy: -24,
+        hunger: -6,
+        thirst: -9,
         mood: -2
       }
     }
@@ -291,21 +291,21 @@ const baseJobs: Job[] = [
     experiencePerShift: 14,
     promotionThreshold: 110,
     requirements: {
-      minEnergy: 30
+      minEnergy: 18
     },
     levels: createJobLevels(
       ['Ассистент в коворкинге', 'Координатор коворкинга', 'Старший координатор'],
       3000,
       110,
-      30
+      18
     ),
     effects: {
       moneyDelta: 3000,
       needsDelta: {
-        energy: -32,
-        hunger: -24,
-        thirst: -24,
-        mood: -2
+        energy: -20,
+        hunger: -5,
+        thirst: -7,
+        mood: -1
       }
     }
   },
@@ -320,20 +320,20 @@ const baseJobs: Job[] = [
     experiencePerShift: 11,
     promotionThreshold: 100,
     requirements: {
-      minEnergy: 22
+      minEnergy: 16
     },
     levels: createJobLevels(
       ['Помощник в книжном магазине', 'Продавец книг', 'Старший продавец книг'],
       2100,
       100,
-      22
+      16
     ),
     effects: {
       moneyDelta: 2100,
       needsDelta: {
-        energy: -23,
-        hunger: -18,
-        thirst: -18,
+        energy: -16,
+        hunger: -4,
+        thirst: -5,
         mood: -1
       }
     }
@@ -349,14 +349,19 @@ const baseJobs: Job[] = [
     shiftDurationMinutes: 240,
     experiencePerShift: 12,
     promotionThreshold: 100,
-    requirements: { minEnergy: 24 },
+    requirements: { minEnergy: 17 },
     levels: createJobLevels(
       ['Помощник в аптеке', 'Консультант аптеки', 'Старший консультант аптеки'],
       2200,
       100,
-      24
+      17
     ),
-    effects: { moneyDelta: 2200, needsDelta: { energy: -24, hunger: -18, thirst: -18, mood: -1 } }
+    effects: { moneyDelta: 2200, needsDelta: {
+        energy: -17,
+        hunger: -4,
+        thirst: -5,
+        mood: -1
+      } }
   },
   {
     id: jobId('job_canteen_cashier'),
@@ -368,14 +373,19 @@ const baseJobs: Job[] = [
     shiftDurationMinutes: 240,
     experiencePerShift: 11,
     promotionThreshold: 100,
-    requirements: { minEnergy: 24 },
+    requirements: { minEnergy: 18 },
     levels: createJobLevels(
       ['Кассир в столовой', 'Старший кассир', 'Администратор линии'],
       2100,
       100,
-      24
+      18
     ),
-    effects: { moneyDelta: 2100, needsDelta: { energy: -25, hunger: -18, thirst: -22, mood: -2 } }
+    effects: { moneyDelta: 2100, needsDelta: {
+        energy: -18,
+        hunger: -4,
+        thirst: -7,
+        mood: -2
+      } }
   },
   {
     id: jobId('job_pickup_point_operator'),
@@ -387,14 +397,19 @@ const baseJobs: Job[] = [
     shiftDurationMinutes: 300,
     experiencePerShift: 12,
     promotionThreshold: 105,
-    requirements: { minEnergy: 28 },
+    requirements: { minEnergy: 19 },
     levels: createJobLevels(
       ['Сотрудник пункта выдачи', 'Оператор пункта выдачи', 'Старший оператор'],
       2300,
       105,
-      28
+      19
     ),
-    effects: { moneyDelta: 2300, needsDelta: { energy: -30, hunger: -22, thirst: -22, mood: -2 } }
+    effects: { moneyDelta: 2300, needsDelta: {
+        energy: -22,
+        hunger: -6,
+        thirst: -8,
+        mood: -2
+      } }
   },
   {
     id: jobId('job_electronics_store_assistant'),
@@ -406,14 +421,19 @@ const baseJobs: Job[] = [
     shiftDurationMinutes: 300,
     experiencePerShift: 14,
     promotionThreshold: 110,
-    requirements: { minEnergy: 30 },
+    requirements: { minEnergy: 19 },
     levels: createJobLevels(
       ['Помощник в магазине техники', 'Консультант по технике', 'Старший консультант'],
       2900,
       110,
-      30
+      19
     ),
-    effects: { moneyDelta: 2900, needsDelta: { energy: -32, hunger: -24, thirst: -24, mood: -2 } }
+    effects: { moneyDelta: 2900, needsDelta: {
+        energy: -22,
+        hunger: -6,
+        thirst: -8,
+        mood: -2
+      } }
   },
   {
     id: jobId('job_food_court_cashier'),
@@ -425,14 +445,19 @@ const baseJobs: Job[] = [
     shiftDurationMinutes: 300,
     experiencePerShift: 12,
     promotionThreshold: 100,
-    requirements: { minEnergy: 28 },
+    requirements: { minEnergy: 20 },
     levels: createJobLevels(
       ['Кассир фудкорта', 'Старший кассир фудкорта', 'Администратор точки'],
       2400,
       100,
-      28
+      20
     ),
-    effects: { moneyDelta: 2400, needsDelta: { energy: -31, hunger: -24, thirst: -26, mood: -3 } }
+    effects: { moneyDelta: 2400, needsDelta: {
+        energy: -23,
+        hunger: -6,
+        thirst: -9,
+        mood: -3
+      } }
   },
   {
     id: jobId('job_bank_lobby_assistant'),
@@ -444,14 +469,19 @@ const baseJobs: Job[] = [
     shiftDurationMinutes: 300,
     experiencePerShift: 15,
     promotionThreshold: 120,
-    requirements: { minEnergy: 32 },
+    requirements: { minEnergy: 19 },
     levels: createJobLevels(
       ['Помощник в банке', 'Специалист клиентского зала', 'Старший специалист'],
       3300,
       120,
-      32
+      19
     ),
-    effects: { moneyDelta: 3300, needsDelta: { energy: -34, hunger: -24, thirst: -24, mood: -3 } }
+    effects: { moneyDelta: 3300, needsDelta: {
+        energy: -22,
+        hunger: -5,
+        thirst: -7,
+        mood: -2
+      } }
   },
   {
     id: jobId('job_clothing_store_assistant'),
@@ -463,14 +493,19 @@ const baseJobs: Job[] = [
     shiftDurationMinutes: 300,
     experiencePerShift: 13,
     promotionThreshold: 105,
-    requirements: { minEnergy: 28 },
+    requirements: { minEnergy: 18 },
     levels: createJobLevels(
       ['Помощник в магазине одежды', 'Продавец-консультант одежды', 'Старший консультант отдела'],
       2500,
       105,
-      28
+      18
     ),
-    effects: { moneyDelta: 2500, needsDelta: { energy: -29, hunger: -22, thirst: -22, mood: -2 } }
+    effects: { moneyDelta: 2500, needsDelta: {
+        energy: -20,
+        hunger: -5,
+        thirst: -7,
+        mood: -2
+      } }
   },
   {
     id: jobId('job_restaurant_runner'),
@@ -482,14 +517,19 @@ const baseJobs: Job[] = [
     shiftDurationMinutes: 360,
     experiencePerShift: 16,
     promotionThreshold: 120,
-    requirements: { minEnergy: 40 },
+    requirements: { minEnergy: 25 },
     levels: createJobLevels(
       ['Помощник в ресторане', 'Официант', 'Старший официант'],
       3200,
       120,
-      40
+      25
     ),
-    effects: { moneyDelta: 3200, needsDelta: { energy: -42, hunger: -30, thirst: -30, mood: -4 } }
+    effects: { moneyDelta: 3200, needsDelta: {
+        energy: -30,
+        hunger: -8,
+        thirst: -12,
+        mood: -4
+      } }
   },
   {
     id: jobId('job_night_store_cashier'),
@@ -501,14 +541,19 @@ const baseJobs: Job[] = [
     shiftDurationMinutes: 360,
     experiencePerShift: 15,
     promotionThreshold: 115,
-    requirements: { minEnergy: 38 },
+    requirements: { minEnergy: 24 },
     levels: createJobLevels(
       ['Кассир ночного магазина', 'Старший ночной кассир', 'Администратор ночной смены'],
       3000,
       115,
-      38
+      24
     ),
-    effects: { moneyDelta: 3000, needsDelta: { energy: -42, hunger: -28, thirst: -28, mood: -5 } }
+    effects: { moneyDelta: 3000, needsDelta: {
+        energy: -28,
+        hunger: -7,
+        thirst: -10,
+        mood: -4
+      } }
   },
   {
     id: jobId('job_pool_attendant'),
@@ -520,14 +565,19 @@ const baseJobs: Job[] = [
     shiftDurationMinutes: 300,
     experiencePerShift: 13,
     promotionThreshold: 105,
-    requirements: { minEnergy: 30 },
+    requirements: { minEnergy: 20 },
     levels: createJobLevels(
       ['Администратор бассейна', 'Старший администратор бассейна', 'Координатор комплекса'],
       2500,
       105,
-      30
+      20
     ),
-    effects: { moneyDelta: 2500, needsDelta: { energy: -30, hunger: -22, thirst: -24, mood: -2 } }
+    effects: { moneyDelta: 2500, needsDelta: {
+        energy: -22,
+        hunger: -6,
+        thirst: -9,
+        mood: -2
+      } }
   }
 ];
 

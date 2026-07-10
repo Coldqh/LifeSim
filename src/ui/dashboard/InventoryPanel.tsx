@@ -3,12 +3,21 @@ import type { InventoryItem } from '../../types/inventory';
 import type { ProductId } from '../../types/ids';
 import { Icon } from '../icons';
 import { ProductGlyph } from '../visuals';
-import { createNeedsEffectItems, EffectList } from './EffectList';
+import { createNeedsEffectItems, EffectList, type EffectListItem } from './EffectList';
 
 type InventoryPanelProps = {
   inventory: InventoryItem[];
   onUseInventoryItem: (productId: ProductId) => void;
 };
+
+function getInventoryEffects(product: ReturnType<typeof getProductById>): EffectListItem[] {
+  if (!product) return [];
+
+  return [
+    { label: 'Использование', value: -product.useDurationMinutes, unit: 'мин', tone: 'negative' },
+    ...createNeedsEffectItems(product.effects)
+  ];
+}
 
 export function InventoryPanel({ inventory, onUseInventoryItem }: InventoryPanelProps) {
   const totalItems = inventory.reduce((sum, item) => sum + item.quantity, 0);
@@ -30,7 +39,7 @@ export function InventoryPanel({ inventory, onUseInventoryItem }: InventoryPanel
                 <div className="inventory-row__content">
                   <strong>{product?.name ?? 'Неизвестный предмет'}</strong>
                   <span>Количество: {item.quantity}</span>
-                  <EffectList items={createNeedsEffectItems(product?.effects)} />
+                  <EffectList items={getInventoryEffects(product)} />
                 </div>
                 <button className="row-action-button row-action-button--compact" type="button" onClick={() => onUseInventoryItem(item.productId)}>
                   <span>Использовать</span><Icon name="arrow" size={15} />
