@@ -1,6 +1,8 @@
 export type Brand<TValue, TBrand extends string> = TValue & { readonly __brand: TBrand };
 
 export type PlayerId = Brand<string, 'PlayerId'>;
+export type NpcId = Brand<string, 'NpcId'>;
+export type NpcRoleId = Brand<string, 'NpcRoleId'>;
 export type CountryId = Brand<string, 'CountryId'>;
 export type CityId = Brand<string, 'CityId'>;
 export type DistrictId = Brand<string, 'DistrictId'>;

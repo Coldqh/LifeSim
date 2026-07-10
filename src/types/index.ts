@@ -7,6 +7,8 @@ export * from './location';
 export * from './travel';
 export * from './transport';
 export * from './player';
+export * from './npc';
+export * from './population';
 export * from './skill';
 export * from './product';
 export * from './shop';

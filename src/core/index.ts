@@ -11,3 +11,5 @@ export * as sport from './sport';
 export * as risk from './risk';
 export * as business from './business';
 export * as crime from './crime';
+
+export * as population from './population';

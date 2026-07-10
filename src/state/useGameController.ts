@@ -37,6 +37,7 @@ import {
 } from '../core/needs';
 import { getShopForLocation, getShopProducts, isProductSoldByShop } from '../core/shop';
 import { getScheduleActivityFailure, getScheduleStatus } from '../core/schedule';
+import { getLocationPopulationPresence, getPopulationSummary, simulatePopulation } from '../core/population';
 import {
   applyBoxingMembership,
   applyBoxingRecovery,
@@ -62,6 +63,8 @@ import {
   createLocationTravelOptions
 } from '../core/travel';
 import { getLifeAction } from '../data';
+import { moscowLocations } from '../data/locations/moscowLocations';
+import { populationDataSource } from '../data/population/config';
 import { getHousingById } from '../data/housing/basicHousing';
 import { basicEducationPrograms, getEducationProgramById } from '../data/education/basicPrograms';
 import { basicJobs, getJobById, getJobsForLocation } from '../data/jobs/basicJobs';
@@ -127,7 +130,7 @@ function applyElapsedTimeConsequences(
   player: Player,
   nextTime: GameTime,
   decayProfile: NeedsDecayProfile = 'active'
-): { player: Player; lifeLogEntries: LifeLogEntry[]; needsDelta?: Partial<NeedsState>; messages: string[] } {
+): { player: Player; population: GameState['world']['population']; lifeLogEntries: LifeLogEntry[]; needsDelta?: Partial<NeedsState>; messages: string[] } {
   const elapsedMinutes = getElapsedMinutes(currentState.time, nextTime);
   const lifeLogEntries: LifeLogEntry[] = [];
   const messages: string[] = [];
@@ -172,9 +175,17 @@ function applyElapsedTimeConsequences(
     ...nextPlayer,
     boxing: applyBoxingRecovery(nextPlayer.boxing, elapsedMinutes, decayProfile)
   };
+  const population = simulatePopulation({
+    population: currentState.world.population,
+    fromTime: currentState.time,
+    toTime: nextTime,
+    locations: moscowLocations,
+    getLocationProfile: populationDataSource.getLocationProfile
+  });
 
   return {
     player: nextPlayer,
+    population,
     lifeLogEntries,
     needsDelta: decayApplied.delta,
     messages
@@ -206,6 +217,7 @@ function applyBoxingOperationState(
   return {
     ...currentState,
     player: elapsedApplied.player,
+    world: { ...currentState.world, population: elapsedApplied.population },
     time: applied.time,
     lastResult: {
       ok: true,
@@ -447,6 +459,11 @@ export function useGameController() {
     consequences: getNeedsConsequences(gameState.player.needs)
   }), [gameState.player.needs]);
 
+  const populationState = useMemo(() => ({
+    presence: getLocationPopulationPresence(gameState.world.population, gameState.player.locationId),
+    summary: getPopulationSummary(gameState.world.population, gameState.time.day)
+  }), [gameState.world.population, gameState.player.locationId, gameState.time.day]);
+
   function performAction(actionId: ActionId): void {
     const action = getLifeAction(actionId);
     if (!action) return;
@@ -513,6 +530,7 @@ export function useGameController() {
       return {
         ...currentState,
         player: elapsedApplied.player,
+        world: { ...currentState.world, population: elapsedApplied.population },
         time: applied.time,
         lastResult: {
           ...applied.result,
@@ -576,6 +594,7 @@ export function useGameController() {
         ...currentState,
         time: nextTime,
         player: elapsedApplied.player,
+        world: { ...currentState.world, population: elapsedApplied.population },
         lastResult: {
           ok: true,
           timeDeltaMinutes: travel.durationMinutes,
@@ -639,6 +658,7 @@ export function useGameController() {
         ...currentState,
         time: nextTime,
         player: elapsedApplied.player,
+        world: { ...currentState.world, population: elapsedApplied.population },
         lastResult: {
           ok: true,
           timeDeltaMinutes: travel.durationMinutes,
@@ -763,6 +783,7 @@ export function useGameController() {
         ...currentState,
         time: nextTime,
         player: elapsedApplied.player,
+        world: { ...currentState.world, population: elapsedApplied.population },
         lastResult: {
           ok: true,
           timeDeltaMinutes: product.useDurationMinutes,
@@ -859,6 +880,7 @@ export function useGameController() {
       return {
         ...currentState,
         player: elapsedApplied.player,
+        world: { ...currentState.world, population: elapsedApplied.population },
         time: applied.time,
         lastResult: {
           ok: applied.result.ok,
@@ -913,6 +935,7 @@ export function useGameController() {
       return {
         ...currentState,
         player: elapsedApplied.player,
+        world: { ...currentState.world, population: elapsedApplied.population },
         time: applied.time,
         lastResult: {
           ok: true,
@@ -1025,6 +1048,7 @@ export function useGameController() {
     educationState,
     boxingState,
     conditionState,
+    populationState,
     performAction,
     moveToDistrict,
     moveToLocation,

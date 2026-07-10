@@ -7,9 +7,13 @@ import type { GameTime } from '../types/time';
 import { createInitialTime, formatGameTime } from '../core/time';
 import { createInitialBoxingProfile } from '../core/sport';
 import type { BoxingProfile } from '../types/boxing';
+import type { PopulationState } from '../types/population';
+import { createPopulationSeed, generatePopulation, simulatePopulation } from '../core/population';
+import { moscowLocations } from '../data/locations/moscowLocations';
+import { populationDataSource } from '../data/population/config';
 
-export const GAME_STATE_STORAGE_KEY = 'lifesim.gameState.v12';
-const LEGACY_GAME_STATE_STORAGE_KEYS = ['lifesim.gameState.v11', 'lifesim.gameState.v10', 'lifesim.gameState.v9', 'lifesim.gameState.v8', 'lifesim.gameState.v7'];
+export const GAME_STATE_STORAGE_KEY = 'lifesim.gameState.v13';
+const LEGACY_GAME_STATE_STORAGE_KEYS = ['lifesim.gameState.v12', 'lifesim.gameState.v11', 'lifesim.gameState.v10', 'lifesim.gameState.v9', 'lifesim.gameState.v8', 'lifesim.gameState.v7'];
 const STARTER_INVENTORY_BACKFILL_KEYS = new Set(['lifesim.gameState.v9', 'lifesim.gameState.v8', 'lifesim.gameState.v7']);
 const REMOVED_PRODUCT_IDS = new Set(['hygiene_kit', 'toothpaste', 'laundry_powder']);
 
@@ -21,9 +25,14 @@ export type LifeLogEntry = {
   text: string;
 };
 
+export type WorldState = {
+  population: PopulationState;
+};
+
 export type GameState = {
   player: Player;
   time: GameTime;
+  world: WorldState;
   lifeLog: LifeLogEntry[];
   lastResult?: ActionResult;
 };
@@ -156,10 +165,24 @@ export function createInitialPlayer(): Player {
 
 export function createInitialGameState(): GameState {
   const time = createInitialTime();
+  const generatedPopulation = generatePopulation({
+    seed: createPopulationSeed(),
+    locations: moscowLocations,
+    time,
+    dataSource: populationDataSource
+  });
+  const population = simulatePopulation({
+    population: generatedPopulation,
+    fromTime: time,
+    toTime: time,
+    locations: moscowLocations,
+    getLocationProfile: populationDataSource.getLocationProfile
+  });
 
   return {
     player: createInitialPlayer(),
     time,
+    world: { population },
     lifeLog: [
       {
         id: 'log_start',
@@ -182,6 +205,36 @@ export function createLifeLogEntry(state: Pick<GameState, 'time'>, title: string
   };
 }
 
+function createPopulationForTime(time: GameTime): PopulationState {
+  const generated = generatePopulation({
+    seed: createPopulationSeed(),
+    locations: moscowLocations,
+    time,
+    dataSource: populationDataSource
+  });
+  return simulatePopulation({
+    population: generated,
+    fromTime: time,
+    toTime: time,
+    locations: moscowLocations,
+    getLocationProfile: populationDataSource.getLocationProfile
+  });
+}
+
+function normalizePopulation(value: unknown, time: GameTime): PopulationState {
+  if (!value || typeof value !== 'object') return createPopulationForTime(time);
+  const candidate = value as Partial<PopulationState>;
+  if (!Array.isArray(candidate.npcs) || typeof candidate.seed !== 'number') return createPopulationForTime(time);
+  return {
+    seed: candidate.seed,
+    generatedAtDay: typeof candidate.generatedAtDay === 'number' ? candidate.generatedAtDay : time.day,
+    lastSimulatedTotalMinutes: typeof candidate.lastSimulatedTotalMinutes === 'number'
+      ? candidate.lastSimulatedTotalMinutes
+      : 0,
+    npcs: candidate.npcs
+  };
+}
+
 export function loadGameState(): GameState | undefined {
   try {
     const storageKeys = [GAME_STATE_STORAGE_KEY, ...LEGACY_GAME_STATE_STORAGE_KEYS];
@@ -199,6 +252,9 @@ export function loadGameState(): GameState | undefined {
 
       return {
         ...parsed,
+        world: {
+          population: normalizePopulation(parsed.world?.population, parsed.time)
+        },
         player: {
           ...parsed.player,
           inventory: shouldBackfillStarterInventory ? createStarterInventory() : sanitizedInventory,

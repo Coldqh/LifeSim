@@ -28,6 +28,7 @@ import type { SkillDefinition } from '../../types/skill';
 import type { SkillProgressView } from '../../core/progression';
 import type { Product, Shop } from '../../types/product';
 import type { NeedCondition, NeedsConsequences } from '../../types/needs';
+import type { LocationPopulationPresence, PopulationSummary } from '../../types/population';
 import type { ScheduleStatus } from '../../types/schedule';
 import type { DistrictTravelOption, LocationTravelOption } from '../../types/travel';
 import { Icon, type IconName } from '../icons';
@@ -44,6 +45,7 @@ import { LocationPanel } from './LocationPanel';
 import { ShopPanel } from './ShopPanel';
 import { StatCard } from './StatCard';
 import { SportPanel, type BoxingPanelState } from './SportPanel';
+import { LocationPeoplePanel } from './LocationPeoplePanel';
 
 type DashboardTab = 'character' | 'city' | 'jobs' | 'development' | 'sport' | 'log';
 
@@ -117,6 +119,10 @@ type DashboardProps = {
     conditions: NeedCondition[];
     consequences: NeedsConsequences;
   };
+  populationState: {
+    presence?: LocationPopulationPresence;
+    summary: PopulationSummary;
+  };
   onPerformAction: (actionId: ActionId) => void;
   onMoveDistrict: (districtId: DistrictId, modeId: TravelModeId) => void;
   onMoveLocation: (locationId: LocationId, modeId: TravelModeId) => void;
@@ -171,6 +177,7 @@ export function Dashboard({
   educationState,
   boxingState,
   conditionState,
+  populationState,
   onPerformAction,
   onMoveDistrict,
   onMoveLocation,
@@ -336,6 +343,7 @@ export function Dashboard({
               </div>
 
               <aside className="context-column">
+                <LocationPeoplePanel presence={populationState.presence} summary={populationState.summary} />
                 <ShopPanel locationAddress={locationState.location?.address} locationName={locationState.location?.name} shop={locationState.shop} products={locationState.shopProducts} scheduleStatus={locationState.locationScheduleStatus} scheduleFailure={locationState.shopScheduleFailure} onBuyProduct={onBuyProduct} />
                 <section className="panel actions-panel visual-panel">
                   <div className="actions-panel__beam" aria-hidden="true" />

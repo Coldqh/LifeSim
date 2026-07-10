@@ -14,3 +14,5 @@ export * from './DevelopmentPanel';
 
 export * from './ConditionPanel';
 export * from './SportPanel';
+
+export * from './LocationPeoplePanel';

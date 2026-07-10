@@ -11,3 +11,5 @@ export * from './education/basicPrograms';
 
 export * from './schedules/basicSchedules';
 export * from './sports';
+
+export * from './population';

@@ -10,6 +10,7 @@ export function AppShell() {
     educationState,
     boxingState,
     conditionState,
+    populationState,
     performAction,
     moveToDistrict,
     moveToLocation,
@@ -35,6 +36,7 @@ export function AppShell() {
       educationState={educationState}
       boxingState={boxingState}
       conditionState={conditionState}
+      populationState={populationState}
       locationState={locationState}
       onApplyForJob={applyForJob}
       onBuyProduct={buyProduct}
