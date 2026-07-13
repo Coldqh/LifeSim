@@ -3,7 +3,6 @@ import { useGameController } from '../state';
 import type { CityId, IntercityRouteId, IntercityTicketId, JobId, TemporaryAccommodationId, VehicleListingId, VehicleModelId, DegreeProgramId, UniversitySubjectId } from '../types/ids';
 import type { PhoneAppId } from '../types/phone';
 import { Dashboard } from './dashboard';
-import { DiegeticNavigation } from './navigation';
 import { PhoneShell } from './phone';
 
 export function AppShell() {
@@ -144,7 +143,6 @@ export function AppShell() {
         onBuyBusinessUpgrade={purchaseBusinessUpgrade}
         onWorkBusinessOwnerShift={workBusinessOwnerShift}
       />
-      <DiegeticNavigation onReset={resetGame}/>
       <PhoneShell
         open={phoneOpen}
         activeApp={phoneApp}

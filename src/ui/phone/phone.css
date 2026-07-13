@@ -865,3 +865,58 @@
   white-space: nowrap;
   text-overflow: ellipsis;
 }
+
+/* Installed web app phone shell. */
+@media (max-width: 900px) {
+  .phone-overlay {
+    height: 100dvh;
+  }
+
+  .phone-launcher {
+    right: 12px !important;
+    bottom: calc(76px + env(safe-area-inset-bottom)) !important;
+    width: 52px !important;
+    min-width: 52px !important;
+    height: 52px;
+    justify-content: center;
+    padding: 0 !important;
+    border-radius: 17px !important;
+  }
+
+  .phone-launcher > span,
+  .phone-launcher kbd {
+    display: none;
+  }
+
+  .diegetic-phone {
+    inset: 0 !important;
+    width: 100% !important;
+    height: 100dvh !important;
+    max-height: none !important;
+    padding: 0 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+  }
+
+  .diegetic-phone__screen {
+    border-radius: 0 !important;
+  }
+
+  .phone-status-bar {
+    height: calc(44px + env(safe-area-inset-top)) !important;
+    padding: env(safe-area-inset-top) 16px 0 !important;
+  }
+
+  .phone-app-content {
+    height: calc(100% - 44px - env(safe-area-inset-top)) !important;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  .phone-app-header + .phone-app-content {
+    height: calc(100% - 92px - env(safe-area-inset-top)) !important;
+  }
+
+  .phone-home-indicator {
+    bottom: max(7px, env(safe-area-inset-bottom)) !important;
+  }
+}

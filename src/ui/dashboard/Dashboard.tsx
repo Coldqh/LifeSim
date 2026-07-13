@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { APP_VERSION_LABEL } from '../../appVersion';
 import { useUiTheme } from '../../state';
 import { formatRubles } from '../../core/economy';
 import { getLifeActionFailure } from '../../core/actions';
@@ -198,6 +199,9 @@ const NAVIGATION: NavigationItem[] = [
   { id: 'log', label: 'Журнал', icon: 'log' }
 ];
 
+const MOBILE_PRIMARY_NAVIGATION = NAVIGATION.filter((item) => ['character', 'city', 'jobs', 'sport'].includes(item.id));
+const MOBILE_MORE_NAVIGATION = NAVIGATION.filter((item) => !MOBILE_PRIMARY_NAVIGATION.includes(item));
+
 const PAGE_TITLES: Record<DashboardTab, { title: string; eyebrow: string }> = {
   character: { title: 'Состояние', eyebrow: 'Личная панель' },
   city: { title: 'Город', eyebrow: 'Москва' },
@@ -265,6 +269,7 @@ export function Dashboard({
   const { player, time, lastResult } = gameState;
   const housing = getHousingById(player.housingId);
   const [activeTab, setActiveTab] = useState<DashboardTab>('character');
+  const [mobileMoreOpen, setMobileMoreOpen] = useState(false);
   const { theme, toggleTheme } = useUiTheme();
   const activeHourDecayItems = createNeedsEffectItems(getNeedsDecayDelta(60, 'active'));
   const page = activeTab === 'city'
@@ -276,13 +281,13 @@ export function Dashboard({
   }
 
   return (
-    <main className="app-frame">
+    <main className={`app-frame ${mobileMoreOpen ? 'mobile-more-open' : ''}`}>
       <div className="ambient-canvas" aria-hidden="true"><i/><i/><i/><span/></div>
 
       <aside className="desktop-navigation" aria-label="Навигация LifeSim">
         <div className="brand-block" aria-label="LifeSim">
           <span className="brand-block__mark"><img src={lifeSimAppIcon} alt="" /></span>
-          <div><strong>LIFESIM</strong><small>URBAN LIFE SYSTEM</small></div>
+          <div><strong>LIFESIM</strong><small>URBAN LIFE SYSTEM</small><em>{APP_VERSION_LABEL}</em></div>
         </div>
 
         <nav className="primary-navigation" aria-label="Разделы игры">
@@ -319,9 +324,13 @@ export function Dashboard({
 
       <section className="app-workspace">
         <header className="top-status-bar">
-          <div className="page-identity">
+          <div className="top-bar-leading">
+            <img className="top-bar-app-icon" src={lifeSimAppIcon} alt="" />
+            <div className="page-identity">
             <span>{page.eyebrow}</span>
-            <h1>{page.title}</h1>
+              <h1>{page.title}</h1>
+            </div>
+            <span className="app-version-badge">{APP_VERSION_LABEL}</span>
           </div>
 
           <div className="global-status" aria-label="Текущее состояние">
@@ -488,18 +497,52 @@ export function Dashboard({
       <SocialEventModal event={socialState.activeEvent} npc={socialState.activeEventNpc} onChoose={onChooseSocialEvent} />
 
       <nav className="mobile-navigation" aria-label="Мобильная навигация">
-        {NAVIGATION.map((item) => (
+        {MOBILE_PRIMARY_NAVIGATION.map((item) => (
           <button
             aria-current={activeTab === item.id ? 'page' : undefined}
             className={activeTab === item.id ? 'mobile-navigation__item mobile-navigation__item--active' : 'mobile-navigation__item'}
             key={item.id}
             type="button"
-            onClick={() => setActiveTab(item.id)}
+            onClick={() => { setActiveTab(item.id); setMobileMoreOpen(false); }}
           >
             <Icon name={item.icon} size={21} /><span>{item.label}</span>
           </button>
         ))}
+        <button
+          aria-expanded={mobileMoreOpen}
+          className={`mobile-navigation__item mobile-navigation__more ${MOBILE_MORE_NAVIGATION.some((item) => item.id === activeTab) ? 'mobile-navigation__item--active' : ''}`}
+          type="button"
+          onClick={() => setMobileMoreOpen((open) => !open)}
+        >
+          <span className="mobile-navigation__dots" aria-hidden="true"><i/><i/><i/></span><span>Ещё</span>
+        </button>
       </nav>
+
+      <div className={`mobile-more-layer ${mobileMoreOpen ? 'is-open' : ''}`} aria-hidden={!mobileMoreOpen}>
+        <button className="mobile-more-backdrop" type="button" aria-label="Закрыть меню" onClick={() => setMobileMoreOpen(false)} />
+        <section className="mobile-more-sheet" aria-label="Все разделы">
+          <header>
+            <div><span>LifeSim</span><strong>Все разделы</strong></div>
+            <small>{APP_VERSION_LABEL}</small>
+          </header>
+          <div className="mobile-more-grid">
+            {MOBILE_MORE_NAVIGATION.map((item) => (
+              <button
+                className={activeTab === item.id ? 'is-active' : ''}
+                key={item.id}
+                type="button"
+                onClick={() => { setActiveTab(item.id); setMobileMoreOpen(false); }}
+              >
+                <Icon name={item.icon} size={22}/><span>{item.label}</span>
+              </button>
+            ))}
+          </div>
+          <footer>
+            <button type="button" onClick={toggleTheme}><Icon name={theme === 'dark' ? 'sun' : 'moon'} size={18}/><span>{theme === 'dark' ? 'Светлая тема' : 'Тёмная тема'}</span></button>
+            <button className="danger" type="button" onClick={handleResetClick}><Icon name="reset" size={18}/><span>Сбросить игру</span></button>
+          </footer>
+        </section>
+      </div>
     </main>
   );
 }

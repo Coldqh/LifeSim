@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { APP_VERSION_LABEL } from '../../appVersion';
 import { formatGameTime } from '../../core/time';
 import { Icon } from '../icons';
 import { PhoneAppRouter } from './PhoneAppRouter';
@@ -45,7 +46,7 @@ export function PhoneShell(props: PhoneShellProps) {
           <div className="diegetic-phone__screen">
             <header className="phone-status-bar">
               <strong>{formatGameTime(props.time)}</strong>
-              <span>5G <i className="phone-signal"/> 87%</span>
+              <span>{APP_VERSION_LABEL} · 5G <i className="phone-signal"/> 87%</span>
             </header>
             {props.activeApp !== 'home' ? (
               <header className="phone-app-header">
