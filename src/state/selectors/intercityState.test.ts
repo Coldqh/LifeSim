@@ -88,11 +88,12 @@ describe('selectIntercityState', () => {
     expect(result.tickets[0].boardFailure).toBeUndefined();
     expect(result.accommodations).toEqual([]);
     expect(result.currentCity?.id).toBe('moscow');
-    expect(result.destinationCityId).toBe('yaroslavl');
-    expect(result.destinationCity?.id).toBe('yaroslavl');
-    expect(result.destinationArrivalLocation?.id).toBe('yar_leninsky_main_station');
+    expect(result.roadDestinations).toHaveLength(1);
+    expect(result.roadDestinations[0].connection.destinationCityId).toBe('yaroslavl');
+    expect(result.roadDestinations[0].city?.id).toBe('yaroslavl');
+    expect(result.roadDestinations[0].arrivalLocation?.id).toBe('yar_leninsky_main_station');
     expect(result.ownedModel?.id).toBe('lada_granta_2018');
-    expect(result.carQuote).toEqual({
+    expect(result.roadDestinations[0].carQuote).toEqual({
       durationMinutes: 255,
       distanceKm: 270,
       fuelLiters: 18.9,
@@ -124,11 +125,12 @@ describe('selectIntercityState', () => {
       { id: 'stay_yar_daily_apartment', active: false, canAffordNight: false }
     ]);
     expect(result.currentCity?.id).toBe('yaroslavl');
-    expect(result.destinationCityId).toBe('moscow');
-    expect(result.destinationCity?.id).toBe('moscow');
-    expect(result.destinationArrivalLocation?.id).toBe('msk_tverskoy_yaroslavsky_station');
+    expect(result.roadDestinations).toHaveLength(1);
+    expect(result.roadDestinations[0].connection.destinationCityId).toBe('moscow');
+    expect(result.roadDestinations[0].city?.id).toBe('moscow');
+    expect(result.roadDestinations[0].arrivalLocation?.id).toBe('msk_tverskoy_yaroslavsky_station');
     expect(result.ownedModel).toBeUndefined();
-    expect(result.carQuote.available).toBe(false);
-    expect(result.carQuote.unavailableReason).toBe('Нет личного автомобиля.');
+    expect(result.roadDestinations[0].carQuote.available).toBe(false);
+    expect(result.roadDestinations[0].carQuote.unavailableReason).toBe('Нет личного автомобиля.');
   });
 });

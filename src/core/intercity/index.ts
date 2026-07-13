@@ -2,6 +2,7 @@ import type { CityId, IntercityRouteId, IntercityTicketId, LocationId, Temporary
 import type {
   IntercityCarQuote,
   IntercityDeparture,
+  IntercityRoadConnection,
   IntercityRoute,
   IntercityTicket,
   IntercityTravelResult,
@@ -13,9 +14,6 @@ import type { VehicleModel, VehicleWorldState } from '../../types/vehicle';
 const MINUTES_IN_DAY = 24 * 60;
 const BOARD_EARLY_MINUTES = 50;
 const BOARD_LATE_MINUTES = 12;
-const CAR_DISTANCE_KM = 270;
-const CAR_DURATION_MINUTES = 255;
-const CAR_ROAD_COST = 650;
 
 const ticketId = (value: string) => value as IntercityTicketId;
 
@@ -200,17 +198,28 @@ export function getTemporaryStayFailure(input: {
 }
 
 export function getIntercityCarQuote(input: {
+  connection?: IntercityRoadConnection;
   world: VehicleWorldState;
   model?: VehicleModel;
   currentLocationId?: LocationId;
 }): IntercityCarQuote {
+  const connection = input.connection;
+  if (!connection) {
+    return { durationMinutes: 0, distanceKm: 0, fuelLiters: 0, roadCost: 0, available: false, unavailableReason: 'Автомобильный маршрут не найден.' };
+  }
+
+  const baseQuote = {
+    durationMinutes: connection.durationMinutes,
+    distanceKm: connection.distanceKm,
+    roadCost: connection.roadCost
+  };
   const vehicle = input.world.ownedVehicle;
-  if (!vehicle || !input.model) return { durationMinutes: CAR_DURATION_MINUTES, distanceKm: CAR_DISTANCE_KM, fuelLiters: 0, roadCost: CAR_ROAD_COST, available: false, unavailableReason: 'Нет личного автомобиля.' };
-  if (vehicle.parkedLocationId !== input.currentLocationId) return { durationMinutes: CAR_DURATION_MINUTES, distanceKm: CAR_DISTANCE_KM, fuelLiters: 0, roadCost: CAR_ROAD_COST, available: false, unavailableReason: 'Автомобиль находится в другом месте.' };
-  if (vehicle.conditionPercent < 30) return { durationMinutes: CAR_DURATION_MINUTES, distanceKm: CAR_DISTANCE_KM, fuelLiters: 0, roadCost: CAR_ROAD_COST, available: false, unavailableReason: 'Состояние автомобиля слишком плохое для междугородней поездки.' };
-  const fuelLiters = Math.ceil(input.model.consumptionLitersPer100Km * CAR_DISTANCE_KM / 100 * 10) / 10;
-  if (vehicle.fuelLiters < fuelLiters) return { durationMinutes: CAR_DURATION_MINUTES, distanceKm: CAR_DISTANCE_KM, fuelLiters, roadCost: CAR_ROAD_COST, available: false, unavailableReason: `Нужно ${fuelLiters} л топлива. Сейчас ${vehicle.fuelLiters.toFixed(1)} л.` };
-  return { durationMinutes: CAR_DURATION_MINUTES, distanceKm: CAR_DISTANCE_KM, fuelLiters, roadCost: CAR_ROAD_COST, available: true };
+  if (!vehicle || !input.model) return { ...baseQuote, fuelLiters: 0, available: false, unavailableReason: 'Нет личного автомобиля.' };
+  if (vehicle.parkedLocationId !== input.currentLocationId) return { ...baseQuote, fuelLiters: 0, available: false, unavailableReason: 'Автомобиль находится в другом месте.' };
+  if (vehicle.conditionPercent < 30) return { ...baseQuote, fuelLiters: 0, available: false, unavailableReason: 'Состояние автомобиля слишком плохое для междугородней поездки.' };
+  const fuelLiters = Math.ceil(input.model.consumptionLitersPer100Km * connection.distanceKm / 100 * 10) / 10;
+  if (vehicle.fuelLiters < fuelLiters) return { ...baseQuote, fuelLiters, available: false, unavailableReason: `Нужно ${fuelLiters} л топлива. Сейчас ${vehicle.fuelLiters.toFixed(1)} л.` };
+  return { ...baseQuote, fuelLiters, available: true };
 }
 
 export function applyIntercityCarTravel(input: {

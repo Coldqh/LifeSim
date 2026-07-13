@@ -2,6 +2,14 @@ import type { CityId, DistrictId, IntercityRouteId, IntercityTicketId, LocationI
 import type { NeedsState } from './needs';
 
 export type IntercityMode = 'train' | 'bus' | 'car';
+
+export type IntercityRoadConnection = {
+  originCityId: CityId;
+  destinationCityId: CityId;
+  distanceKm: number;
+  durationMinutes: number;
+  roadCost: number;
+};
 export type IntercityTicketStatus = 'booked' | 'used' | 'missed' | 'cancelled';
 
 export type IntercityRoute = {

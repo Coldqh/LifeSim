@@ -74,6 +74,7 @@ import { applySkillExperience, getMissingSkillRequirements, getSkillProgress } f
 import {
   getActionsForLocation,
   getCityById,
+  getDefaultArrivalLocationForCity,
   getDefaultLocationForDistrict,
   getDistrictById,
   getDistrictsForCity,
@@ -212,7 +213,12 @@ import { boxingOpponents, getBoxingOpponentById } from '../data/sports/boxingOpp
 import { boxingTournaments, getBoxingTournamentById } from '../data/sports/boxingTournaments';
 import { getVehicleModelById, newDealerVehicleModels } from '../data/vehicles/vehicleModels';
 import { usedVehicleListingTemplates } from '../data/vehicles/usedListingTemplates';
-import { temporaryAccommodations, getIntercityRouteById, getTemporaryAccommodationById } from '../data/intercity/routes';
+import {
+  getIntercityRoadConnection,
+  getIntercityRouteById,
+  getTemporaryAccommodationById,
+  temporaryAccommodations
+} from '../data/intercity/routes';
 import type {
   ActionId,
   BusinessEquipmentId,
@@ -3708,8 +3714,10 @@ export function useGameController() {
   function driveIntercityAction(destinationCityId: CityId): void {
     setGameState((currentState) => {
       if (destinationCityId === currentState.player.cityId) return currentState;
+      const connection = getIntercityRoadConnection(currentState.player.cityId, destinationCityId);
       const model = getVehicleModelById(currentState.world.vehicles.ownedVehicle?.modelId);
       const quote = getIntercityCarQuote({
+        connection,
         world: currentState.world.vehicles,
         model,
         currentLocationId: currentState.player.locationId
@@ -3727,10 +3735,10 @@ export function useGameController() {
       if (!applied.result.ok || !currentState.world.vehicles.ownedVehicle) {
         return { ...currentState, lastResult: { ok: false, actionName: applied.result.title, timeDeltaMinutes: 0, messages: [applied.result.message] } };
       }
-      const destination = getLocationById(destinationCityId === ('yaroslavl' as CityId)
-        ? ('yar_leninsky_main_station' as LocationId)
-        : ('msk_tverskoy_yaroslavsky_station' as LocationId));
-      if (!destination) return currentState;
+      const destination = getDefaultArrivalLocationForCity(destinationCityId);
+      if (!destination) {
+        return { ...currentState, lastResult: { ok: false, actionName: 'Междугородняя поездка', timeDeltaMinutes: 0, messages: ['Для города не настроена точка прибытия.'] } };
+      }
       const nextTime = addMinutes(currentState.time, quote.durationMinutes);
       const chargedPlayer = {
         ...currentState.player,

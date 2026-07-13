@@ -1,12 +1,17 @@
 import { getIntercityCarQuote, getTicketBoardFailure, getUpcomingDepartures } from '../../core/intercity';
-import { getCityById, getLocationById } from '../../core/location';
-import { intercityRoutes, temporaryAccommodations, getIntercityRouteById } from '../../data/intercity/routes';
+import { getCityById, getDefaultArrivalLocationForCity, getLocationById } from '../../core/location';
+import { getTotalMinutes } from '../../core/time';
+import {
+  getIntercityRoadConnectionsFromCity,
+  getIntercityRouteById,
+  getIntercityRoutesFromCity,
+  temporaryAccommodations
+} from '../../data/intercity/routes';
 import { getVehicleModelById } from '../../data/vehicles/vehicleModels';
 import type { CityId, LocationId } from '../../types/ids';
 import type { IntercityTravelState } from '../../types/intercity';
 import type { GameTime } from '../../types/time';
 import type { VehicleWorldState } from '../../types/vehicle';
-import { getTotalMinutes } from '../../core/time';
 
 export type IntercityStateSelectorInput = {
   time: GameTime;
@@ -23,8 +28,7 @@ export type IntercityStateSelectorInput = {
 
 export function selectIntercityState(gameState: IntercityStateSelectorInput) {
   const now = getTotalMinutes(gameState.time);
-  const routes = intercityRoutes
-    .filter((route) => route.originCityId === gameState.player.cityId)
+  const routes = getIntercityRoutesFromCity(gameState.player.cityId)
     .map((route) => ({
       route,
       originTerminal: getLocationById(route.originTerminalLocationId),
@@ -56,16 +60,19 @@ export function selectIntercityState(gameState: IntercityStateSelectorInput) {
       active: gameState.world.intercity.activeStay?.accommodationId === entry.id,
       canAffordNight: gameState.player.money >= entry.nightlyPrice
     }));
-  const destinationCityId = (gameState.player.cityId === ('moscow' as CityId) ? 'yaroslavl' : 'moscow') as CityId;
-  const destinationArrivalLocation = getLocationById(destinationCityId === ('yaroslavl' as CityId)
-    ? ('yar_leninsky_main_station' as LocationId)
-    : ('msk_tverskoy_yaroslavsky_station' as LocationId));
   const ownedModel = getVehicleModelById(gameState.world.vehicles.ownedVehicle?.modelId);
-  const carQuote = getIntercityCarQuote({
-    world: gameState.world.vehicles,
-    model: ownedModel,
-    currentLocationId: gameState.player.locationId
-  });
+  const roadDestinations = getIntercityRoadConnectionsFromCity(gameState.player.cityId).map((connection) => ({
+    connection,
+    city: getCityById(connection.destinationCityId),
+    arrivalLocation: getDefaultArrivalLocationForCity(connection.destinationCityId),
+    carQuote: getIntercityCarQuote({
+      connection,
+      world: gameState.world.vehicles,
+      model: ownedModel,
+      currentLocationId: gameState.player.locationId
+    })
+  }));
+
   return {
     state: gameState.world.intercity,
     routes,
@@ -73,10 +80,7 @@ export function selectIntercityState(gameState: IntercityStateSelectorInput) {
     accommodations,
     activeStay: gameState.world.intercity.activeStay,
     currentCity: getCityById(gameState.player.cityId),
-    destinationCity: getCityById(destinationCityId),
-    destinationCityId,
-    destinationArrivalLocation,
-    carQuote,
+    roadDestinations,
     ownedModel
   };
 }

@@ -34,7 +34,7 @@ import type { TravelModeId } from '../../types/transport';
 import type { VehicleListingView, VehicleModel, VehicleWorldState } from '../../types/vehicle';
 import type { ActiveMedicalCondition, MedicalAppointment, MedicalConditionDefinition, MedicalPrescription, MedicalService, MedicalState, SickLeave } from '../../types/healthcare';
 import type { Product } from '../../types/product';
-import type { IntercityCarQuote, IntercityDeparture, IntercityRoute, IntercityTicket, IntercityTravelState, TemporaryAccommodation, TemporaryStay } from '../../types/intercity';
+import type { IntercityCarQuote, IntercityDeparture, IntercityRoadConnection, IntercityRoute, IntercityTicket, IntercityTravelState, TemporaryAccommodation, TemporaryStay } from '../../types/intercity';
 import type { ScheduleStatus } from '../../types/schedule';
 import type { DegreeProgramDefinition, UniversityApplication, UniversityAssignment, UniversityClassView, UniversityDefinition, UniversityEnrollment, UniversityState } from '../../types/university';
 import type { Npc, NpcRoleDefinition } from '../../types/npc';
@@ -118,10 +118,12 @@ export type IntercityPanelState = {
   }>;
   activeStay?: TemporaryStay;
   currentCity?: City;
-  destinationCity?: City;
-  destinationCityId: CityId;
-  destinationArrivalLocation?: Location;
-  carQuote: IntercityCarQuote;
+  roadDestinations: Array<{
+    connection: IntercityRoadConnection;
+    city?: City;
+    arrivalLocation?: Location;
+    carQuote: IntercityCarQuote;
+  }>;
   ownedModel?: VehicleModel;
 };
 
@@ -1152,17 +1154,26 @@ function TripsApp(props: {
       </section>
 
       <section className="phone-subsection phone-car-intercity-card">
-        <div className="phone-section-title"><span>На своей машине</span><em>{travel.destinationCity?.name}</em></div>
-        <div className="phone-detail-grid">
-          <div><span>Дорога</span><strong>{Math.floor(travel.carQuote.durationMinutes / 60)} ч {travel.carQuote.durationMinutes % 60} мин</strong></div>
-          <div><span>Расстояние</span><strong>{travel.carQuote.distanceKm} км</strong></div>
-          <div><span>Топливо</span><strong>{travel.carQuote.fuelLiters.toFixed(1)} л</strong></div>
-          <div><span>Дорожные расходы</span><strong>{formatRubles(travel.carQuote.roadCost)}</strong></div>
-        </div>
-        <button className="phone-primary-action" type="button" disabled={!travel.carQuote.available} onClick={() => props.onDrive(travel.destinationCityId)}>
-          Ехать в {travel.destinationCity?.name ?? 'другой город'}
-        </button>
-        {!travel.carQuote.available ? <p className="phone-inline-error">{travel.carQuote.unavailableReason}</p> : null}
+        <div className="phone-section-title"><span>На своей машине</span><em>{travel.roadDestinations.length} направл.</em></div>
+        {travel.roadDestinations.map(({ connection, city, arrivalLocation, carQuote }) => (
+          <article className="phone-trip-route" key={`${String(connection.originCityId)}-${String(connection.destinationCityId)}`}>
+            <div className="phone-trip-route__head">
+              <span className="phone-trip-mode phone-trip-mode--car">AUTO</span>
+              <div><strong>{city?.name ?? 'Другой город'}</strong><small>{arrivalLocation?.name ?? 'Точка прибытия'}</small></div>
+            </div>
+            <div className="phone-detail-grid">
+              <div><span>Дорога</span><strong>{Math.floor(carQuote.durationMinutes / 60)} ч {carQuote.durationMinutes % 60} мин</strong></div>
+              <div><span>Расстояние</span><strong>{carQuote.distanceKm} км</strong></div>
+              <div><span>Топливо</span><strong>{carQuote.fuelLiters.toFixed(1)} л</strong></div>
+              <div><span>Дорожные расходы</span><strong>{formatRubles(carQuote.roadCost)}</strong></div>
+            </div>
+            <button className="phone-primary-action" type="button" disabled={!carQuote.available} onClick={() => props.onDrive(connection.destinationCityId)}>
+              Ехать в {city?.name ?? 'другой город'}
+            </button>
+            {!carQuote.available ? <p className="phone-inline-error">{carQuote.unavailableReason}</p> : null}
+          </article>
+        ))}
+        {travel.roadDestinations.length === 0 ? <div className="phone-empty-state">Из этого города нет автомобильных маршрутов</div> : null}
       </section>
 
       {travel.accommodations.length ? (
