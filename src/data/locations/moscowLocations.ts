@@ -678,6 +678,77 @@ const baseMoscowLocations: Location[] = [
     availableActionIds: [],
     shopId: shopId('shop_canteen')
   }
+  ,{
+    id: locationId('msk_danilovsky_auto_market'),
+    cityId: moscow,
+    districtId: districtId('msk_danilovsky'),
+    name: 'Площадка автомобилей с пробегом',
+    address: 'Автозаводская ул., 23к7',
+    type: 'auto_market',
+    description: 'Осмотры автомобилей из объявлений Авто.ру.',
+    availableActionIds: []
+  },
+  {
+    id: locationId('msk_danilovsky_gas_station'),
+    cityId: moscow,
+    districtId: districtId('msk_danilovsky'),
+    name: 'ЛУКОЙЛ',
+    address: 'Дубининская ул., 69',
+    type: 'gas_station',
+    description: 'Заправка личного автомобиля.',
+    availableActionIds: []
+  },
+  {
+    id: locationId('msk_presnya_auto_market'),
+    cityId: moscow,
+    districtId: districtId('msk_presnya'),
+    name: 'Автомобили с пробегом — Магистральный',
+    address: '2-й Магистральный тупик, 5А',
+    type: 'auto_market',
+    description: 'Мультибрендовая площадка подержанных автомобилей.',
+    availableActionIds: []
+  },
+  {
+    id: locationId('msk_presnya_gas_station'),
+    cityId: moscow,
+    districtId: districtId('msk_presnya'),
+    name: 'Газпромнефть',
+    address: 'Звенигородское ш., 28с1',
+    type: 'gas_station',
+    description: 'АЗС рядом с деловым районом.',
+    availableActionIds: []
+  },
+  {
+    id: locationId('msk_tverskoy_auto_showroom'),
+    cityId: moscow,
+    districtId: districtId('msk_tverskoy'),
+    name: 'Московский мультибрендовый автосалон',
+    address: 'Садовая-Каретная ул., 20с1',
+    type: 'car_dealer',
+    description: 'Новые массовые автомобили и машины с пробегом.',
+    availableActionIds: []
+  },
+  {
+    id: locationId('msk_tverskoy_service_center'),
+    cityId: moscow,
+    districtId: districtId('msk_tverskoy'),
+    name: 'Городской автосервис',
+    address: 'Олимпийский просп., 16с2',
+    type: 'service_center',
+    description: 'Базовое техническое обслуживание автомобиля.',
+    availableActionIds: []
+  },
+  {
+    id: locationId('msk_khamovniki_import_dealer'),
+    cityId: moscow,
+    districtId: districtId('msk_khamovniki'),
+    name: 'Premium Import Centre',
+    address: 'Бережковская наб., 20с6',
+    type: 'car_dealer',
+    description: 'Новые премиальные автомобили параллельного импорта.',
+    availableActionIds: []
+  }
+
 ];
 
 const LOCATION_TYPE_SCHEDULES: Record<LocationType, WeeklySchedule> = {
@@ -705,6 +776,10 @@ const LOCATION_TYPE_SCHEDULES: Record<LocationType, WeeklySchedule> = {
   sports_store: RETAIL_SCHEDULE,
   boxing_gym: SPORT_FACILITY_SCHEDULE,
   pool: SPORT_FACILITY_SCHEDULE,
+  car_dealer: RETAIL_SCHEDULE,
+  gas_station: ALWAYS_OPEN_SCHEDULE,
+  service_center: SERVICE_SCHEDULE,
+  auto_market: RETAIL_SCHEDULE,
   other: ALWAYS_OPEN_SCHEDULE
 };
 

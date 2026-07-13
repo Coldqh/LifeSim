@@ -1,4 +1,4 @@
-export type TravelModeId = 'walk' | 'bus' | 'metro' | 'taxi';
+export type TravelModeId = 'walk' | 'bus' | 'metro' | 'taxi' | 'car';
 
 export type TravelMode = {
   id: TravelModeId;

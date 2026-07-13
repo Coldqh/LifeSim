@@ -7,6 +7,7 @@ import type { BusinessWorldState, OwnedBusiness } from '../types/business';
 import type { GameTime } from '../types/time';
 import type { PhoneState } from '../types/phone';
 import type { PersonalFinanceState } from '../types/finance';
+import type { VehicleWorldState } from '../types/vehicle';
 import { createInitialTime, formatGameTime, getTotalMinutes } from '../core/time';
 import { createInitialBoxingProfile } from '../core/sport';
 import type { BoxingProfile } from '../types/boxing';
@@ -21,10 +22,12 @@ import { createHousingMarket } from '../core/housing';
 import { createEmptyBusinessReport, createInitialBusinessWorldState } from '../core/business';
 import { createInitialPhoneState } from '../core/phone';
 import { createInitialFinanceState } from '../core/finance';
+import { createInitialVehicleWorld } from '../core/vehicles';
 import { businessPremises } from '../data/business/premises';
+import { usedVehicleListingTemplates } from '../data/vehicles/usedListingTemplates';
 
-export const GAME_STATE_STORAGE_KEY = 'lifesim.gameState.v18';
-const LEGACY_GAME_STATE_STORAGE_KEYS = ['lifesim.gameState.v17', 'lifesim.gameState.v16', 'lifesim.gameState.v15', 'lifesim.gameState.v14', 'lifesim.gameState.v13', 'lifesim.gameState.v12', 'lifesim.gameState.v11', 'lifesim.gameState.v10', 'lifesim.gameState.v9', 'lifesim.gameState.v8', 'lifesim.gameState.v7'];
+export const GAME_STATE_STORAGE_KEY = 'lifesim.gameState.v19';
+const LEGACY_GAME_STATE_STORAGE_KEYS = ['lifesim.gameState.v18', 'lifesim.gameState.v17', 'lifesim.gameState.v16', 'lifesim.gameState.v15', 'lifesim.gameState.v14', 'lifesim.gameState.v13', 'lifesim.gameState.v12', 'lifesim.gameState.v11', 'lifesim.gameState.v10', 'lifesim.gameState.v9', 'lifesim.gameState.v8', 'lifesim.gameState.v7'];
 const STARTER_INVENTORY_BACKFILL_KEYS = new Set(['lifesim.gameState.v9', 'lifesim.gameState.v8', 'lifesim.gameState.v7']);
 const REMOVED_PRODUCT_IDS = new Set(['hygiene_kit', 'toothpaste', 'laundry_powder']);
 
@@ -43,6 +46,7 @@ export type WorldState = {
   business: BusinessWorldState;
   phone: PhoneState;
   finance: PersonalFinanceState;
+  vehicles: VehicleWorldState;
 };
 
 export type GameState = {
@@ -215,7 +219,8 @@ export function createInitialGameState(): GameState {
       }),
       business: createInitialBusinessWorldState(population.seed, businessPremises.map((premises) => premises.id)),
       phone: createInitialPhoneState(getTotalMinutes(time)),
-      finance: createInitialFinanceState(11000, time.day)
+      finance: createInitialFinanceState(11000, time.day),
+      vehicles: createInitialVehicleWorld(population.seed, time.day, usedVehicleListingTemplates)
     },
     lifeLog: [
       {
@@ -400,6 +405,37 @@ function normalizePhoneState(value: unknown, time: GameTime): PhoneState {
   };
 }
 
+
+function normalizeVehicleWorld(value: unknown, populationSeed: number, time: GameTime): VehicleWorldState {
+  const initial = createInitialVehicleWorld(populationSeed, time.day, usedVehicleListingTemplates);
+  if (!value || typeof value !== 'object') return initial;
+  const candidate = value as Partial<VehicleWorldState>;
+  const knownListingIds = new Set(usedVehicleListingTemplates.map((listing) => String(listing.id)));
+  return {
+    seed: typeof candidate.seed === 'number' ? candidate.seed : initial.seed,
+    lastMarketRefreshDay: typeof candidate.lastMarketRefreshDay === 'number' ? candidate.lastMarketRefreshDay : time.day,
+    usedListings: Array.isArray(candidate.usedListings)
+      ? candidate.usedListings.filter((listing) => knownListingIds.has(String(listing.id)))
+      : initial.usedListings,
+    inspectedListingIds: Array.isArray(candidate.inspectedListingIds)
+      ? candidate.inspectedListingIds.filter((id) => knownListingIds.has(String(id)))
+      : [],
+    scheduledInspectionListingId: candidate.scheduledInspectionListingId && knownListingIds.has(String(candidate.scheduledInspectionListingId))
+      ? candidate.scheduledInspectionListingId
+      : undefined,
+    ownedVehicle: candidate.ownedVehicle && typeof candidate.ownedVehicle === 'object'
+      ? {
+          ...candidate.ownedVehicle,
+          odometerKm: Math.max(0, Number(candidate.ownedVehicle.odometerKm ?? 0)),
+          fuelLiters: Math.max(0, Number(candidate.ownedVehicle.fuelLiters ?? 0)),
+          conditionPercent: Math.min(100, Math.max(0, Number(candidate.ownedVehicle.conditionPercent ?? 60))),
+          reliabilityPercent: Math.min(100, Math.max(0, Number(candidate.ownedVehicle.reliabilityPercent ?? 60))),
+          knownDefectIds: Array.isArray(candidate.ownedVehicle.knownDefectIds) ? candidate.ownedVehicle.knownDefectIds : []
+        }
+      : undefined
+  };
+}
+
 function normalizeFinanceState(value: unknown, bankBalance: number, time: GameTime): PersonalFinanceState {
   const initial = createInitialFinanceState(bankBalance, time.day);
   if (!value || typeof value !== 'object') return { ...initial, cash: 0, lastObservedBankBalance: bankBalance };
@@ -447,7 +483,8 @@ export function loadGameState(): GameState | undefined {
           housingMarket: normalizeHousingMarket(parsed.world?.housingMarket, parsed.time, population.seed, playerHousingId),
           business: normalizeBusinessWorld(parsed.world?.business, parsed.time, population.seed),
           phone: normalizePhoneState(parsed.world?.phone, parsed.time),
-          finance: normalizeFinanceState(parsed.world?.finance, parsed.player.money ?? 0, parsed.time)
+          finance: normalizeFinanceState(parsed.world?.finance, parsed.player.money ?? 0, parsed.time),
+          vehicles: normalizeVehicleWorld(parsed.world?.vehicles, population.seed, parsed.time)
         },
         player: {
           ...parsed.player,

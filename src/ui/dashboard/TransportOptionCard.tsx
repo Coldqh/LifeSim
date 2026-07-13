@@ -8,7 +8,7 @@ type TransportOptionCardProps = {
   onSelect: (modeId: TravelModeId) => void;
 };
 
-const MODE_ICONS: Record<TravelModeId, IconName> = { walk: 'walk', bus: 'bus', metro: 'metro', taxi: 'taxi' };
+const MODE_ICONS: Record<TravelModeId, IconName> = { walk: 'walk', bus: 'bus', metro: 'metro', taxi: 'taxi', car: 'car' };
 
 function getTransportEffects(option: TransportOption): EffectListItem[] {
   return [

@@ -17,3 +17,5 @@ export * from './population';
 export * from './social';
 
 export * from './business';
+
+export * from './vehicles';

@@ -42,6 +42,10 @@ export type LocationType =
   | 'sports_store'
   | 'boxing_gym'
   | 'pool'
+  | 'car_dealer'
+  | 'gas_station'
+  | 'service_center'
+  | 'auto_market'
   | 'other';
 
 export type Location = {

@@ -6,7 +6,9 @@ import type {
   JobId,
   LocationId,
   PhoneMessageId,
-  PhoneNotificationId
+  PhoneNotificationId,
+  VehicleListingId,
+  VehicleModelId
 } from '../../types/ids';
 import type {
   PhoneAppId,
@@ -17,6 +19,8 @@ import type { GameTime } from '../../types/time';
 import type { DistrictTravelOption, LocationTravelOption } from '../../types/travel';
 import type { PersonalFinanceState, UpcomingPayment } from '../../types/finance';
 import type { TravelModeId } from '../../types/transport';
+import type { VehicleListingView, VehicleModel, VehicleWorldState } from '../../types/vehicle';
+import { VEHICLE_DEFECT_LABELS } from '../../core/vehicles';
 import { formatGameTime } from '../../core/time';
 import { Icon, type IconName } from '../icons';
 import './phone.css';
@@ -31,6 +35,25 @@ export type PhoneVacancyView = {
   interviewFailure?: string;
   saved: boolean;
   estimatedMonthlyIncome: number;
+};
+
+export type VehiclePanelState = {
+  world: VehicleWorldState;
+  listings: VehicleListingView[];
+  dealerModels: Array<{
+    model: VehicleModel;
+    dealerLocationId: LocationId;
+    dealerLocation?: Location;
+    isAtDealer: boolean;
+    canAfford: boolean;
+  }>;
+  ownedVehicle?: VehicleWorldState['ownedVehicle'];
+  ownedModel?: VehicleModel;
+  parkedLocation?: Location;
+  currentLocation?: Location;
+  atGasStation: boolean;
+  atService: boolean;
+  fuelPriceLabel?: string;
 };
 
 export type PhonePanelState = {
@@ -49,6 +72,7 @@ export type PhonePanelState = {
     totalDebt: number;
     upcomingPayments: UpcomingPayment[];
   };
+  vehicles: VehiclePanelState;
 };
 
 type PhoneShellProps = {
@@ -74,6 +98,13 @@ type PhoneShellProps = {
   onSetAutoSave: (percent: number) => void;
   onCreateSavingsGoal: (title: string, targetAmount: number) => void;
   onFundSavingsGoal: (goalId: string, amount: number) => void;
+  onScheduleVehicleInspection: (listingId: VehicleListingId) => void;
+  onInspectVehicle: (listingId: VehicleListingId) => void;
+  onBuyUsedVehicle: (listingId: VehicleListingId) => void;
+  onBuyNewVehicle: (modelId: VehicleModelId) => void;
+  onRefuelVehicle: (liters: number) => void;
+  onServiceVehicle: () => void;
+  onSellVehicle: () => void;
 };
 
 const APPLICATION_LABELS: Record<PhoneJobApplication['status'], string> = {
@@ -88,6 +119,7 @@ const APP_META: Array<{ id: PhoneAppId; label: string; icon: IconName; tone: str
   { id: 'jobs', label: 'hh', icon: 'briefcase', tone: 'red' },
   { id: 'maps', label: 'Карты', icon: 'pin', tone: 'blue' },
   { id: 'bank', label: 'Банк', icon: 'wallet', tone: 'cyan' },
+  { id: 'auto', label: 'Авто', icon: 'car', tone: 'steel' },
   { id: 'messages', label: 'Сообщения', icon: 'message', tone: 'green' },
   { id: 'calendar', label: 'Календарь', icon: 'calendar', tone: 'violet' },
   { id: 'notifications', label: 'Уведомления', icon: 'bell', tone: 'amber' }
@@ -366,6 +398,125 @@ function BankApp(props: {
   );
 }
 
+
+function VehiclesApp(props: {
+  state: PhonePanelState;
+  onRoute: (locationId: LocationId) => void;
+  onScheduleInspection: (listingId: VehicleListingId) => void;
+  onInspect: (listingId: VehicleListingId) => void;
+  onBuyUsed: (listingId: VehicleListingId) => void;
+  onBuyNew: (modelId: VehicleModelId) => void;
+  onRefuel: (liters: number) => void;
+  onService: () => void;
+  onSell: () => void;
+}) {
+  const [tab, setTab] = useState<'used' | 'new' | 'mine'>('used');
+  const [selectedListingId, setSelectedListingId] = useState<VehicleListingId>();
+  const selected = props.state.vehicles.listings.find((entry) => entry.listing.id === selectedListingId);
+  const vehicle = props.state.vehicles.ownedVehicle;
+  const ownedModel = props.state.vehicles.ownedModel;
+
+  if (selected) {
+    return (
+      <div className="phone-app-page phone-screen-enter vehicle-app-page">
+        <button className="phone-text-button" type="button" onClick={() => setSelectedListingId(undefined)}>← Все объявления</button>
+        <section className="vehicle-detail-card">
+          <div className="vehicle-detail-card__hero">
+            <span className="vehicle-brand-mark">{selected.model.brand.slice(0, 1)}</span>
+            <div><span>{selected.listing.year} · {selected.model.bodyType}</span><h2>{selected.model.brand} {selected.model.model}</h2><strong>{formatRubles(selected.listing.price)}</strong></div>
+          </div>
+          <div className="vehicle-metric-grid">
+            <div><span>Пробег</span><strong>{new Intl.NumberFormat('ru-RU').format(selected.listing.mileageKm)} км</strong></div>
+            <div><span>Состояние</span><strong>{selected.listing.conditionPercent}%</strong></div>
+            <div><span>Мощность</span><strong>{selected.model.powerHp} л.с.</strong></div>
+            <div><span>Расход</span><strong>{selected.model.consumptionLitersPer100Km} л/100 км</strong></div>
+          </div>
+          <div className="phone-address-block"><Icon name="pin" size={18}/><div><strong>{selected.listing.sellerName}</strong><span>{selected.listing.sellerLocationId === props.state.vehicles.currentLocation?.id ? 'Ты уже на месте' : 'Нужно приехать на осмотр'}</span></div></div>
+        </section>
+        <section className="phone-subsection">
+          <div className="phone-section-title"><span>Диагностика</span><em>{selected.inspected ? 'Проверено' : 'Не проверено'}</em></div>
+          {selected.inspected ? (
+            selected.revealedDefects.length ? <div className="vehicle-defect-list">{selected.revealedDefects.map((defect) => <div key={defect}><Icon name="wrench" size={16}/><span>{VEHICLE_DEFECT_LABELS[defect]}</span></div>)}</div> : <p className="phone-muted">Серьёзных проблем не обнаружено.</p>
+          ) : <p className="phone-muted">Скрытые дефекты станут известны после личного осмотра.</p>}
+        </section>
+        <div className="phone-sticky-actions vehicle-sticky-actions">
+          <button className="phone-secondary-action" type="button" onClick={() => props.onRoute(selected.listing.sellerLocationId)}><Icon name="pin" size={17}/>Маршрут</button>
+          {!selected.inspected ? <button className="phone-secondary-action" type="button" onClick={() => props.onScheduleInspection(selected.listing.id)}>{selected.scheduled ? 'Осмотр назначен' : 'Назначить осмотр'}</button> : null}
+          {!selected.inspected ? <button className="phone-primary-action" type="button" disabled={!selected.isAtSeller} onClick={() => props.onInspect(selected.listing.id)}>Осмотреть</button> : <button className="phone-primary-action" type="button" disabled={!selected.isAtSeller || Boolean(vehicle)} onClick={() => props.onBuyUsed(selected.listing.id)}>Купить</button>}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="phone-app-page phone-screen-enter vehicle-app-page">
+      <div className="phone-app-banner phone-app-banner--auto"><Icon name="car" size={27}/><div><strong>Авто</strong><small>Объявления, дилеры и твоя машина</small></div></div>
+      <div className="phone-filter-row vehicle-filter-row">
+        <button className={tab === 'used' ? 'active' : ''} type="button" onClick={() => setTab('used')}>С пробегом</button>
+        <button className={tab === 'new' ? 'active' : ''} type="button" onClick={() => setTab('new')}>Новые</button>
+        <button className={tab === 'mine' ? 'active' : ''} type="button" onClick={() => setTab('mine')}>Моя машина</button>
+      </div>
+
+      {tab === 'used' ? (
+        <div className="vehicle-list">
+          <div className="vehicle-market-brand"><b>Авто.ру</b><span>{props.state.vehicles.listings.length} объявлений</span></div>
+          {props.state.vehicles.listings.map((entry) => (
+            <button className="vehicle-listing-card" key={entry.listing.id} type="button" onClick={() => setSelectedListingId(entry.listing.id)}>
+              <span className="vehicle-listing-card__badge">{entry.model.tier}</span>
+              <div className="vehicle-listing-card__mark">{entry.model.brand.slice(0, 1)}</div>
+              <div><strong>{entry.model.brand} {entry.model.model}</strong><b>{formatRubles(entry.listing.price)}</b><small>{entry.listing.year} · {new Intl.NumberFormat('ru-RU').format(entry.listing.mileageKm)} км · {entry.listing.conditionPercent}%</small></div>
+              {entry.inspected ? <em>Проверено</em> : null}
+            </button>
+          ))}
+        </div>
+      ) : null}
+
+      {tab === 'new' ? (
+        <div className="vehicle-list">
+          <div className="vehicle-market-brand"><b>Дилерские центры</b><span>Новые автомобили</span></div>
+          {props.state.vehicles.dealerModels.map((entry) => (
+            <article className="vehicle-dealer-card" key={entry.model.id}>
+              <div className="vehicle-dealer-card__top"><span className="vehicle-listing-card__mark">{entry.model.brand.slice(0, 1)}</span><div><span>{entry.model.tier}</span><h3>{entry.model.brand} {entry.model.model}</h3></div></div>
+              <strong>{formatRubles(entry.model.newPrice)}</strong>
+              <div className="vehicle-dealer-specs"><span>{entry.model.powerHp} л.с.</span><span>{entry.model.consumptionLitersPer100Km} л/100 км</span><span>ТО {formatRubles(entry.model.baseServiceCost)}</span></div>
+              <small>{entry.dealerLocation?.name}<br/>{entry.dealerLocation?.address}</small>
+              <div className="phone-inline-actions"><button type="button" onClick={() => props.onRoute(entry.dealerLocationId)}>Маршрут</button><button type="button" disabled={!entry.isAtDealer || !entry.canAfford || Boolean(vehicle)} onClick={() => props.onBuyNew(entry.model.id)}>Купить в салоне</button></div>
+            </article>
+          ))}
+        </div>
+      ) : null}
+
+      {tab === 'mine' ? (
+        vehicle && ownedModel ? (
+          <div className="owned-vehicle-panel">
+            <section className="owned-vehicle-hero">
+              <span>{vehicle.year}</span><h2>{ownedModel.brand} {ownedModel.model}</h2><p>{vehicle.source === 'dealer' ? 'Куплен новым' : 'Куплен с пробегом'}</p>
+            </section>
+            <div className="vehicle-metric-grid">
+              <div><span>Топливо</span><strong>{vehicle.fuelLiters.toFixed(1)} / {ownedModel.fuelTankLiters} л</strong></div>
+              <div><span>Пробег</span><strong>{Math.round(vehicle.odometerKm).toLocaleString('ru-RU')} км</strong></div>
+              <div><span>Состояние</span><strong>{vehicle.conditionPercent}%</strong></div>
+              <div><span>Надёжность</span><strong>{vehicle.reliabilityPercent}%</strong></div>
+            </div>
+            <section className="phone-subsection">
+              <div className="phone-section-title"><span>Где машина</span><em>{props.state.vehicles.parkedLocation?.name ?? 'Неизвестно'}</em></div>
+              <p className="phone-muted">Следующее ТО: {Math.max(0, Math.round(vehicle.nextServiceOdometerKm - vehicle.odometerKm)).toLocaleString('ru-RU')} км.</p>
+              {vehicle.knownDefectIds.length ? <div className="vehicle-defect-list">{vehicle.knownDefectIds.map((defect) => <div key={defect}><Icon name="wrench" size={16}/><span>{VEHICLE_DEFECT_LABELS[defect]}</span></div>)}</div> : null}
+            </section>
+            <div className="vehicle-owner-actions">
+              {props.state.vehicles.parkedLocation && props.state.vehicles.parkedLocation.id !== props.state.vehicles.currentLocation?.id ? <button type="button" onClick={() => props.onRoute(props.state.vehicles.parkedLocation!.id)}><Icon name="pin" size={17}/>Добраться до машины</button> : null}
+              <button type="button" disabled={!props.state.vehicles.atGasStation || vehicle.parkedLocationId !== props.state.vehicles.currentLocation?.id} onClick={() => props.onRefuel(10)}><Icon name="fuel" size={17}/>Заправить 10 л</button>
+              <button type="button" disabled={!props.state.vehicles.atGasStation || vehicle.parkedLocationId !== props.state.vehicles.currentLocation?.id} onClick={() => props.onRefuel(0)}><Icon name="fuel" size={17}/>Полный бак</button>
+              <button type="button" disabled={!props.state.vehicles.atService || vehicle.parkedLocationId !== props.state.vehicles.currentLocation?.id} onClick={props.onService}><Icon name="wrench" size={17}/>Пройти ТО</button>
+              <button className="vehicle-sell-button" type="button" onClick={props.onSell}>Продать через Авто.ру</button>
+            </div>
+          </div>
+        ) : <div className="phone-empty-state vehicle-empty-state"><Icon name="car" size={34}/><strong>Машины пока нет</strong><span>Выбери подержанный автомобиль или приезжай в дилерский центр.</span></div>
+      ) : null}
+    </div>
+  );
+}
+
 function MessagesApp({ state, onRead }: { state: PhonePanelState; onRead: (id: PhoneMessageId) => void }) {
   return (
     <div className="phone-app-page phone-screen-enter">
@@ -477,6 +628,7 @@ export function PhoneShell(props: PhoneShellProps) {
               {props.activeApp === 'jobs' ? <JobsApp state={props.state} selectedJobId={props.selectedJobId} onSelectJob={props.onSelectJob} onSubmit={props.onSubmitApplication} onToggleSaved={props.onToggleSavedJob} onRoute={(locationId) => { props.onSetMapTarget(locationId); props.onOpenApp('maps'); }} onAttendInterview={props.onAttendInterview}/> : null}
               {props.activeApp === 'maps' ? <MapsApp state={props.state} currentLocation={props.currentLocation} onClear={() => props.onSetMapTarget(undefined)} onMove={(locationId, modeId) => { props.onMoveLocation(locationId, modeId); props.onClose(); }} onMoveDistrict={(districtId, modeId) => { props.onMoveDistrict(districtId, modeId); props.onClose(); }}/> : null}
               {props.activeApp === 'bank' ? <BankApp state={props.state} onTransfer={props.onTransferFunds} onSetAutoSave={props.onSetAutoSave} onCreateGoal={props.onCreateSavingsGoal} onFundGoal={props.onFundSavingsGoal}/> : null}
+              {props.activeApp === 'auto' ? <VehiclesApp state={props.state} onRoute={(locationId) => { props.onSetMapTarget(locationId); props.onOpenApp('maps'); }} onScheduleInspection={props.onScheduleVehicleInspection} onInspect={props.onInspectVehicle} onBuyUsed={props.onBuyUsedVehicle} onBuyNew={props.onBuyNewVehicle} onRefuel={props.onRefuelVehicle} onService={props.onServiceVehicle} onSell={props.onSellVehicle}/> : null}
               {props.activeApp === 'messages' ? <MessagesApp state={props.state} onRead={props.onReadMessage}/> : null}
               {props.activeApp === 'calendar' ? <CalendarApp state={props.state} onRoute={(locationId) => { props.onSetMapTarget(locationId); props.onOpenApp('maps'); }} onAttend={props.onAttendInterview}/> : null}
               {props.activeApp === 'notifications' ? <NotificationsApp state={props.state} onRead={props.onReadNotification}/> : null}

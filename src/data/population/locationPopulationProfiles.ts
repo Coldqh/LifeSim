@@ -116,6 +116,22 @@ const PROFILES: Record<LocationType, LocationPopulationProfile> = {
     staff: [{ roleId: NPC_ROLE_IDS.administrator, count: 1 }, { roleId: NPC_ROLE_IDS.trainer, count: 2 }, { roleId: NPC_ROLE_IDS.cleaner, count: 1 }],
     visitors: { quiet: [1, 4], normal: [4, 10], peak: [10, 18], peakWindows: [{ startMinute: 7 * 60, endMinute: 10 * 60 }, { startMinute: 18 * 60, endMinute: 22 * 60 }] }
   },
+  car_dealer: {
+    staff: [{ roleId: NPC_ROLE_IDS.manager, count: 1 }, { roleId: NPC_ROLE_IDS.seller, count: 3 }, { roleId: NPC_ROLE_IDS.security, count: 1 }],
+    visitors: { quiet: [0, 2], normal: [2, 5], peak: [5, 8], peakWindows: [{ startMinute: 12 * 60, endMinute: 18 * 60 }] }
+  },
+  gas_station: {
+    staff: [{ roleId: NPC_ROLE_IDS.cashier, count: 1 }, { roleId: NPC_ROLE_IDS.operator, count: 1 }],
+    visitors: { quiet: [0, 2], normal: [2, 5], peak: [5, 9], peakWindows: [{ startMinute: 7 * 60, endMinute: 10 * 60 }, { startMinute: 17 * 60, endMinute: 21 * 60 }] }
+  },
+  service_center: {
+    staff: [{ roleId: NPC_ROLE_IDS.manager, count: 1 }, { roleId: NPC_ROLE_IDS.operator, count: 3 }],
+    visitors: { quiet: [0, 1], normal: [1, 4], peak: [4, 7], peakWindows: [{ startMinute: 10 * 60, endMinute: 17 * 60 }] }
+  },
+  auto_market: {
+    staff: [{ roleId: NPC_ROLE_IDS.manager, count: 1 }, { roleId: NPC_ROLE_IDS.seller, count: 3 }],
+    visitors: { quiet: [0, 2], normal: [2, 6], peak: [6, 10], peakWindows: [{ startMinute: 11 * 60, endMinute: 18 * 60 }] }
+  },
   other: EMPTY
 };
 

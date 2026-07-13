@@ -30,3 +30,5 @@ export * from './business';
 export * from './phone';
 
 export * from './finance';
+
+export * from './vehicle';

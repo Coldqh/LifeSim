@@ -24,6 +24,10 @@ const TRANSPORT_LABELS: Record<TravelModeId, { name: string; description: string
   taxi: {
     name: 'Такси',
     description: 'Быстро, но дорого.'
+  },
+  car: {
+    name: 'Личный автомобиль',
+    description: 'Доступен после покупки автомобиля.'
   }
 };
 

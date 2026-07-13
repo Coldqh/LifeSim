@@ -43,7 +43,10 @@ export type IconName =
   | 'phone'
   | 'message'
   | 'calendar'
-  | 'bell';
+  | 'bell'
+  | 'car'
+  | 'fuel'
+  | 'wrench';
 
 type IconProps = SVGProps<SVGSVGElement> & {
   name: IconName;
@@ -93,7 +96,10 @@ const PATHS: Record<IconName, ReactNode> = {
   phone: <><rect x="6" y="2" width="12" height="20" rx="2.5"/><path d="M10 5h4M11 19h2"/></>,
   message: <><path d="M4 5h16v12H8l-4 4V5Z"/><path d="M8 9h8M8 13h5"/></>,
   calendar: <><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01"/></>,
-  bell: <><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9Z"/><path d="M10 21h4"/></>
+  bell: <><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9Z"/><path d="M10 21h4"/></>,
+  car: <><path d="M4 16h16l-1-6-2-4H7L5 10l-1 6Z"/><path d="M6 12h12M7 19v-3M17 19v-3"/><circle cx="8" cy="16" r="1"/><circle cx="16" cy="16" r="1"/></>,
+  fuel: <><path d="M5 3h9v18H5z"/><path d="M7 6h5v5H7zM14 8h3l2 2v7a2 2 0 0 0 2 2"/></>,
+  wrench: <><path d="M14 6a4 4 0 0 0-5 5L3 17l4 4 6-6a4 4 0 0 0 5-5l-3 3-4-4 3-3Z"/></>
 };
 
 export function Icon({ name, size = 20, ...props }: IconProps) {

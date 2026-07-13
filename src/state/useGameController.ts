@@ -118,10 +118,23 @@ import {
 } from '../core/sport';
 import { addMinutes, getElapsedMinutes, getTotalMinutes } from '../core/time';
 import {
+  applyVehicleTravel,
+  buyNewVehicle,
+  buyUsedVehicle,
+  calculateVehicleTravelQuote,
+  inspectUsedVehicle,
+  refuelVehicle,
+  refreshVehicleMarket,
+  scheduleUsedVehicleInspection,
+  sellOwnedVehicle,
+  serviceVehicle
+} from '../core/vehicles';
+import {
   calculateDistrictTravel,
   calculateLocationTravel,
   createDistrictTravelOption,
-  createLocationTravelOptions
+  createLocationTravelOptions,
+  getTravelDurationMinutes
 } from '../core/travel';
 import { getLifeAction } from '../data';
 import { moscowLocations } from '../data/locations/moscowLocations';
@@ -145,6 +158,8 @@ import { boxingTrainers, getBoxingTrainerById } from '../data/sports/boxingTrain
 import { boxingTrainings, getBoxingTrainingById } from '../data/sports/boxingTrainings';
 import { boxingOpponents, getBoxingOpponentById } from '../data/sports/boxingOpponents';
 import { boxingTournaments, getBoxingTournamentById } from '../data/sports/boxingTournaments';
+import { getVehicleModelById, newDealerVehicleModels } from '../data/vehicles/vehicleModels';
+import { usedVehicleListingTemplates } from '../data/vehicles/usedListingTemplates';
 import type {
   ActionId,
   BusinessEquipmentId,
@@ -166,7 +181,9 @@ import type {
   ProductId,
   NpcId,
   NpcInteractionId,
-  SocialEventChoiceId
+  SocialEventChoiceId,
+  VehicleListingId,
+  VehicleModelId
 } from '../types/ids';
 import type { HousingId, HousingMarketState } from '../types/housing';
 import type { BusinessEmployeeRole, BusinessWorldState } from '../types/business';
@@ -178,6 +195,8 @@ import type { GameTime } from '../types/time';
 import type { Npc } from '../types/npc';
 import type { SocialContext, SocialNpcView } from '../types/relationship';
 import type { SocialState } from '../types/socialEvent';
+import type { VehicleModel, VehicleOperationResult, VehicleWorldState } from '../types/vehicle';
+import type { DistrictTravelOption, LocationTravelOption, TransportOption, TravelResult } from '../types/travel';
 import {
   clearSavedGameState,
   createInitialGameState,
@@ -413,6 +432,193 @@ function getNpcSocialContext(npc: Npc, locationId: LocationId | undefined, isCol
   return npc.employment?.locationId === location.id ? 'work' : 'general';
 }
 
+
+const MASS_DEALER_LOCATION_ID = 'msk_tverskoy_auto_showroom' as LocationId;
+const PREMIUM_DEALER_LOCATION_ID = 'msk_khamovniki_import_dealer' as LocationId;
+const GAS_STATION_LOCATION_IDS = [
+  'msk_danilovsky_gas_station' as LocationId,
+  'msk_presnya_gas_station' as LocationId
+];
+const SERVICE_LOCATION_IDS = [
+  'msk_tverskoy_service_center' as LocationId,
+  MASS_DEALER_LOCATION_ID,
+  PREMIUM_DEALER_LOCATION_ID
+];
+
+function getDealerLocationIdForModel(model: VehicleModel): LocationId {
+  return model.tier === 'premium' || model.tier === 'luxury'
+    ? PREMIUM_DEALER_LOCATION_ID
+    : MASS_DEALER_LOCATION_ID;
+}
+
+function createPersonalCarTransportOption(input: {
+  world: VehicleWorldState;
+  fromLocation: ReturnType<typeof getLocationById>;
+  toLocation: ReturnType<typeof getLocationById>;
+  baseDurationMinutes: number;
+}): TransportOption {
+  const model = getVehicleModelById(input.world.ownedVehicle?.modelId);
+  const quote = calculateVehicleTravelQuote({
+    vehicle: input.world.ownedVehicle,
+    model,
+    fromLocationId: input.fromLocation?.id,
+    toLocationId: input.toLocation?.id,
+    fromDistrictId: input.fromLocation?.districtId,
+    toDistrictId: input.toLocation?.districtId,
+    baseDurationMinutes: input.baseDurationMinutes
+  });
+  return {
+    modeId: 'car',
+    name: 'Личный автомобиль',
+    description: quote.available
+      ? `${quote.distanceKm.toFixed(1)} км · топливо ${quote.fuelLiters.toFixed(1)} л · парковка ${quote.parkingCost} ₽`
+      : quote.unavailableReason ?? 'Автомобиль недоступен.',
+    durationMinutes: quote.durationMinutes,
+    moneyCost: quote.parkingCost,
+    available: quote.available,
+    unavailableReason: quote.unavailableReason
+  };
+}
+
+function addPersonalCarToLocationOptions(
+  options: LocationTravelOption[],
+  fromLocation: ReturnType<typeof getLocationById>,
+  world: VehicleWorldState
+): LocationTravelOption[] {
+  return options.map((option) => ({
+    ...option,
+    transportOptions: [
+      ...option.transportOptions,
+      createPersonalCarTransportOption({
+        world,
+        fromLocation,
+        toLocation: option.location,
+        baseDurationMinutes: option.durationMinutes
+      })
+    ]
+  }));
+}
+
+function addPersonalCarToDistrictOptions(
+  options: DistrictTravelOption[],
+  fromLocation: ReturnType<typeof getLocationById>,
+  world: VehicleWorldState
+): DistrictTravelOption[] {
+  return options.map((option) => ({
+    ...option,
+    transportOptions: option.defaultLocation
+      ? [
+          ...option.transportOptions,
+          createPersonalCarTransportOption({
+            world,
+            fromLocation,
+            toLocation: option.defaultLocation,
+            baseDurationMinutes: option.durationMinutes
+          })
+        ]
+      : option.transportOptions
+  }));
+}
+
+function calculatePersonalCarTravel(input: {
+  world: VehicleWorldState;
+  fromLocation: ReturnType<typeof getLocationById>;
+  toLocation: ReturnType<typeof getLocationById>;
+  kind: 'location' | 'district';
+}): TravelResult {
+  const model = getVehicleModelById(input.world.ownedVehicle?.modelId);
+  const baseDurationMinutes = input.fromLocation && input.toLocation
+    ? getTravelDurationMinutes(input.fromLocation, input.toLocation)
+    : 0;
+  const quote = calculateVehicleTravelQuote({
+    vehicle: input.world.ownedVehicle,
+    model,
+    fromLocationId: input.fromLocation?.id,
+    toLocationId: input.toLocation?.id,
+    fromDistrictId: input.fromLocation?.districtId,
+    toDistrictId: input.toLocation?.districtId,
+    baseDurationMinutes
+  });
+  if (!input.fromLocation || !input.toLocation) {
+    return { ok: false, kind: input.kind, durationMinutes: 0, message: 'Маршрут не найден.' };
+  }
+  if (!quote.available) {
+    return {
+      ok: false,
+      kind: input.kind,
+      modeId: 'car',
+      modeName: 'Личный автомобиль',
+      durationMinutes: 0,
+      moneyCost: quote.parkingCost,
+      fromLocationId: input.fromLocation.id,
+      toLocationId: input.toLocation.id,
+      fromDistrictId: input.fromLocation.districtId,
+      toDistrictId: input.toLocation.districtId,
+      message: quote.unavailableReason ?? 'Автомобиль недоступен.'
+    };
+  }
+  return {
+    ok: true,
+    kind: input.kind,
+    modeId: 'car',
+    modeName: 'Личный автомобиль',
+    durationMinutes: quote.durationMinutes,
+    moneyCost: quote.parkingCost,
+    fromLocationId: input.fromLocation.id,
+    toLocationId: input.toLocation.id,
+    fromDistrictId: input.fromLocation.districtId,
+    toDistrictId: input.toLocation.districtId,
+    message: `Ты приехал на личном автомобиле. ${quote.distanceKm.toFixed(1)} км, топливо ${quote.fuelLiters.toFixed(1)} л, парковка ${quote.parkingCost} ₽.`
+  };
+}
+
+function applyVehicleOperationState(
+  currentState: GameState,
+  vehicles: VehicleWorldState,
+  result: VehicleOperationResult
+): GameState {
+  const logEntry = createLifeLogEntry(currentState, result.title, result.message);
+  if (!result.ok) {
+    return {
+      ...currentState,
+      lastResult: { ok: false, actionName: result.title, timeDeltaMinutes: 0, messages: [result.message] },
+      lifeLog: mergeLifeLog([logEntry], currentState.lifeLog)
+    };
+  }
+  const chargedPlayer = {
+    ...currentState.player,
+    money: applyMoneyDelta(currentState.player.money, result.moneyDelta ?? 0)
+  };
+  const nextTime = addMinutes(currentState.time, result.timeDeltaMinutes);
+  const elapsedApplied = applyElapsedTimeConsequences(currentState, chargedPlayer, nextTime, 'active');
+  const messages = [result.message, ...elapsedApplied.messages];
+  return {
+    ...currentState,
+    time: nextTime,
+    player: elapsedApplied.player,
+    world: {
+      ...currentState.world,
+      population: elapsedApplied.population,
+      social: elapsedApplied.social,
+      housingMarket: elapsedApplied.housingMarket,
+      business: elapsedApplied.business,
+      vehicles
+    },
+    lastResult: {
+      ok: true,
+      actionName: result.title,
+      timeDeltaMinutes: result.timeDeltaMinutes,
+      moneyDelta: result.moneyDelta,
+      needsDelta: elapsedApplied.needsDelta,
+      messages
+    },
+    lifeLog: mergeLifeLog([
+      createLifeLogEntry({ time: nextTime }, result.title, messages.join(' ')),
+      ...elapsedApplied.lifeLogEntries
+    ], currentState.lifeLog)
+  };
+}
+
 export function useGameController() {
   const [gameState, setGameState] = useState<GameState>(resolveInitialState);
 
@@ -466,6 +672,19 @@ export function useGameController() {
     });
   }, [gameState.player.money, gameState.time.day, gameState.time.hour, gameState.time.minute]);
 
+
+  useEffect(() => {
+    setGameState((currentState) => {
+      const vehicles = refreshVehicleMarket({
+        world: currentState.world.vehicles,
+        day: currentState.time.day,
+        templates: usedVehicleListingTemplates
+      });
+      if (vehicles === currentState.world.vehicles) return currentState;
+      return { ...currentState, world: { ...currentState.world, vehicles } };
+    });
+  }, [gameState.time.day]);
+
   const locationState = useMemo(() => {
     const city = getCityById(gameState.player.cityId);
     const district = getDistrictById(gameState.player.districtId);
@@ -493,14 +712,22 @@ export function useGameController() {
       playerMoney: gameState.player.money,
       playerNeeds: gameState.player.needs
     };
-    const locationTravelOptions = createLocationTravelOptions(location, locations, travelContext);
-    const districtTravelOptions = districts.map((candidateDistrict) =>
-      createDistrictTravelOption({
-        currentLocation: location,
-        district: candidateDistrict,
-        defaultLocation: getDefaultLocationForDistrict(candidateDistrict.id),
-        context: travelContext
-      })
+    const locationTravelOptions = addPersonalCarToLocationOptions(
+      createLocationTravelOptions(location, locations, travelContext),
+      location,
+      gameState.world.vehicles
+    );
+    const districtTravelOptions = addPersonalCarToDistrictOptions(
+      districts.map((candidateDistrict) =>
+        createDistrictTravelOption({
+          currentLocation: location,
+          district: candidateDistrict,
+          defaultLocation: getDefaultLocationForDistrict(candidateDistrict.id),
+          context: travelContext
+        })
+      ),
+      location,
+      gameState.world.vehicles
     );
 
     return {
@@ -519,7 +746,7 @@ export function useGameController() {
       locationTravelOptions,
       districtTravelOptions
     };
-  }, [gameState.player.cityId, gameState.player.districtId, gameState.player.locationId, gameState.player.money, gameState.player.needs, gameState.time]);
+  }, [gameState.player.cityId, gameState.player.districtId, gameState.player.locationId, gameState.player.money, gameState.player.needs, gameState.time, gameState.world.vehicles]);
 
   const jobState = useMemo(() => {
     const currentJob = getJobById(gameState.player.currentJobId);
@@ -623,6 +850,45 @@ export function useGameController() {
     };
   }, [gameState.player.money, gameState.player.housingId, gameState.player.rentalContract.nextPaymentDay, gameState.player.rentDebt, gameState.time.day, gameState.world.finance, gameState.world.business]);
 
+
+  const vehicleState = useMemo(() => {
+    const world = gameState.world.vehicles;
+    const currentLocation = getLocationById(gameState.player.locationId);
+    const ownedVehicle = world.ownedVehicle;
+    const ownedModel = getVehicleModelById(ownedVehicle?.modelId);
+    const listings = world.usedListings.map((listing) => {
+      const model = getVehicleModelById(listing.modelId);
+      if (!model) return undefined;
+      return {
+        listing,
+        model,
+        inspected: world.inspectedListingIds.includes(listing.id),
+        scheduled: world.scheduledInspectionListingId === listing.id,
+        isAtSeller: gameState.player.locationId === listing.sellerLocationId,
+        revealedDefects: world.inspectedListingIds.includes(listing.id) ? listing.hiddenDefectIds : []
+      };
+    }).filter((entry): entry is NonNullable<typeof entry> => Boolean(entry));
+    const dealerModels = newDealerVehicleModels.map((model) => ({
+      model,
+      dealerLocationId: getDealerLocationIdForModel(model),
+      dealerLocation: getLocationById(getDealerLocationIdForModel(model)),
+      isAtDealer: gameState.player.locationId === getDealerLocationIdForModel(model),
+      canAfford: gameState.player.money >= model.newPrice
+    }));
+    return {
+      world,
+      listings,
+      dealerModels,
+      ownedVehicle,
+      ownedModel,
+      parkedLocation: getLocationById(ownedVehicle?.parkedLocationId),
+      currentLocation,
+      atGasStation: Boolean(currentLocation && GAS_STATION_LOCATION_IDS.includes(currentLocation.id)),
+      atService: Boolean(currentLocation && SERVICE_LOCATION_IDS.includes(currentLocation.id)),
+      fuelPriceLabel: ownedModel?.fuelType === 'diesel' ? '74 ₽/л' : ownedModel?.fuelType === 'petrol_92' ? '62 ₽/л' : '68 ₽/л'
+    };
+  }, [gameState.player.locationId, gameState.player.money, gameState.world.vehicles]);
+
   const phoneState = useMemo(() => {
     const phone = gameState.world.phone;
     const currentLocation = getLocationById(gameState.player.locationId);
@@ -656,7 +922,11 @@ export function useGameController() {
     });
     const mapTarget = getLocationById(phone.mapTargetLocationId);
     const mapRoute = mapTarget
-      ? createLocationTravelOptions(currentLocation, [mapTarget], travelContext)[0]
+      ? addPersonalCarToLocationOptions(
+          createLocationTravelOptions(currentLocation, [mapTarget], travelContext),
+          currentLocation,
+          gameState.world.vehicles
+        )[0]
       : undefined;
 
     return {
@@ -668,9 +938,10 @@ export function useGameController() {
       mapTarget,
       mapRoute,
       finance: financeState,
+      vehicles: vehicleState,
       districtTravelOptions: locationState.districtTravelOptions
     };
-  }, [gameState.player, gameState.time, gameState.world.phone, financeState, locationState.districtTravelOptions]);
+  }, [gameState.player, gameState.time, gameState.world.phone, gameState.world.vehicles, financeState, vehicleState, locationState.districtTravelOptions]);
 
   const educationState = useMemo(() => {
     const skills = basicSkills.map((skill) => ({
@@ -1067,16 +1338,23 @@ export function useGameController() {
 
     setGameState((currentState) => {
       const currentLocation = getLocationById(currentState.player.locationId);
-      const travel = calculateDistrictTravel({
-        fromLocation: currentLocation,
-        toDistrict: district,
-        toLocation: defaultLocation,
-        modeId,
-        context: {
-          playerMoney: currentState.player.money,
-          playerNeeds: currentState.player.needs
-        }
-      });
+      const travel = modeId === 'car'
+        ? calculatePersonalCarTravel({
+            world: currentState.world.vehicles,
+            fromLocation: currentLocation,
+            toLocation: defaultLocation,
+            kind: 'district'
+          })
+        : calculateDistrictTravel({
+            fromLocation: currentLocation,
+            toDistrict: district,
+            toLocation: defaultLocation,
+            modeId,
+            context: {
+              playerMoney: currentState.player.money,
+              playerNeeds: currentState.player.needs
+            }
+          });
 
       if (!travel.ok) {
         return {
@@ -1105,6 +1383,20 @@ export function useGameController() {
         locationId: defaultLocation.id
       };
       const elapsedApplied = applyElapsedTimeConsequences(currentState, movedPlayer, nextTime, 'active');
+      const vehicleQuote = modeId === 'car'
+        ? calculateVehicleTravelQuote({
+            vehicle: currentState.world.vehicles.ownedVehicle,
+            model: getVehicleModelById(currentState.world.vehicles.ownedVehicle?.modelId),
+            fromLocationId: currentLocation?.id,
+            toLocationId: defaultLocation.id,
+            fromDistrictId: currentLocation?.districtId,
+            toDistrictId: defaultLocation.districtId,
+            baseDurationMinutes: currentLocation ? getTravelDurationMinutes(currentLocation, defaultLocation) : 0
+          })
+        : undefined;
+      const vehicles = vehicleQuote?.available
+        ? applyVehicleTravel(currentState.world.vehicles, vehicleQuote, defaultLocation.id)
+        : currentState.world.vehicles;
       const resultMessages = [...messages, ...elapsedApplied.messages];
       const logEntry = createLifeLogEntry({ time: nextTime }, 'Перемещение', resultMessages.join(' '));
 
@@ -1112,7 +1404,7 @@ export function useGameController() {
         ...currentState,
         time: nextTime,
         player: elapsedApplied.player,
-        world: { ...currentState.world, population: elapsedApplied.population, social: elapsedApplied.social, housingMarket: elapsedApplied.housingMarket, business: elapsedApplied.business },
+        world: { ...currentState.world, population: elapsedApplied.population, social: elapsedApplied.social, housingMarket: elapsedApplied.housingMarket, business: elapsedApplied.business, vehicles },
         lastResult: {
           ok: true,
           timeDeltaMinutes: travel.durationMinutes,
@@ -1132,15 +1424,22 @@ export function useGameController() {
 
     setGameState((currentState) => {
       const currentLocation = getLocationById(currentState.player.locationId);
-      const travel = calculateLocationTravel({
-        fromLocation: currentLocation,
-        toLocation: location,
-        modeId,
-        context: {
-          playerMoney: currentState.player.money,
-          playerNeeds: currentState.player.needs
-        }
-      });
+      const travel = modeId === 'car'
+        ? calculatePersonalCarTravel({
+            world: currentState.world.vehicles,
+            fromLocation: currentLocation,
+            toLocation: location,
+            kind: 'location'
+          })
+        : calculateLocationTravel({
+            fromLocation: currentLocation,
+            toLocation: location,
+            modeId,
+            context: {
+              playerMoney: currentState.player.money,
+              playerNeeds: currentState.player.needs
+            }
+          });
 
       if (!travel.ok) {
         return {
@@ -1169,6 +1468,20 @@ export function useGameController() {
         locationId: location.id
       };
       const elapsedApplied = applyElapsedTimeConsequences(currentState, movedPlayer, nextTime, 'active');
+      const vehicleQuote = modeId === 'car'
+        ? calculateVehicleTravelQuote({
+            vehicle: currentState.world.vehicles.ownedVehicle,
+            model: getVehicleModelById(currentState.world.vehicles.ownedVehicle?.modelId),
+            fromLocationId: currentLocation?.id,
+            toLocationId: location.id,
+            fromDistrictId: currentLocation?.districtId,
+            toDistrictId: location.districtId,
+            baseDurationMinutes: currentLocation ? getTravelDurationMinutes(currentLocation, location) : 0
+          })
+        : undefined;
+      const vehicles = vehicleQuote?.available
+        ? applyVehicleTravel(currentState.world.vehicles, vehicleQuote, location.id)
+        : currentState.world.vehicles;
       const resultMessages = [...messages, ...elapsedApplied.messages];
       const logEntry = createLifeLogEntry({ time: nextTime }, 'Перемещение', resultMessages.join(' '));
 
@@ -1176,7 +1489,7 @@ export function useGameController() {
         ...currentState,
         time: nextTime,
         player: elapsedApplied.player,
-        world: { ...currentState.world, population: elapsedApplied.population, social: elapsedApplied.social, housingMarket: elapsedApplied.housingMarket, business: elapsedApplied.business },
+        world: { ...currentState.world, population: elapsedApplied.population, social: elapsedApplied.social, housingMarket: elapsedApplied.housingMarket, business: elapsedApplied.business, vehicles },
         lastResult: {
           ok: true,
           timeDeltaMinutes: travel.durationMinutes,
@@ -2207,6 +2520,107 @@ export function useGameController() {
     });
   }
 
+
+  function scheduleVehicleInspectionAction(listingId: VehicleListingId): void {
+    setGameState((currentState) => {
+      const applied = scheduleUsedVehicleInspection(currentState.world.vehicles, listingId);
+      const entry = createLifeLogEntry(currentState, applied.result.title, applied.result.message);
+      return {
+        ...currentState,
+        world: { ...currentState.world, vehicles: applied.world },
+        lastResult: { ok: applied.result.ok, actionName: applied.result.title, timeDeltaMinutes: 0, messages: [applied.result.message] },
+        lifeLog: mergeLifeLog([entry], currentState.lifeLog)
+      };
+    });
+  }
+
+  function inspectVehicleAction(listingId: VehicleListingId): void {
+    setGameState((currentState) => {
+      const applied = inspectUsedVehicle({
+        world: currentState.world.vehicles,
+        listingId,
+        currentLocationId: currentState.player.locationId
+      });
+      return applyVehicleOperationState(currentState, applied.world, applied.result);
+    });
+  }
+
+  function buyUsedVehicleAction(listingId: VehicleListingId): void {
+    setGameState((currentState) => {
+      const listing = currentState.world.vehicles.usedListings.find((entry) => entry.id === listingId);
+      const model = getVehicleModelById(listing?.modelId);
+      if (!listing || !model) return currentState;
+      const applied = buyUsedVehicle({
+        world: currentState.world.vehicles,
+        listingId,
+        currentLocationId: currentState.player.locationId,
+        bankBalance: currentState.player.money,
+        model,
+        day: currentState.time.day
+      });
+      return applyVehicleOperationState(currentState, applied.world, applied.result);
+    });
+  }
+
+  function buyNewVehicleAction(modelId: VehicleModelId): void {
+    const model = getVehicleModelById(modelId);
+    if (!model) return;
+    setGameState((currentState) => {
+      const applied = buyNewVehicle({
+        world: currentState.world.vehicles,
+        model,
+        currentLocationId: currentState.player.locationId,
+        dealerLocationId: getDealerLocationIdForModel(model),
+        bankBalance: currentState.player.money,
+        day: currentState.time.day
+      });
+      return applyVehicleOperationState(currentState, applied.world, applied.result);
+    });
+  }
+
+  function refuelOwnedVehicle(liters: number): void {
+    setGameState((currentState) => {
+      const model = getVehicleModelById(currentState.world.vehicles.ownedVehicle?.modelId);
+      if (!model) return currentState;
+      const requestedLiters = liters <= 0
+        ? Math.ceil(model.fuelTankLiters - (currentState.world.vehicles.ownedVehicle?.fuelLiters ?? 0))
+        : liters;
+      const applied = refuelVehicle({
+        world: currentState.world.vehicles,
+        model,
+        currentLocationId: currentState.player.locationId,
+        gasStationLocationIds: GAS_STATION_LOCATION_IDS,
+        liters: requestedLiters,
+        bankBalance: currentState.player.money
+      });
+      return applyVehicleOperationState(currentState, applied.world, applied.result);
+    });
+  }
+
+  function serviceOwnedVehicle(): void {
+    setGameState((currentState) => {
+      const model = getVehicleModelById(currentState.world.vehicles.ownedVehicle?.modelId);
+      if (!model) return currentState;
+      const applied = serviceVehicle({
+        world: currentState.world.vehicles,
+        model,
+        currentLocationId: currentState.player.locationId,
+        serviceLocationIds: SERVICE_LOCATION_IDS,
+        bankBalance: currentState.player.money
+      });
+      return applyVehicleOperationState(currentState, applied.world, applied.result);
+    });
+  }
+
+  function sellOwnedVehicleAction(): void {
+    setGameState((currentState) => {
+      const model = getVehicleModelById(currentState.world.vehicles.ownedVehicle?.modelId);
+      if (!model) return currentState;
+      const applied = sellOwnedVehicle({ world: currentState.world.vehicles, model, day: currentState.time.day });
+      return applyVehicleOperationState(currentState, applied.world, applied.result);
+    });
+  }
+
   function transferPersonalFunds(direction: 'bank_to_cash' | 'cash_to_bank' | 'bank_to_savings' | 'savings_to_bank', amount: number): void {
     setGameState((currentState) => {
       const applied = transferFinanceFunds({
@@ -2282,6 +2696,7 @@ export function useGameController() {
     businessState,
     phoneState,
     financeState,
+    vehicleState,
     performAction,
     moveToDistrict,
     moveToLocation,
@@ -2320,6 +2735,13 @@ export function useGameController() {
     updateAutoSave,
     addSavingsGoal,
     addMoneyToSavingsGoal,
+    scheduleVehicleInspection: scheduleVehicleInspectionAction,
+    inspectVehicle: inspectVehicleAction,
+    buyUsedVehicle: buyUsedVehicleAction,
+    buyNewVehicle: buyNewVehicleAction,
+    refuelVehicle: refuelOwnedVehicle,
+    serviceVehicle: serviceOwnedVehicle,
+    sellVehicle: sellOwnedVehicleAction,
     resetGame
   };
 }

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useGameController } from '../state';
-import type { JobId } from '../types/ids';
+import type { JobId, VehicleListingId, VehicleModelId } from '../types/ids';
 import type { PhoneAppId } from '../types/phone';
 import { Dashboard } from './dashboard';
 import { DiegeticNavigation } from './navigation';
@@ -20,6 +20,7 @@ export function AppShell() {
     housingState,
     businessState,
     phoneState,
+    vehicleState,
     performAction,
     moveToDistrict,
     moveToLocation,
@@ -57,6 +58,13 @@ export function AppShell() {
     updateAutoSave,
     addSavingsGoal,
     addMoneyToSavingsGoal,
+    scheduleVehicleInspection,
+    inspectVehicle,
+    buyUsedVehicle,
+    buyNewVehicle,
+    refuelVehicle,
+    serviceVehicle,
+    sellVehicle,
     resetGame
   } = useGameController();
   const [phoneOpen, setPhoneOpen] = useState(false);
@@ -120,7 +128,7 @@ export function AppShell() {
         selectedJobId={selectedPhoneJobId}
         time={gameState.time}
         currentLocation={locationState.location}
-        state={phoneState}
+        state={{ ...phoneState, vehicles: vehicleState }}
         onClose={() => setPhoneOpen(false)}
         onOpen={() => openPhone('home')}
         onOpenApp={(app) => setPhoneApp(app)}
@@ -137,6 +145,13 @@ export function AppShell() {
         onSetAutoSave={updateAutoSave}
         onCreateSavingsGoal={addSavingsGoal}
         onFundSavingsGoal={addMoneyToSavingsGoal}
+        onScheduleVehicleInspection={(id: VehicleListingId) => scheduleVehicleInspection(id)}
+        onInspectVehicle={(id: VehicleListingId) => inspectVehicle(id)}
+        onBuyUsedVehicle={(id: VehicleListingId) => buyUsedVehicle(id)}
+        onBuyNewVehicle={(id: VehicleModelId) => buyNewVehicle(id)}
+        onRefuelVehicle={refuelVehicle}
+        onServiceVehicle={serviceVehicle}
+        onSellVehicle={sellVehicle}
       />
     </>
   );

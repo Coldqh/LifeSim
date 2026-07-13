@@ -20,3 +20,5 @@ export * as relationships from './relationships';
 export * as phone from './phone';
 
 export * as finance from './finance';
+
+export * as vehicles from './vehicles';
