@@ -26,3 +26,5 @@ export * from './progression';
 export * from './risk';
 
 export * from './business';
+
+export * from './phone';

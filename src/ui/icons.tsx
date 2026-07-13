@@ -39,7 +39,11 @@ export type IconName =
   | 'gym'
   | 'growth'
   | 'book'
-  | 'boxing';
+  | 'boxing'
+  | 'phone'
+  | 'message'
+  | 'calendar'
+  | 'bell';
 
 type IconProps = SVGProps<SVGSVGElement> & {
   name: IconName;
@@ -85,7 +89,11 @@ const PATHS: Record<IconName, ReactNode> = {
   gym: <><path d="M6 9v6M3 10v4M18 9v6M21 10v4M6 12h12"/></>,
   growth: <><path d="M4 19V9M10 19V5M16 19v-7M3 19h18"/><path d="m4 10 5-4 5 3 6-6"/></>,
   book: <><path d="M4 5a3 3 0 0 1 3-2h5v17H7a3 3 0 0 0-3 2V5Z"/><path d="M20 5a3 3 0 0 0-3-2h-5v17h5a3 3 0 0 1 3 2V5Z"/></>,
-  boxing: <><path d="M8 4h5a3 3 0 0 1 3 3v2h1a3 3 0 0 1 3 3v3a4 4 0 0 1-4 4H9a5 5 0 0 1-5-5V9a3 3 0 0 1 3-3h1V4Z"/><path d="M8 6v5M12 5v5M16 9v4M7 19v2h9v-2"/></>
+  boxing: <><path d="M8 4h5a3 3 0 0 1 3 3v2h1a3 3 0 0 1 3 3v3a4 4 0 0 1-4 4H9a5 5 0 0 1-5-5V9a3 3 0 0 1 3-3h1V4Z"/><path d="M8 6v5M12 5v5M16 9v4M7 19v2h9v-2"/></>,
+  phone: <><rect x="6" y="2" width="12" height="20" rx="2.5"/><path d="M10 5h4M11 19h2"/></>,
+  message: <><path d="M4 5h16v12H8l-4 4V5Z"/><path d="M8 9h8M8 13h5"/></>,
+  calendar: <><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01"/></>,
+  bell: <><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9Z"/><path d="M10 21h4"/></>
 };
 
 export function Icon({ name, size = 20, ...props }: IconProps) {

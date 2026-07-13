@@ -66,6 +66,18 @@ import {
 } from '../core/needs';
 import { getShopForLocation, getShopProducts, isProductSoldByShop } from '../core/shop';
 import { getScheduleActivityFailure, getScheduleStatus } from '../core/schedule';
+import {
+  completeJobInterview,
+  getInterviewFailure,
+  getJobApplicationForJob,
+  getPhoneUnreadCount,
+  markPhoneMessageRead,
+  markPhoneNotificationRead,
+  processPhoneTime,
+  setPhoneMapTarget,
+  submitPhoneJobApplication,
+  toggleSavedPhoneJob
+} from '../core/phone';
 import { getLocationPopulationPresence, getPopulationSummary, simulatePopulation } from '../core/population';
 import {
   applyNpcInteraction,
@@ -95,7 +107,7 @@ import {
   selectBoxingTrainer,
   type BoxingOperationOutput
 } from '../core/sport';
-import { addMinutes, getElapsedMinutes } from '../core/time';
+import { addMinutes, getElapsedMinutes, getTotalMinutes } from '../core/time';
 import {
   calculateDistrictTravel,
   calculateLocationTravel,
@@ -139,6 +151,8 @@ import type {
   DistrictId,
   EducationProgramId,
   JobId,
+  PhoneMessageId,
+  PhoneNotificationId,
   LocationId,
   ProductId,
   NpcId,
@@ -396,6 +410,21 @@ export function useGameController() {
     saveGameState(gameState);
   }, [gameState]);
 
+  useEffect(() => {
+    setGameState((currentState) => {
+      const currentTotalMinutes = getTotalMinutes(currentState.time);
+      if (currentState.world.phone.lastProcessedTotalMinutes >= currentTotalMinutes) return currentState;
+      const phone = processPhoneTime({
+        state: currentState.world.phone,
+        currentTotalMinutes,
+        jobs: basicJobs,
+        getEmployerName: (job) => getLocationById(job.locationId)?.name ?? 'Работодатель'
+      });
+      if (phone === currentState.world.phone) return currentState;
+      return { ...currentState, world: { ...currentState.world, phone } };
+    });
+  }, [gameState.time.day, gameState.time.hour, gameState.time.minute]);
+
   const locationState = useMemo(() => {
     const city = getCityById(gameState.player.cityId);
     const district = getDistrictById(gameState.player.districtId);
@@ -512,6 +541,53 @@ export function useGameController() {
       currentLocationJobs
     };
   }, [gameState.player, gameState.time]);
+
+  const phoneState = useMemo(() => {
+    const phone = gameState.world.phone;
+    const currentLocation = getLocationById(gameState.player.locationId);
+    const travelContext = { playerMoney: gameState.player.money, playerNeeds: gameState.player.needs };
+    const jobs = basicJobs.map((job) => {
+      const location = getLocationById(job.locationId);
+      const district = location ? getDistrictById(location.districtId) : undefined;
+      const application = getJobApplicationForJob(phone, job.id);
+      const applicationFailure = getJobApplicationFailure(gameState.player, job);
+      const missingSkillRequirements = getMissingSkillRequirements(gameState.player, job.requirements?.skills).map((requirement) => ({
+        ...requirement,
+        name: getSkillById(requirement.skillId)?.name ?? String(requirement.skillId)
+      }));
+      const interviewFailure = getInterviewFailure({
+        state: phone,
+        job,
+        currentLocationId: gameState.player.locationId,
+        currentTotalMinutes: getTotalMinutes(gameState.time)
+      });
+      return {
+        job,
+        location,
+        district,
+        application,
+        applicationFailure,
+        missingSkillRequirements,
+        interviewFailure,
+        saved: phone.savedJobIds.includes(job.id),
+        estimatedMonthlyIncome: Math.round(job.wagePerShift * 21)
+      };
+    });
+    const mapTarget = getLocationById(phone.mapTargetLocationId);
+    const mapRoute = mapTarget
+      ? createLocationTravelOptions(currentLocation, [mapTarget], travelContext)[0]
+      : undefined;
+
+    return {
+      phone,
+      jobs,
+      unreadCount: getPhoneUnreadCount(phone),
+      unreadMessages: phone.messages.filter((entry) => !entry.read).length,
+      unreadNotifications: phone.notifications.filter((entry) => !entry.read).length,
+      mapTarget,
+      mapRoute
+    };
+  }, [gameState.player, gameState.time, gameState.world.phone]);
 
   const educationState = useMemo(() => {
     const skills = basicSkills.map((skill) => ({
@@ -1908,6 +1984,138 @@ export function useGameController() {
     });
   }
 
+  function submitJobApplication(jobId: JobId): void {
+    const job = getJobById(jobId);
+    if (!job) return;
+    setGameState((currentState) => {
+      const location = getLocationById(job.locationId);
+      const applied = submitPhoneJobApplication({
+        state: currentState.world.phone,
+        job,
+        currentTotalMinutes: getTotalMinutes(currentState.time),
+        applicationFailure: getJobApplicationFailure(currentState.player, job),
+        employerName: location?.name ?? 'Работодатель'
+      });
+      const logEntry = createLifeLogEntry(
+        currentState,
+        applied.result.ok ? 'Отклик отправлен' : 'Отклик не отправлен',
+        applied.result.message
+      );
+      return {
+        ...currentState,
+        world: { ...currentState.world, phone: applied.state },
+        lastResult: {
+          ok: applied.result.ok,
+          actionName: applied.result.title,
+          timeDeltaMinutes: 0,
+          messages: [applied.result.message]
+        },
+        lifeLog: mergeLifeLog([logEntry], currentState.lifeLog)
+      };
+    });
+  }
+
+  function togglePhoneSavedJob(jobId: JobId): void {
+    setGameState((currentState) => ({
+      ...currentState,
+      world: { ...currentState.world, phone: toggleSavedPhoneJob(currentState.world.phone, jobId) }
+    }));
+  }
+
+  function setPhoneMapLocation(locationId?: LocationId): void {
+    setGameState((currentState) => ({
+      ...currentState,
+      world: { ...currentState.world, phone: setPhoneMapTarget(currentState.world.phone, locationId) }
+    }));
+  }
+
+  function readPhoneNotification(id: PhoneNotificationId): void {
+    setGameState((currentState) => ({
+      ...currentState,
+      world: { ...currentState.world, phone: markPhoneNotificationRead(currentState.world.phone, id) }
+    }));
+  }
+
+  function readPhoneMessage(id: PhoneMessageId): void {
+    setGameState((currentState) => ({
+      ...currentState,
+      world: { ...currentState.world, phone: markPhoneMessageRead(currentState.world.phone, id) }
+    }));
+  }
+
+  function attendJobInterview(jobId: JobId): void {
+    const job = getJobById(jobId);
+    if (!job) return;
+    setGameState((currentState) => {
+      const location = getLocationById(job.locationId);
+      const interview = completeJobInterview({
+        state: currentState.world.phone,
+        job,
+        currentLocationId: currentState.player.locationId,
+        currentTotalMinutes: getTotalMinutes(currentState.time),
+        employerName: location?.name ?? 'Работодатель'
+      });
+      if (!interview.result.ok) {
+        const logEntry = createLifeLogEntry(currentState, interview.result.title, interview.result.message);
+        return {
+          ...currentState,
+          lastResult: {
+            ok: false,
+            actionName: interview.result.title,
+            timeDeltaMinutes: 0,
+            messages: [interview.result.message]
+          },
+          lifeLog: mergeLifeLog([logEntry], currentState.lifeLog)
+        };
+      }
+
+      const hired = applyJob({ player: currentState.player, job });
+      if (!hired.result.ok) {
+        const message = hired.result.messages.join(' ');
+        const logEntry = createLifeLogEntry(currentState, 'Собеседование не завершено', message);
+        return {
+          ...currentState,
+          lastResult: { ok: false, actionName: 'Собеседование', timeDeltaMinutes: 0, messages: [message] },
+          lifeLog: mergeLifeLog([logEntry], currentState.lifeLog)
+        };
+      }
+
+      const nextTime = addMinutes(currentState.time, 30);
+      const elapsedApplied = applyElapsedTimeConsequences(
+        currentState,
+        hired.player,
+        nextTime,
+        'active',
+        currentState.world.social,
+        currentState.world.housingMarket,
+        currentState.world.business
+      );
+      const messages = [interview.result.message, ...elapsedApplied.messages];
+      const logEntry = createLifeLogEntry({ time: nextTime }, 'Собеседование', messages.join(' '));
+      return {
+        ...currentState,
+        time: nextTime,
+        player: elapsedApplied.player,
+        world: {
+          ...currentState.world,
+          population: elapsedApplied.population,
+          social: elapsedApplied.social,
+          housingMarket: elapsedApplied.housingMarket,
+          business: elapsedApplied.business,
+          phone: interview.state
+        },
+        lastResult: {
+          ok: true,
+          actionName: 'Собеседование',
+          timeDeltaMinutes: 30,
+          needsDelta: elapsedApplied.needsDelta,
+          messages
+        },
+        lifeLog: mergeLifeLog([logEntry, ...elapsedApplied.lifeLogEntries], currentState.lifeLog)
+      };
+    });
+  }
+
   function resetGame(): void {
     clearSavedGameState();
     setGameState(createInitialGameState());
@@ -1925,6 +2133,7 @@ export function useGameController() {
     socialState,
     housingState,
     businessState,
+    phoneState,
     performAction,
     moveToDistrict,
     moveToLocation,
@@ -1953,6 +2162,12 @@ export function useGameController() {
     purchaseBusinessEquipment,
     purchaseBusinessUpgrade,
     workBusinessOwnerShift,
+    submitJobApplication,
+    togglePhoneSavedJob,
+    setPhoneMapLocation,
+    readPhoneNotification,
+    readPhoneMessage,
+    attendJobInterview,
     resetGame
   };
 }

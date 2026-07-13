@@ -5,7 +5,8 @@ import type { PlayerSkills } from '../types/skill';
 import type { HousingId, HousingMarketState, RentalContract } from '../types/housing';
 import type { BusinessWorldState, OwnedBusiness } from '../types/business';
 import type { GameTime } from '../types/time';
-import { createInitialTime, formatGameTime } from '../core/time';
+import type { PhoneState } from '../types/phone';
+import { createInitialTime, formatGameTime, getTotalMinutes } from '../core/time';
 import { createInitialBoxingProfile } from '../core/sport';
 import type { BoxingProfile } from '../types/boxing';
 import type { PopulationState } from '../types/population';
@@ -17,10 +18,11 @@ import { populationDataSource } from '../data/population/config';
 import { basicHousing } from '../data/housing/basicHousing';
 import { createHousingMarket } from '../core/housing';
 import { createEmptyBusinessReport, createInitialBusinessWorldState } from '../core/business';
+import { createInitialPhoneState } from '../core/phone';
 import { businessPremises } from '../data/business/premises';
 
-export const GAME_STATE_STORAGE_KEY = 'lifesim.gameState.v16';
-const LEGACY_GAME_STATE_STORAGE_KEYS = ['lifesim.gameState.v15', 'lifesim.gameState.v14', 'lifesim.gameState.v13', 'lifesim.gameState.v12', 'lifesim.gameState.v11', 'lifesim.gameState.v10', 'lifesim.gameState.v9', 'lifesim.gameState.v8', 'lifesim.gameState.v7'];
+export const GAME_STATE_STORAGE_KEY = 'lifesim.gameState.v17';
+const LEGACY_GAME_STATE_STORAGE_KEYS = ['lifesim.gameState.v16', 'lifesim.gameState.v15', 'lifesim.gameState.v14', 'lifesim.gameState.v13', 'lifesim.gameState.v12', 'lifesim.gameState.v11', 'lifesim.gameState.v10', 'lifesim.gameState.v9', 'lifesim.gameState.v8', 'lifesim.gameState.v7'];
 const STARTER_INVENTORY_BACKFILL_KEYS = new Set(['lifesim.gameState.v9', 'lifesim.gameState.v8', 'lifesim.gameState.v7']);
 const REMOVED_PRODUCT_IDS = new Set(['hygiene_kit', 'toothpaste', 'laundry_powder']);
 
@@ -37,6 +39,7 @@ export type WorldState = {
   social: SocialState;
   housingMarket: HousingMarketState;
   business: BusinessWorldState;
+  phone: PhoneState;
 };
 
 export type GameState = {
@@ -207,7 +210,8 @@ export function createInitialGameState(): GameState {
         currentHousingId: housingId('housing_room_danilovsky'),
         catalogue: basicHousing
       }),
-      business: createInitialBusinessWorldState(population.seed, businessPremises.map((premises) => premises.id))
+      business: createInitialBusinessWorldState(population.seed, businessPremises.map((premises) => premises.id)),
+      phone: createInitialPhoneState(getTotalMinutes(time))
     },
     lifeLog: [
       {
@@ -374,6 +378,24 @@ function normalizeBusinessWorld(value: unknown, time: GameTime, populationSeed: 
   };
 }
 
+
+function normalizePhoneState(value: unknown, time: GameTime): PhoneState {
+  const initial = createInitialPhoneState(getTotalMinutes(time));
+  if (!value || typeof value !== 'object') return initial;
+  const candidate = value as Partial<PhoneState>;
+  return {
+    applications: Array.isArray(candidate.applications) ? candidate.applications.slice(0, 40) : [],
+    notifications: Array.isArray(candidate.notifications) ? candidate.notifications.slice(0, 80) : [],
+    messages: Array.isArray(candidate.messages) ? candidate.messages.slice(0, 80) : [],
+    calendarEvents: Array.isArray(candidate.calendarEvents) ? candidate.calendarEvents.slice(0, 60) : [],
+    savedJobIds: Array.isArray(candidate.savedJobIds) ? candidate.savedJobIds : [],
+    mapTargetLocationId: candidate.mapTargetLocationId,
+    lastProcessedTotalMinutes: typeof candidate.lastProcessedTotalMinutes === 'number'
+      ? Math.min(getTotalMinutes(time), Math.max(0, candidate.lastProcessedTotalMinutes))
+      : getTotalMinutes(time)
+  };
+}
+
 export function loadGameState(): GameState | undefined {
   try {
     const storageKeys = [GAME_STATE_STORAGE_KEY, ...LEGACY_GAME_STATE_STORAGE_KEYS];
@@ -398,7 +420,8 @@ export function loadGameState(): GameState | undefined {
           population,
           social: normalizeSocialState(parsed.world?.social),
           housingMarket: normalizeHousingMarket(parsed.world?.housingMarket, parsed.time, population.seed, playerHousingId),
-          business: normalizeBusinessWorld(parsed.world?.business, parsed.time, population.seed)
+          business: normalizeBusinessWorld(parsed.world?.business, parsed.time, population.seed),
+          phone: normalizePhoneState(parsed.world?.phone, parsed.time)
         },
         player: {
           ...parsed.player,

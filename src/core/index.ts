@@ -16,3 +16,5 @@ export * as crime from './crime';
 export * as population from './population';
 
 export * as relationships from './relationships';
+
+export * as phone from './phone';

@@ -280,7 +280,7 @@ export function LocationPanel({
                     type="button"
                     onClick={() => onApplyForJob(view.job.id)}
                   >
-                    {view.isCurrentJob ? 'Текущая' : 'Устроиться'}
+                    {view.isCurrentJob ? 'Текущая' : 'Открыть в телефоне'}
                   </button>
                 </article>
               ))}
