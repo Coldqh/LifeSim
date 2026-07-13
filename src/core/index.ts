@@ -28,3 +28,5 @@ export * as healthcare from './healthcare';
 export * from './intercity';
 
 export * as university from './university';
+
+export * from './social-life';

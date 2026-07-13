@@ -1,22 +1,29 @@
-# LifeSim — University & Student Life Vertical Slice
+# LifeSim — Friendships, Dating & Social Circles Vertical Slice
 
 ## Included
 
-- Real universities: НИУ ВШЭ, НИТУ МИСИС, ЯрГУ им. П. Г. Демидова, ЯГТУ.
-- Six degree programs across Moscow and Yaroslavl.
-- Phone Education app: applications, entrance exams, enrollment, classes, assignments, semester exam.
-- Weekly class schedules, attendance, knowledge, study load and missed classes.
-- University campuses integrated into city locations and population simulation.
-- Phone Time app with custom hours/minutes and quick waiting presets.
-- Save migration to `lifesim.gameState.v22`.
+- Contact exchange with persistent NPCs after sufficient familiarity.
+- Phone Contacts app with filters, relationship state, circles and conversation history.
+- Quick messages with cooldowns and relationship effects.
+- Seven meeting types: coffee, walk, training, study, restaurant, home evening and date.
+- Outgoing invitations, NPC replies, NPC-initiated invitations and calendar integration.
+- Physical meetings tied to a location, time, money and player condition.
+- Friendship and romance progression with persistent memories and consequences.
+- Missed meetings, late cancellations, reminders and relationship penalties.
+- Home comfort bonus for home meetings.
+- Save migration to `lifesim.gameState.v23`.
 
 ## Verification
 
 - `npm run verify:lock` — PASS
 - `npm run typecheck` — PASS
 - `npm run build` — PASS
-- University core smoke test — PASS
+- Social-life core smoke test — PASS
+
+## Known technical note
+
+- Production build succeeds, but Vite still warns that the main JS chunk is above 500 kB. Phone apps should be split with lazy loading in a separate architecture patch.
 
 ## Suggested commit
 
-`feat: add university student life and time controls`
+`feat: add friendships dating and social circles`

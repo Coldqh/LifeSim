@@ -46,15 +46,16 @@ function hashString(value: string): number {
   return hash >>> 0;
 }
 
-function createId(prefix: string, jobId: JobId, totalMinutes: number): string {
-  return `${prefix}_${String(jobId)}_${totalMinutes}`;
+function createId(prefix: string, key: string, totalMinutes: number): string {
+  return `${prefix}_${key}_${totalMinutes}`;
 }
 
-function addNotification(
+export function pushPhoneNotification(
   state: PhoneState,
   notification: Omit<PhoneNotification, 'id' | 'read'>
 ): PhoneState {
-  const id = notificationId(createId('notification', notification.jobId ?? ('general' as JobId), notification.createdAtTotalMinutes));
+  const key = String(notification.jobId ?? notification.npcId ?? notification.locationId ?? 'general');
+  const id = notificationId(createId('notification', key, notification.createdAtTotalMinutes));
   if (state.notifications.some((entry) => entry.id === id)) return state;
   return {
     ...state,
@@ -62,13 +63,19 @@ function addNotification(
   };
 }
 
-function addMessage(state: PhoneState, message: Omit<PhoneMessage, 'id' | 'read'>): PhoneState {
-  const id = messageId(createId('message', message.jobId ?? ('general' as JobId), message.createdAtTotalMinutes));
+export function pushPhoneMessage(state: PhoneState, message: Omit<PhoneMessage, 'id' | 'read'>): PhoneState {
+  const key = String(message.jobId ?? message.npcId ?? message.locationId ?? 'general');
+  const id = messageId(createId('message', key, message.createdAtTotalMinutes));
   if (state.messages.some((entry) => entry.id === id)) return state;
   return {
     ...state,
     messages: [{ ...message, id, read: false }, ...state.messages].slice(0, 80)
   };
+}
+
+export function pushPhoneCalendarEvent(state: PhoneState, event: PhoneCalendarEvent): PhoneState {
+  if (state.calendarEvents.some((entry) => entry.id === event.id)) return state;
+  return { ...state, calendarEvents: [event, ...state.calendarEvents].slice(0, 80) };
 }
 
 function createInterviewTime(responseAtTotalMinutes: number, jobId: JobId): number {
@@ -155,7 +162,7 @@ export function submitPhoneJobApplication(input: {
     ...input.state,
     applications: [application, ...input.state.applications].slice(0, 40)
   };
-  nextState = addMessage(nextState, {
+  nextState = pushPhoneMessage(nextState, {
     senderName: input.employerName,
     subject: 'Отклик получен',
     body: `Отклик на вакансию «${input.job.title}» получен. Ответ придёт в течение рабочего дня.`,
@@ -163,7 +170,7 @@ export function submitPhoneJobApplication(input: {
     jobId: input.job.id,
     locationId: input.job.locationId
   });
-  nextState = addNotification(nextState, {
+  nextState = pushPhoneNotification(nextState, {
     appId: 'jobs',
     title: 'Отклик отправлен',
     body: `${input.job.title} · ${input.employerName}`,
@@ -208,7 +215,7 @@ export function processPhoneTime(input: {
         if (!state.calendarEvents.some((entry) => entry.id === calendarEvent.id)) {
           state = { ...state, calendarEvents: [calendarEvent, ...state.calendarEvents].slice(0, 60) };
         }
-        state = addMessage(state, {
+        state = pushPhoneMessage(state, {
           senderName: employerName,
           subject: 'Приглашение на собеседование',
           body: `Приходи на собеседование: день ${dayNumber(interviewAtTotalMinutes)}, ${formatClock(interviewAtTotalMinutes)}. Адрес указан в карточке вакансии.`,
@@ -216,7 +223,7 @@ export function processPhoneTime(input: {
           jobId: job.id,
           locationId: job.locationId
         });
-        state = addNotification(state, {
+        state = pushPhoneNotification(state, {
           appId: 'calendar',
           title: 'Приглашение на собеседование',
           body: `День ${dayNumber(interviewAtTotalMinutes)} · ${formatClock(interviewAtTotalMinutes)}`,
@@ -227,7 +234,7 @@ export function processPhoneTime(input: {
         return { ...application, status: 'invited' as const, interviewAtTotalMinutes };
       }
 
-      state = addMessage(state, {
+      state = pushPhoneMessage(state, {
         senderName: employerName,
         subject: 'Ответ по вакансии',
         body: `Спасибо за отклик на вакансию «${job.title}». Сейчас работодатель продолжает поиск другого кандидата.`,
@@ -235,7 +242,7 @@ export function processPhoneTime(input: {
         jobId: job.id,
         locationId: job.locationId
       });
-      state = addNotification(state, {
+      state = pushPhoneNotification(state, {
         appId: 'jobs',
         title: 'Ответ работодателя',
         body: `Отклик на «${job.title}» отклонён`,
@@ -249,7 +256,7 @@ export function processPhoneTime(input: {
     if (application.status === 'invited' && application.interviewAtTotalMinutes !== undefined) {
       const reminderAt = application.interviewAtTotalMinutes - 90;
       if (!application.reminderSent && input.currentTotalMinutes >= reminderAt && input.currentTotalMinutes < application.interviewAtTotalMinutes + INTERVIEW_LATE_WINDOW_MINUTES) {
-        state = addNotification(state, {
+        state = pushPhoneNotification(state, {
           appId: 'calendar',
           title: 'Собеседование скоро',
           body: `${job.title} · ${formatClock(application.interviewAtTotalMinutes)}`,
@@ -260,7 +267,7 @@ export function processPhoneTime(input: {
         return { ...application, reminderSent: true };
       }
       if (input.currentTotalMinutes > application.interviewAtTotalMinutes + INTERVIEW_LATE_WINDOW_MINUTES) {
-        state = addMessage(state, {
+        state = pushPhoneMessage(state, {
           senderName: employerName,
           subject: 'Собеседование пропущено',
           body: `Ты не пришёл на собеседование по вакансии «${job.title}». Отклик закрыт.`,
@@ -268,7 +275,7 @@ export function processPhoneTime(input: {
           jobId: job.id,
           locationId: job.locationId
         });
-        state = addNotification(state, {
+        state = pushPhoneNotification(state, {
           appId: 'jobs',
           title: 'Собеседование пропущено',
           body: job.title,
@@ -338,7 +345,7 @@ export function completeJobInterview(input: {
       ? { ...event, status: 'completed' }
       : event)
   };
-  state = addMessage(state, {
+  state = pushPhoneMessage(state, {
     senderName: input.employerName,
     subject: 'Предложение о работе',
     body: `Собеседование пройдено. Работодатель готов принять тебя на должность «${input.job.title}».`,
@@ -346,7 +353,7 @@ export function completeJobInterview(input: {
     jobId: input.job.id,
     locationId: input.job.locationId
   });
-  state = addNotification(state, {
+  state = pushPhoneNotification(state, {
     appId: 'jobs',
     title: 'Работа получена',
     body: `${input.job.title} · ${input.employerName}`,

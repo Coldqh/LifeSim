@@ -13,6 +13,8 @@ export type NpcPersonality = {
   interests: NpcInterest[];
 };
 
+export type RomanceStatus = 'none' | 'interest' | 'dating' | 'partner';
+
 export type RelationshipStatus =
   | 'stranger'
   | 'acquaintance'
@@ -38,6 +40,8 @@ export type NpcRelationship = {
   affinity: number;
   trust: number;
   tension: number;
+  romance: number;
+  romanceStatus: RomanceStatus;
   interactionCount: number;
   firstMetDay?: number;
   lastInteractionDay?: number;
@@ -46,7 +50,7 @@ export type NpcRelationship = {
   memories: NpcMemory[];
 };
 
-export type RelationshipDelta = Partial<Pick<NpcRelationship, 'familiarity' | 'affinity' | 'trust' | 'tension'>>;
+export type RelationshipDelta = Partial<Pick<NpcRelationship, 'familiarity' | 'affinity' | 'trust' | 'tension' | 'romance'>>;
 
 export type SocialContext = 'general' | 'work' | 'boxing' | 'shop' | 'cafe' | 'education' | 'home';
 
@@ -82,5 +86,7 @@ export type SocialNpcView = {
   isStaff: boolean;
   isColleague: boolean;
   isKnown: boolean;
+  contactUnlocked?: boolean;
+  contactFailure?: string;
   interactions: NpcInteractionAvailability[];
 };

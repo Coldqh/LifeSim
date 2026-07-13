@@ -63,12 +63,17 @@ export function createNpcPersonality(npcId: string, activityProfile: NpcActivity
   };
 }
 
-export function createInitialSocialState(): SocialState {
+export function createInitialSocialState(totalMinutes = 0): SocialState {
   return {
     relationships: {},
     scheduledEvents: [],
     eventCooldowns: {},
-    history: []
+    history: [],
+    contacts: {},
+    invitations: [],
+    meetings: [],
+    initiativeCooldowns: {},
+    lastProcessedTotalMinutes: Math.max(0, totalMinutes)
   };
 }
 
@@ -79,6 +84,8 @@ export function createInitialRelationship(npcId: NpcId): NpcRelationship {
     affinity: 0,
     trust: 0,
     tension: 0,
+    romance: 0,
+    romanceStatus: 'none',
     interactionCount: 0,
     memories: []
   };
@@ -119,7 +126,8 @@ export function applyRelationshipDelta(relationship: NpcRelationship, delta: Rel
     familiarity: clamp(relationship.familiarity + (delta.familiarity ?? 0)),
     affinity: clamp(relationship.affinity + (delta.affinity ?? 0), AFFINITY_MIN, AFFINITY_MAX),
     trust: clamp(relationship.trust + (delta.trust ?? 0)),
-    tension: clamp(relationship.tension + (delta.tension ?? 0))
+    tension: clamp(relationship.tension + (delta.tension ?? 0)),
+    romance: clamp(relationship.romance + (delta.romance ?? 0))
   };
 }
 

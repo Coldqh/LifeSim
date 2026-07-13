@@ -1,6 +1,7 @@
 import type { NpcId, SocialEventChoiceId, SocialEventId } from './ids';
 import type { NeedsState } from './needs';
 import type { RelationshipDelta, SocialContext } from './relationship';
+import type { SocialContact, SocialInvitation, SocialMeeting } from './socialLife';
 
 export type SocialFollowUp = {
   templateId: SocialEventId;
@@ -64,4 +65,9 @@ export type SocialState = {
   activeEvent?: ActiveSocialEvent;
   eventCooldowns: Record<string, number>;
   history: SocialHistoryEntry[];
+  contacts: Record<string, SocialContact>;
+  invitations: SocialInvitation[];
+  meetings: SocialMeeting[];
+  initiativeCooldowns: Record<string, number>;
+  lastProcessedTotalMinutes: number;
 };

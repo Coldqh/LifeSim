@@ -118,6 +118,21 @@ import {
   getRelationshipStatus
 } from '../core/relationships';
 import {
+  attendSocialMeeting,
+  cancelSocialMeeting,
+  createOutgoingSocialInvitation,
+  exchangeSocialContact,
+  getContactExchangeFailure,
+  getDefaultMeetingStart,
+  getMeetingInviteFailure,
+  getNpcSocialCircles,
+  getSocialMeetingFailure,
+  getSocialQuickMessageFailure,
+  processSocialLifeTime,
+  respondToSocialInvitation,
+  sendSocialQuickMessage
+} from '../core/social-life';
+import {
   applySocialEventChoice,
   maybeActivateSocialEvent,
   processScheduledSocialEvents
@@ -177,6 +192,7 @@ import { populationDataSource } from '../data/population/config';
 import { getNpcRoleById, NPC_ROLE_IDS } from '../data/population/npcRoles';
 import { getNpcInteractionById, npcInteractionTemplates } from '../data/social/interactionTemplates';
 import { socialEventTemplates } from '../data/social/socialEventTemplates';
+import { getSocialMeetingType, getSocialQuickMessage, socialMeetingTypes, socialQuickMessages } from '../data/social/meetingTypes';
 import { basicHousing, getHousingById } from '../data/housing/basicHousing';
 import { businessTypes, getBusinessTypeById } from '../data/business/businessTypes';
 import { businessPremises, getBusinessPremisesById } from '../data/business/premises';
@@ -226,6 +242,9 @@ import type {
   NpcId,
   NpcInteractionId,
   SocialEventChoiceId,
+  SocialInvitationId,
+  SocialMeetingId,
+  SocialMeetingTypeId,
   VehicleListingId,
   VehicleModelId,
   IntercityRouteId,
@@ -242,6 +261,7 @@ import type { GameTime } from '../types/time';
 import type { Npc } from '../types/npc';
 import type { SocialContext, SocialNpcView } from '../types/relationship';
 import type { SocialState } from '../types/socialEvent';
+import type { SocialMeetingSlot, SocialMessageActionId } from '../types/socialLife';
 import type { VehicleModel, VehicleOperationResult, VehicleWorldState } from '../types/vehicle';
 import type { MedicalState } from '../types/healthcare';
 import type { IntercityDeparture, IntercityRoute } from '../types/intercity';
@@ -715,6 +735,30 @@ export function useGameController() {
       });
       if (phone === currentState.world.phone) return currentState;
       return { ...currentState, world: { ...currentState.world, phone } };
+    });
+  }, [gameState.time.day, gameState.time.hour, gameState.time.minute]);
+
+
+  useEffect(() => {
+    setGameState((currentState) => {
+      const currentTotalMinutes = getTotalMinutes(currentState.time);
+      if (currentState.world.social.lastProcessedTotalMinutes >= currentTotalMinutes) return currentState;
+      const processed = processSocialLifeTime({
+        social: currentState.world.social,
+        phone: currentState.world.phone,
+        currentTotalMinutes,
+        npcs: currentState.world.population.npcs,
+        locations: allLocations,
+        meetingTypes: socialMeetingTypes
+      });
+      const changed = processed.social !== currentState.world.social || processed.phone !== currentState.world.phone;
+      if (!changed && processed.messages.length === 0) return currentState;
+      const entries = processed.messages.map((entry) => createLifeLogEntry(currentState, entry.title, entry.text));
+      return {
+        ...currentState,
+        world: { ...currentState.world, social: processed.social, phone: processed.phone },
+        lifeLog: mergeLifeLog(entries, currentState.lifeLog)
+      };
     });
   }, [gameState.time.day, gameState.time.hour, gameState.time.minute]);
 
@@ -1277,6 +1321,86 @@ export function useGameController() {
         )[0]
       : undefined;
 
+    const currentJob = getJobById(gameState.player.currentJobId);
+    const enrolledProgram = getDegreeProgramById(gameState.world.university.enrollment?.programId);
+    const enrolledUniversity = getUniversityById(enrolledProgram?.universityId);
+    const boxingLocationId = boxingGyms[0]?.locationId;
+    const ownedBusinessLocationId = getBusinessPremisesById(gameState.world.business.ownedBusiness?.premisesId)?.locationId;
+    const contacts = Object.values(gameState.world.social.contacts)
+      .map((contact) => {
+        const npc = gameState.world.population.npcs.find((entry) => entry.id === contact.npcId);
+        if (!npc) return undefined;
+        const relationship = getNpcRelationship(gameState.world.social, npc.id);
+        const role = getNpcRoleById(npc.employment?.roleId);
+        const messages = phone.messages.filter((entry) => entry.npcId === npc.id).slice(0, 20);
+        const circles = getNpcSocialCircles({
+          npc,
+          relationship,
+          playerJobLocationId: currentJob?.locationId,
+          universityLocationId: enrolledUniversity?.locationId,
+          boxingLocationId,
+          playerHomeDistrictId: String(gameState.player.districtId),
+          businessLocationId: ownedBusinessLocationId
+        });
+        const quickMessages = socialQuickMessages.map((definition) => ({
+          definition,
+          failure: getSocialQuickMessageFailure({
+            social: gameState.world.social,
+            npcId: npc.id,
+            definition,
+            currentTotalMinutes: getTotalMinutes(gameState.time)
+          })
+        }));
+        return {
+          contact,
+          npc,
+          relationship,
+          role,
+          status: getRelationshipStatus(relationship),
+          circles,
+          messages,
+          quickMessages,
+          pendingInvitation: gameState.world.social.invitations.find((entry) => entry.npcId === npc.id && entry.status === 'pending'),
+          scheduledMeeting: gameState.world.social.meetings.find((entry) => entry.npcId === npc.id && entry.status === 'scheduled')
+        };
+      })
+      .filter((entry): entry is NonNullable<typeof entry> => Boolean(entry))
+      .sort((left, right) => (right.contact.lastMessageTotalMinutes ?? right.contact.exchangedAtTotalMinutes) - (left.contact.lastMessageTotalMinutes ?? left.contact.exchangedAtTotalMinutes));
+    const socialMeetingOptions = socialMeetingTypes.map((definition) => ({
+      definition,
+      locations: allLocations.filter((location) => (
+        location.cityId === currentLocation?.cityId
+        && definition.locationTypes.includes(location.type)
+        && (!location.hiddenFromCityBrowser || location.id === getHousingById(gameState.player.housingId)?.locationId)
+      ))
+    }));
+    const socialInvitations = gameState.world.social.invitations
+      .filter((entry) => entry.direction === 'incoming' && entry.status === 'pending')
+      .map((invitation) => ({
+        invitation,
+        npc: gameState.world.population.npcs.find((entry) => entry.id === invitation.npcId),
+        definition: getSocialMeetingType(invitation.meetingTypeId),
+        location: getLocationById(invitation.locationId)
+      }));
+    const socialMeetings = gameState.world.social.meetings
+      .filter((entry) => entry.status === 'scheduled')
+      .map((meeting) => {
+        const definition = getSocialMeetingType(meeting.meetingTypeId);
+        return {
+          meeting,
+          npc: gameState.world.population.npcs.find((entry) => entry.id === meeting.npcId),
+          definition,
+          location: getLocationById(meeting.locationId),
+          failure: getSocialMeetingFailure({
+            meeting,
+            currentLocationId: gameState.player.locationId,
+            currentTotalMinutes: getTotalMinutes(gameState.time),
+            player: gameState.player,
+            definition
+          })
+        };
+      });
+
     return {
       phone,
       jobs,
@@ -1289,9 +1413,10 @@ export function useGameController() {
       vehicles: vehicleState,
       intercity: intercityState,
       university: universityState,
+      social: { contacts, meetingOptions: socialMeetingOptions, invitations: socialInvitations, meetings: socialMeetings },
       districtTravelOptions: locationState.districtTravelOptions
     };
-  }, [gameState.player, gameState.time, gameState.world.phone, gameState.world.vehicles, financeState, vehicleState, intercityState, universityState, locationState.districtTravelOptions]);
+  }, [gameState.player, gameState.time, gameState.world.phone, gameState.world.vehicles, gameState.world.social, gameState.world.population, gameState.world.business, financeState, vehicleState, intercityState, universityState, locationState.districtTravelOptions]);
 
   const educationState = useMemo(() => {
     const skills = basicSkills.map((skill) => ({
@@ -1605,6 +1730,7 @@ export function useGameController() {
           return { interaction, available: !failure, failure };
         });
 
+      const contactFailure = getContactExchangeFailure(gameState.world.social, npc.id);
       return {
         npc,
         role: getNpcRoleById(npc.employment?.roleId),
@@ -1615,6 +1741,8 @@ export function useGameController() {
         isStaff: staffIds.has(String(npc.id)),
         isColleague,
         isKnown: relationship.familiarity >= 5 || relationship.interactionCount > 0,
+        contactUnlocked: Boolean(gameState.world.social.contacts[String(npc.id)]),
+        contactFailure,
         interactions
       };
     }
@@ -1648,7 +1776,7 @@ export function useGameController() {
       activeEvent: gameState.world.social.activeEvent,
       activeEventNpc,
       history: gameState.world.social.history,
-      scheduledCount: gameState.world.social.scheduledEvents.length
+      scheduledCount: gameState.world.social.scheduledEvents.length + gameState.world.social.meetings.filter((entry) => entry.status === 'scheduled').length
     };
   }, [gameState.player, gameState.world.population, gameState.world.social]);
 
@@ -2583,6 +2711,195 @@ export function useGameController() {
           messages
         },
         lifeLog: mergeLifeLog([logEntry, ...elapsedApplied.lifeLogEntries], currentState.lifeLog)
+      };
+    });
+  }
+
+  function exchangeNpcContact(npcId: NpcId): void {
+    setGameState((currentState) => {
+      const npc = currentState.world.population.npcs.find((entry) => entry.id === npcId);
+      if (!npc) return currentState;
+      const isPresent = npc.worldState.kind === 'at_location' && npc.worldState.locationId === currentState.player.locationId;
+      if (!isPresent) {
+        return { ...currentState, lastResult: { ok: false, actionName: 'Обмен контактами', timeDeltaMinutes: 0, messages: ['Человек должен быть рядом.'] } };
+      }
+      const applied = exchangeSocialContact({
+        social: currentState.world.social,
+        phone: currentState.world.phone,
+        npc,
+        time: currentState.time
+      });
+      if (!applied.ok) {
+        return {
+          ...currentState,
+          lastResult: { ok: false, actionName: 'Обмен контактами', timeDeltaMinutes: 0, messages: [applied.message] }
+        };
+      }
+      const elapsedApplied = applyElapsedTimeConsequences(currentState, currentState.player, applied.time, 'active', applied.social);
+      const messages = [applied.message, ...elapsedApplied.messages];
+      return {
+        ...currentState,
+        player: elapsedApplied.player,
+        time: applied.time,
+        world: {
+          ...currentState.world,
+          population: elapsedApplied.population,
+          social: elapsedApplied.social,
+          phone: applied.phone,
+          housingMarket: elapsedApplied.housingMarket,
+          business: elapsedApplied.business,
+          medical: elapsedApplied.medical
+        },
+        lastResult: { ok: true, actionName: 'Обмен контактами', timeDeltaMinutes: 2, needsDelta: elapsedApplied.needsDelta, messages },
+        lifeLog: mergeLifeLog([createLifeLogEntry({ time: applied.time }, 'Контакты', applied.message), ...elapsedApplied.lifeLogEntries], currentState.lifeLog)
+      };
+    });
+  }
+
+  function sendNpcPhoneMessage(npcId: NpcId, actionId: SocialMessageActionId): void {
+    const definition = getSocialQuickMessage(actionId);
+    if (!definition) return;
+    setGameState((currentState) => {
+      const npc = currentState.world.population.npcs.find((entry) => entry.id === npcId);
+      if (!npc) return currentState;
+      const applied = sendSocialQuickMessage({
+        social: currentState.world.social,
+        phone: currentState.world.phone,
+        npc,
+        definition,
+        time: currentState.time
+      });
+      if (!applied.ok) {
+        return { ...currentState, lastResult: { ok: false, actionName: 'Сообщение', timeDeltaMinutes: 0, messages: [applied.message] } };
+      }
+      const elapsedApplied = applyElapsedTimeConsequences(currentState, currentState.player, applied.time, 'active', applied.social);
+      return {
+        ...currentState,
+        player: elapsedApplied.player,
+        time: applied.time,
+        world: {
+          ...currentState.world,
+          population: elapsedApplied.population,
+          social: elapsedApplied.social,
+          phone: applied.phone,
+          housingMarket: elapsedApplied.housingMarket,
+          business: elapsedApplied.business,
+          medical: elapsedApplied.medical
+        },
+        lastResult: { ok: true, actionName: 'Сообщение', timeDeltaMinutes: 5, needsDelta: elapsedApplied.needsDelta, messages: [applied.message, ...elapsedApplied.messages] },
+        lifeLog: mergeLifeLog([createLifeLogEntry({ time: applied.time }, 'Переписка', applied.message), ...elapsedApplied.lifeLogEntries], currentState.lifeLog)
+      };
+    });
+  }
+
+  function inviteNpcToMeeting(npcId: NpcId, meetingTypeId: SocialMeetingTypeId, locationId: LocationId, slot: SocialMeetingSlot): void {
+    setGameState((currentState) => {
+      const npc = currentState.world.population.npcs.find((entry) => entry.id === npcId);
+      const meetingType = getSocialMeetingType(meetingTypeId);
+      const location = getLocationById(locationId);
+      if (!npc || !meetingType) return currentState;
+      const applied = createOutgoingSocialInvitation({
+        player: currentState.player,
+        social: currentState.world.social,
+        phone: currentState.world.phone,
+        npc,
+        meetingType,
+        location,
+        startsAtTotalMinutes: getDefaultMeetingStart(getTotalMinutes(currentState.time), slot),
+        currentTotalMinutes: getTotalMinutes(currentState.time)
+      });
+      return {
+        ...currentState,
+        world: applied.ok ? { ...currentState.world, social: applied.social, phone: applied.phone } : currentState.world,
+        lastResult: { ok: applied.ok, actionName: 'Приглашение', timeDeltaMinutes: 0, messages: [applied.message] },
+        lifeLog: applied.ok ? mergeLifeLog([createLifeLogEntry(currentState, 'Приглашение', applied.message)], currentState.lifeLog) : currentState.lifeLog
+      };
+    });
+  }
+
+  function respondNpcMeetingInvitation(invitationId: SocialInvitationId, accept: boolean): void {
+    setGameState((currentState) => {
+      const applied = respondToSocialInvitation({
+        social: currentState.world.social,
+        phone: currentState.world.phone,
+        invitationId,
+        accept,
+        currentTotalMinutes: getTotalMinutes(currentState.time),
+        npcs: currentState.world.population.npcs,
+        meetingTypes: socialMeetingTypes
+      });
+      return {
+        ...currentState,
+        world: applied.ok ? { ...currentState.world, social: applied.social, phone: applied.phone } : currentState.world,
+        lastResult: { ok: applied.ok, actionName: accept ? 'Принять приглашение' : 'Отклонить приглашение', timeDeltaMinutes: 0, messages: [applied.message] },
+        lifeLog: applied.ok ? mergeLifeLog([createLifeLogEntry(currentState, 'Социальная жизнь', applied.message)], currentState.lifeLog) : currentState.lifeLog
+      };
+    });
+  }
+
+  function attendNpcMeeting(meetingId: SocialMeetingId): void {
+    setGameState((currentState) => {
+      const meeting = currentState.world.social.meetings.find((entry) => entry.id === meetingId);
+      const npc = currentState.world.population.npcs.find((entry) => entry.id === meeting?.npcId);
+      const definition = getSocialMeetingType(meeting?.meetingTypeId);
+      if (!meeting || !npc || !definition) return currentState;
+      const housing = getHousingById(currentState.player.housingId);
+      const applied = attendSocialMeeting({
+        player: currentState.player,
+        time: currentState.time,
+        social: currentState.world.social,
+        phone: currentState.world.phone,
+        meeting,
+        npc,
+        definition,
+        currentLocationId: currentState.player.locationId,
+        housingComfort: housing?.comfort
+      });
+      if (!applied.ok) {
+        return { ...currentState, lastResult: { ok: false, actionName: definition.shortTitle, timeDeltaMinutes: 0, messages: [applied.message] } };
+      }
+      const elapsedApplied = applyElapsedTimeConsequences(currentState, applied.player, applied.time, 'active', applied.social);
+      const messages = [applied.message, ...elapsedApplied.messages];
+      return {
+        ...currentState,
+        player: elapsedApplied.player,
+        time: applied.time,
+        world: {
+          ...currentState.world,
+          population: elapsedApplied.population,
+          social: elapsedApplied.social,
+          phone: applied.phone,
+          housingMarket: elapsedApplied.housingMarket,
+          business: elapsedApplied.business,
+          medical: elapsedApplied.medical
+        },
+        lastResult: {
+          ok: true,
+          actionName: definition.shortTitle,
+          timeDeltaMinutes: definition.durationMinutes,
+          moneyDelta: applied.moneyDelta,
+          needsDelta: mergeNeedsDelta(applied.needsDelta, elapsedApplied.needsDelta),
+          messages
+        },
+        lifeLog: mergeLifeLog([createLifeLogEntry({ time: applied.time }, 'Встреча', applied.message), ...elapsedApplied.lifeLogEntries], currentState.lifeLog)
+      };
+    });
+  }
+
+  function cancelNpcMeeting(meetingId: SocialMeetingId): void {
+    setGameState((currentState) => {
+      const applied = cancelSocialMeeting({
+        social: currentState.world.social,
+        phone: currentState.world.phone,
+        meetingId,
+        currentTotalMinutes: getTotalMinutes(currentState.time),
+        npcs: currentState.world.population.npcs
+      });
+      return {
+        ...currentState,
+        world: applied.ok ? { ...currentState.world, social: applied.social, phone: applied.phone } : currentState.world,
+        lastResult: { ok: applied.ok, actionName: 'Отмена встречи', timeDeltaMinutes: 0, messages: [applied.message] },
+        lifeLog: applied.ok ? mergeLifeLog([createLifeLogEntry(currentState, 'Встреча', applied.message)], currentState.lifeLog) : currentState.lifeLog
       };
     });
   }
@@ -3806,6 +4123,12 @@ export function useGameController() {
     startBoxingSparring,
     enterBoxingTournament,
     interactWithNpc,
+    exchangeNpcContact,
+    sendNpcPhoneMessage,
+    inviteNpcToMeeting,
+    respondNpcMeetingInvitation,
+    attendNpcMeeting,
+    cancelNpcMeeting,
     chooseSocialEvent,
     scheduleHousingViewing: scheduleHousingViewingAction,
     viewHousing,

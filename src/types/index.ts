@@ -38,3 +38,5 @@ export * from './healthcare';
 export * from './intercity';
 
 export * from './university';
+
+export * from './socialLife';

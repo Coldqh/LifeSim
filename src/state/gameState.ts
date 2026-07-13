@@ -32,8 +32,8 @@ import { createInitialUniversityState } from '../core/university';
 import { businessPremises } from '../data/business/premises';
 import { usedVehicleListingTemplates } from '../data/vehicles/usedListingTemplates';
 
-export const GAME_STATE_STORAGE_KEY = 'lifesim.gameState.v22';
-const LEGACY_GAME_STATE_STORAGE_KEYS = ['lifesim.gameState.v21', 'lifesim.gameState.v20', 'lifesim.gameState.v19', 'lifesim.gameState.v18', 'lifesim.gameState.v17', 'lifesim.gameState.v16', 'lifesim.gameState.v15', 'lifesim.gameState.v14', 'lifesim.gameState.v13', 'lifesim.gameState.v12', 'lifesim.gameState.v11', 'lifesim.gameState.v10', 'lifesim.gameState.v9', 'lifesim.gameState.v8', 'lifesim.gameState.v7'];
+export const GAME_STATE_STORAGE_KEY = 'lifesim.gameState.v23';
+const LEGACY_GAME_STATE_STORAGE_KEYS = ['lifesim.gameState.v22', 'lifesim.gameState.v21', 'lifesim.gameState.v20', 'lifesim.gameState.v19', 'lifesim.gameState.v18', 'lifesim.gameState.v17', 'lifesim.gameState.v16', 'lifesim.gameState.v15', 'lifesim.gameState.v14', 'lifesim.gameState.v13', 'lifesim.gameState.v12', 'lifesim.gameState.v11', 'lifesim.gameState.v10', 'lifesim.gameState.v9', 'lifesim.gameState.v8', 'lifesim.gameState.v7'];
 const STARTER_INVENTORY_BACKFILL_KEYS = new Set(['lifesim.gameState.v9', 'lifesim.gameState.v8', 'lifesim.gameState.v7']);
 const REMOVED_PRODUCT_IDS = new Set(['hygiene_kit', 'toothpaste', 'laundry_powder']);
 
@@ -219,7 +219,7 @@ export function createInitialGameState(): GameState {
     time,
     world: {
       population,
-      social: createInitialSocialState(),
+      social: createInitialSocialState(getTotalMinutes(time)),
       housingMarket: createHousingMarket({
         seed: population.seed ^ 0x48a3f2,
         day: time.day,
@@ -317,16 +317,43 @@ function normalizePopulation(value: unknown, time: GameTime): PopulationState {
 }
 
 
-function normalizeSocialState(value: unknown): SocialState {
-  const initial = createInitialSocialState();
+function normalizeSocialState(value: unknown, time: GameTime): SocialState {
+  const initial = createInitialSocialState(getTotalMinutes(time));
   if (!value || typeof value !== 'object') return initial;
   const candidate = value as Partial<SocialState>;
+  const relationships: SocialState['relationships'] = candidate.relationships && typeof candidate.relationships === 'object'
+    ? Object.fromEntries(Object.entries(candidate.relationships).map(([key, raw]) => {
+        const relationship = raw as import('../types/relationship').NpcRelationship;
+        const romance = typeof relationship.romance === 'number' ? Math.min(100, Math.max(0, relationship.romance)) : 0;
+        const romanceStatus: import('../types/relationship').RomanceStatus = relationship.romanceStatus === 'interest' || relationship.romanceStatus === 'dating' || relationship.romanceStatus === 'partner'
+          ? relationship.romanceStatus
+          : 'none';
+        return [key, {
+          ...relationship,
+          familiarity: typeof relationship.familiarity === 'number' ? relationship.familiarity : 0,
+          affinity: typeof relationship.affinity === 'number' ? relationship.affinity : 0,
+          trust: typeof relationship.trust === 'number' ? relationship.trust : 0,
+          tension: typeof relationship.tension === 'number' ? relationship.tension : 0,
+          romance,
+          romanceStatus,
+          interactionCount: typeof relationship.interactionCount === 'number' ? relationship.interactionCount : 0,
+          memories: Array.isArray(relationship.memories) ? relationship.memories.slice(0, 12) : []
+        }];
+      }))
+    : {};
   return {
-    relationships: candidate.relationships && typeof candidate.relationships === 'object' ? candidate.relationships : {},
+    relationships,
     scheduledEvents: Array.isArray(candidate.scheduledEvents) ? candidate.scheduledEvents : [],
     activeEvent: candidate.activeEvent && typeof candidate.activeEvent === 'object' ? candidate.activeEvent : undefined,
     eventCooldowns: candidate.eventCooldowns && typeof candidate.eventCooldowns === 'object' ? candidate.eventCooldowns : {},
-    history: Array.isArray(candidate.history) ? candidate.history.slice(0, 40) : []
+    history: Array.isArray(candidate.history) ? candidate.history.slice(0, 40) : [],
+    contacts: candidate.contacts && typeof candidate.contacts === 'object' ? candidate.contacts : {},
+    invitations: Array.isArray(candidate.invitations) ? candidate.invitations.slice(0, 60) : [],
+    meetings: Array.isArray(candidate.meetings) ? candidate.meetings.slice(0, 60) : [],
+    initiativeCooldowns: candidate.initiativeCooldowns && typeof candidate.initiativeCooldowns === 'object' ? candidate.initiativeCooldowns : {},
+    lastProcessedTotalMinutes: typeof candidate.lastProcessedTotalMinutes === 'number'
+      ? Math.min(getTotalMinutes(time), Math.max(0, candidate.lastProcessedTotalMinutes))
+      : getTotalMinutes(time)
   };
 }
 
@@ -581,7 +608,7 @@ export function loadGameState(): GameState | undefined {
         ...parsed,
         world: {
           population,
-          social: normalizeSocialState(parsed.world?.social),
+          social: normalizeSocialState(parsed.world?.social, parsed.time),
           housingMarket: normalizeHousingMarket(parsed.world?.housingMarket, parsed.time, population.seed, playerHousingId),
           business: normalizeBusinessWorld(parsed.world?.business, parsed.time, population.seed),
           phone: normalizePhoneState(parsed.world?.phone, parsed.time),

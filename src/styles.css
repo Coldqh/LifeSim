@@ -6210,3 +6210,13 @@ body {
     display: none;
   }
 }
+
+/* Social contact action */
+.npc-contact-action {
+  border-left: 3px solid var(--accent, #7c6cff) !important;
+}
+
+.npc-contact-action--saved {
+  border-left-color: #25b77d !important;
+  opacity: .76;
+}

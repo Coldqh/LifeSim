@@ -166,6 +166,7 @@ type DashboardProps = {
   onBoxingSparring: (opponentId: BoxingOpponentId) => void;
   onBoxingTournament: (tournamentId: BoxingTournamentId) => void;
   onInteractWithNpc: (npcId: NpcId, interactionId: NpcInteractionId) => void;
+  onExchangeNpcContact: (npcId: NpcId) => void;
   onChooseSocialEvent: (choiceId: SocialEventChoiceId) => void;
   onScheduleHousingViewing: (housingId: HousingId) => void;
   onViewHousing: (housingId: HousingId) => void;
@@ -244,6 +245,7 @@ export function Dashboard({
   onBoxingSparring,
   onBoxingTournament,
   onInteractWithNpc,
+  onExchangeNpcContact,
   onChooseSocialEvent,
   onScheduleHousingViewing,
   onViewHousing,
@@ -477,7 +479,7 @@ export function Dashboard({
           {activeTab === 'jobs' ? <section className="screen screen-enter narrow-screen"><JobPanel currentJobView={jobState.currentJobView} colleagues={socialState.colleagues} onInteract={onInteractWithNpc} onPromoteJob={onPromoteJob} onWorkShift={onWorkShift} /></section> : null}
           {activeTab === 'development' ? <section className="screen screen-enter narrow-screen"><DevelopmentPanel skills={educationState.skills} programs={educationState.programs} onStudyProgram={onStudyProgram} /></section> : null}
           {activeTab === 'sport' ? <section className="screen screen-enter sport-screen"><SportPanel state={boxingState} currentDay={time.day} onBuyMembership={onBuyBoxingMembership} onChooseTrainer={onChooseBoxingTrainer} onTraining={onBoxingTraining} onSparring={onBoxingSparring} onTournament={onBoxingTournament} /></section> : null}
-          {activeTab === 'people' ? <section className="screen screen-enter people-screen"><PeoplePanel currentPeople={socialState.currentPeople} knownPeople={socialState.knownPeople} scheduledCount={socialState.scheduledCount} history={socialState.history} onInteract={onInteractWithNpc} /></section> : null}
+          {activeTab === 'people' ? <section className="screen screen-enter people-screen"><PeoplePanel currentPeople={socialState.currentPeople} knownPeople={socialState.knownPeople} scheduledCount={socialState.scheduledCount} history={socialState.history} onInteract={onInteractWithNpc} onExchangeContact={onExchangeNpcContact} /></section> : null}
           {activeTab === 'log' ? <section className="screen screen-enter narrow-screen"><LifeLog entries={gameState.lifeLog} /></section> : null}
         </div>
       </section>

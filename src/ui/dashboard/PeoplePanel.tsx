@@ -11,6 +11,7 @@ export type PeoplePanelProps = {
   scheduledCount: number;
   history: SocialHistoryEntry[];
   onInteract: (npcId: NpcId, interactionId: NpcInteractionId) => void;
+  onExchangeContact: (npcId: NpcId) => void;
 };
 
 type PeopleFilter = 'all' | 'work' | 'boxing' | 'friends' | 'conflicts';
@@ -81,7 +82,7 @@ function PeopleList({
   );
 }
 
-export function PeoplePanel({ currentPeople, knownPeople, scheduledCount, history, onInteract }: PeoplePanelProps) {
+export function PeoplePanel({ currentPeople, knownPeople, scheduledCount, history, onInteract, onExchangeContact }: PeoplePanelProps) {
   const [mode, setMode] = useState<'current' | 'known'>('current');
   const [filter, setFilter] = useState<PeopleFilter>('all');
   const source = mode === 'current' ? currentPeople : knownPeople;
@@ -166,6 +167,16 @@ export function PeoplePanel({ currentPeople, knownPeople, scheduledCount, histor
             <section className="npc-profile-panel__actions">
               <header><span>Действия</span><small>{selected.isPresent ? 'Доступны по ситуации' : 'Человека сейчас нет рядом'}</small></header>
               <div>
+                <button
+                  className={selected.contactUnlocked ? 'npc-contact-action npc-contact-action--saved' : 'npc-contact-action'}
+                  disabled={selected.contactUnlocked || !selected.isPresent || Boolean(selected.contactFailure)}
+                  title={selected.contactFailure}
+                  type="button"
+                  onClick={() => onExchangeContact(selected.npc.id)}
+                >
+                  <span><strong>{selected.contactUnlocked ? 'Контакт сохранён' : 'Обменяться контактами'}</strong><small>{selected.contactUnlocked ? 'Доступен в телефоне' : '2 мин · нужен живой разговор'}</small></span>
+                  <Icon name={selected.contactUnlocked ? 'star' : 'phone'} size={15} />
+                </button>
                 {selected.interactions.map(({ interaction, available, failure }) => (
                   <button
                     disabled={!available}

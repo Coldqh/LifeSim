@@ -37,6 +37,12 @@ export function AppShell() {
     startBoxingSparring,
     enterBoxingTournament,
     interactWithNpc,
+    exchangeNpcContact,
+    sendNpcPhoneMessage,
+    inviteNpcToMeeting,
+    respondNpcMeetingInvitation,
+    attendNpcMeeting,
+    cancelNpcMeeting,
     chooseSocialEvent,
     scheduleHousingViewing,
     viewHousing,
@@ -123,6 +129,7 @@ export function AppShell() {
         onBoxingSparring={startBoxingSparring}
         onBoxingTournament={enterBoxingTournament}
         onInteractWithNpc={interactWithNpc}
+        onExchangeNpcContact={exchangeNpcContact}
         onChooseSocialEvent={chooseSocialEvent}
         onScheduleHousingViewing={scheduleHousingViewing}
         onViewHousing={viewHousing}
@@ -182,6 +189,11 @@ export function AppShell() {
         onCompleteDegreeAssignment={completeDegreeAssignment}
         onTakeDegreeSemesterExam={takeDegreeSemesterExam}
         onSkipTime={skipGameTime}
+        onSendSocialMessage={sendNpcPhoneMessage}
+        onInviteSocialMeeting={inviteNpcToMeeting}
+        onRespondSocialInvitation={respondNpcMeetingInvitation}
+        onAttendSocialMeeting={attendNpcMeeting}
+        onCancelSocialMeeting={cancelNpcMeeting}
       />
     </>
   );

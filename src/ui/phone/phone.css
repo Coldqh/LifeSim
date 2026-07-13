@@ -595,3 +595,272 @@
 .phone-time-inputs small { color: var(--phone-muted); }
 .phone-time-presets { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
 .phone-time-presets button { padding: 9px 4px; border: 1px solid rgba(255,255,255,.1); background: rgba(255,255,255,.05); color: var(--phone-text); }
+
+/* Social life / contacts */
+.phone-app-banner--contacts {
+  background:
+    linear-gradient(135deg, rgba(24, 190, 135, .9), rgba(17, 91, 74, .94)),
+    radial-gradient(circle at 82% 18%, rgba(255,255,255,.2), transparent 35%);
+}
+
+.phone-contacts-app {
+  gap: 12px;
+}
+
+.phone-contact-profile {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid var(--phone-border);
+  background: var(--phone-surface);
+}
+
+.phone-contact-profile__avatar {
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  flex: 0 0 56px;
+  background: linear-gradient(145deg, #25c28a, #0c6854);
+  color: #fff;
+  font-size: 18px;
+  font-weight: 900;
+  letter-spacing: .04em;
+}
+
+.phone-contact-profile h2 {
+  margin: 2px 0 4px;
+  font-size: 20px;
+}
+
+.phone-contact-profile p,
+.phone-contact-profile span {
+  margin: 0;
+}
+
+.phone-contact-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1px;
+  border: 1px solid var(--phone-border);
+  background: var(--phone-border);
+}
+
+.phone-contact-metrics > div {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 11px;
+  background: var(--phone-surface);
+}
+
+.phone-contact-metrics span {
+  color: var(--phone-muted);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+}
+
+.phone-contact-metrics strong {
+  font-size: 18px;
+}
+
+.phone-contact-romance {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-left: 3px solid #e76480;
+  background: rgba(231, 100, 128, .1);
+  color: var(--phone-text);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.phone-contact-circles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.phone-contact-circles span {
+  padding: 5px 8px;
+  border: 1px solid var(--phone-border);
+  background: var(--phone-surface-soft);
+  color: var(--phone-muted);
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+}
+
+.phone-social-active-card,
+.phone-social-invitations article,
+.phone-social-schedule article {
+  padding: 12px;
+  border: 1px solid var(--phone-border);
+  background: var(--phone-surface);
+}
+
+.phone-social-active-card > span,
+.phone-social-invitations article > span,
+.phone-social-schedule article > span {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--phone-muted);
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+}
+
+.phone-social-active-card > strong,
+.phone-social-invitations article > strong,
+.phone-social-schedule article > strong {
+  display: block;
+  font-size: 14px;
+}
+
+.phone-social-invitations,
+.phone-social-schedule {
+  display: grid;
+  gap: 8px;
+}
+
+.phone-social-invitations article p,
+.phone-social-schedule article p {
+  margin: 5px 0 0;
+  color: var(--phone-muted);
+  font-size: 11px;
+}
+
+.phone-social-quick-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+
+.phone-social-quick-grid button {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 44px;
+  padding: 9px;
+  border: 1px solid var(--phone-border);
+  background: var(--phone-surface-soft);
+  color: var(--phone-text);
+  text-align: left;
+  font-size: 11px;
+  font-weight: 750;
+}
+
+.phone-social-quick-grid button:disabled {
+  opacity: .42;
+}
+
+.phone-field-label {
+  display: grid;
+  gap: 5px;
+  margin-bottom: 9px;
+  color: var(--phone-muted);
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+}
+
+.phone-field-label select {
+  width: 100%;
+  min-height: 42px;
+  padding: 0 10px;
+  border: 1px solid var(--phone-border);
+  border-radius: 0;
+  background: var(--phone-surface-soft);
+  color: var(--phone-text);
+  font: inherit;
+  font-size: 12px;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.phone-contact-chat {
+  display: grid;
+  gap: 7px;
+  max-height: 270px;
+  overflow: auto;
+}
+
+.phone-contact-chat > div {
+  max-width: 88%;
+  padding: 9px 10px;
+  border: 1px solid var(--phone-border);
+  background: var(--phone-surface-soft);
+}
+
+.phone-contact-chat > div.is-outgoing {
+  justify-self: end;
+  border-color: rgba(35, 194, 138, .35);
+  background: rgba(35, 194, 138, .12);
+}
+
+.phone-contact-chat strong,
+.phone-contact-chat small {
+  display: block;
+  font-size: 9px;
+  color: var(--phone-muted);
+}
+
+.phone-contact-chat p {
+  margin: 3px 0;
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.phone-contact-filters {
+  overflow-x: auto;
+  flex-wrap: nowrap;
+}
+
+.phone-contact-list {
+  display: grid;
+  gap: 1px;
+  border: 1px solid var(--phone-border);
+  background: var(--phone-border);
+}
+
+.phone-contact-list > button {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding: 11px;
+  border: 0;
+  background: var(--phone-surface);
+  color: var(--phone-text);
+  text-align: left;
+}
+
+.phone-contact-list > button:hover {
+  background: var(--phone-surface-soft);
+}
+
+.phone-contact-list > button div {
+  min-width: 0;
+}
+
+.phone-contact-list > button strong,
+.phone-contact-list > button small,
+.phone-contact-list > button p {
+  display: block;
+}
+
+.phone-contact-list > button small,
+.phone-contact-list > button p {
+  overflow: hidden;
+  margin: 2px 0 0;
+  color: var(--phone-muted);
+  font-size: 10px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
