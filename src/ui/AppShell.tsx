@@ -13,6 +13,7 @@ export function AppShell() {
     populationState,
     socialState,
     housingState,
+    businessState,
     performAction,
     moveToDistrict,
     moveToLocation,
@@ -32,6 +33,15 @@ export function AppShell() {
     scheduleHousingViewing,
     viewHousing,
     rentHousing,
+    openCoffeeBusiness,
+    purchaseBusinessSupply,
+    changeBusinessMenuPrice,
+    hireBusinessNpc,
+    fireBusinessNpc,
+    addBusinessFunds,
+    purchaseBusinessEquipment,
+    purchaseBusinessUpgrade,
+    workBusinessOwnerShift,
     resetGame
   } = useGameController();
 
@@ -46,6 +56,7 @@ export function AppShell() {
       populationState={populationState}
       socialState={socialState}
       housingState={housingState}
+      businessState={businessState}
       locationState={locationState}
       onApplyForJob={applyForJob}
       onBuyProduct={buyProduct}
@@ -67,6 +78,15 @@ export function AppShell() {
       onScheduleHousingViewing={scheduleHousingViewing}
       onViewHousing={viewHousing}
       onRentHousing={rentHousing}
+      onOpenBusiness={openCoffeeBusiness}
+      onBuyBusinessSupply={purchaseBusinessSupply}
+      onSetBusinessPrice={changeBusinessMenuPrice}
+      onHireBusinessNpc={hireBusinessNpc}
+      onFireBusinessNpc={fireBusinessNpc}
+      onInvestBusiness={addBusinessFunds}
+      onBuyBusinessEquipment={purchaseBusinessEquipment}
+      onBuyBusinessUpgrade={purchaseBusinessUpgrade}
+      onWorkBusinessOwnerShift={workBusinessOwnerShift}
     />
   );
 }

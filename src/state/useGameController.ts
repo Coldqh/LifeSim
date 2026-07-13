@@ -1,6 +1,21 @@
 import { useEffect, useMemo, useState } from 'react';
 import { applyLifeAction } from '../core/actions';
 import {
+  buyBusinessEquipment,
+  buyBusinessSupply,
+  buyBusinessUpgrade,
+  fireBusinessEmployee,
+  getBusinessHireCandidates,
+  getBusinessLaunchFailure,
+  getBusinessStartupCost,
+  hireBusinessEmployee,
+  investInBusiness,
+  isBusinessEmployeeOnShift,
+  launchBusiness,
+  setBusinessMenuPrice,
+  simulateBusinessTime
+} from '../core/business';
+import {
   applyHousingDayChanges,
   applyHousingSleepRecovery,
   getHousingAffordability,
@@ -25,7 +40,7 @@ import {
   getJobShiftFailure
 } from '../core/jobs';
 import { addInventoryItem, hasInventoryItem, removeInventoryItem } from '../core/inventory';
-import { getMissingSkillRequirements, getSkillProgress } from '../core/progression';
+import { applySkillExperience, getMissingSkillRequirements, getSkillProgress } from '../core/progression';
 import {
   getActionsForLocation,
   getCityById,
@@ -38,12 +53,14 @@ import {
 } from '../core/location';
 import {
   adjustActivityNeedsDelta,
+  applyActivityNeedsDelta,
   applyNeedsDecay,
   applyNeedsDelta,
   describeNeedsDecay,
   getConditionTransitionMessages,
   getNeedConditions,
   getNeedsConsequences,
+  getNeedsRequirementFailure,
   getNeedWarning,
   type NeedsDecayProfile
 } from '../core/needs';
@@ -88,10 +105,16 @@ import {
 import { getLifeAction } from '../data';
 import { moscowLocations } from '../data/locations/moscowLocations';
 import { populationDataSource } from '../data/population/config';
-import { getNpcRoleById } from '../data/population/npcRoles';
+import { getNpcRoleById, NPC_ROLE_IDS } from '../data/population/npcRoles';
 import { getNpcInteractionById, npcInteractionTemplates } from '../data/social/interactionTemplates';
 import { socialEventTemplates } from '../data/social/socialEventTemplates';
 import { basicHousing, getHousingById } from '../data/housing/basicHousing';
+import { businessTypes, getBusinessTypeById } from '../data/business/businessTypes';
+import { businessPremises, getBusinessPremisesById } from '../data/business/premises';
+import { businessEquipment, getBusinessEquipmentById, BUSINESS_EQUIPMENT_IDS } from '../data/business/equipment';
+import { businessSupplies, getBusinessSupplyById } from '../data/business/supplies';
+import { businessMenuItems, getBusinessMenuItemById } from '../data/business/menu';
+import { businessUpgrades, getBusinessUpgradeById } from '../data/business/upgrades';
 import { basicEducationPrograms, getEducationProgramById } from '../data/education/basicPrograms';
 import { basicJobs, getJobById, getJobsForLocation } from '../data/jobs/basicJobs';
 import { getProductById } from '../data/products/basicProducts';
@@ -103,6 +126,11 @@ import { boxingOpponents, getBoxingOpponentById } from '../data/sports/boxingOpp
 import { boxingTournaments, getBoxingTournamentById } from '../data/sports/boxingTournaments';
 import type {
   ActionId,
+  BusinessEquipmentId,
+  BusinessMenuItemId,
+  BusinessPremisesId,
+  BusinessSupplyId,
+  BusinessUpgradeId,
   BoxingGymId,
   BoxingOpponentId,
   BoxingTournamentId,
@@ -118,6 +146,7 @@ import type {
   SocialEventChoiceId
 } from '../types/ids';
 import type { HousingId, HousingMarketState } from '../types/housing';
+import type { BusinessEmployeeRole, BusinessWorldState } from '../types/business';
 import type { TravelModeId } from '../types/transport';
 import type { NeedsState } from '../types/needs';
 import type { Player } from '../types/player';
@@ -164,8 +193,9 @@ function applyElapsedTimeConsequences(
   nextTime: GameTime,
   decayProfile: NeedsDecayProfile = 'active',
   socialOverride: SocialState = currentState.world.social,
-  housingMarketOverride: HousingMarketState = currentState.world.housingMarket
-): { player: Player; population: GameState['world']['population']; social: SocialState; housingMarket: HousingMarketState; lifeLogEntries: LifeLogEntry[]; needsDelta?: Partial<NeedsState>; messages: string[] } {
+  housingMarketOverride: HousingMarketState = currentState.world.housingMarket,
+  businessOverride: BusinessWorldState = currentState.world.business
+): { player: Player; population: GameState['world']['population']; social: SocialState; housingMarket: HousingMarketState; business: BusinessWorldState; lifeLogEntries: LifeLogEntry[]; needsDelta?: Partial<NeedsState>; messages: string[] } {
   const elapsedMinutes = getElapsedMinutes(currentState.time, nextTime);
   const lifeLogEntries: LifeLogEntry[] = [];
   const messages: string[] = [];
@@ -242,6 +272,28 @@ function applyElapsedTimeConsequences(
     locations: moscowLocations,
     getLocationProfile: populationDataSource.getLocationProfile
   });
+  const ownedBusiness = businessOverride.ownedBusiness;
+  const businessPremisesEntry = getBusinessPremisesById(ownedBusiness?.premisesId);
+  const businessTypeEntry = getBusinessTypeById(ownedBusiness?.typeId);
+  const businessApplied = simulateBusinessTime({
+    world: businessOverride,
+    fromTime: currentState.time,
+    toTime: nextTime,
+    population,
+    premises: businessPremisesEntry,
+    businessType: businessTypeEntry,
+    equipment: businessEquipment,
+    menuItems: businessMenuItems,
+    supplies: businessSupplies,
+    upgrades: businessUpgrades
+  });
+  if (businessApplied.events.length > 0) {
+    businessApplied.events.forEach((event) => {
+      messages.push(event.text);
+      lifeLogEntries.push(createLifeLogEntry({ time: nextTime }, event.title, event.text));
+    });
+  }
+
   let social = processScheduledSocialEvents({
     social: socialOverride,
     currentDay: nextTime.day,
@@ -271,6 +323,7 @@ function applyElapsedTimeConsequences(
     population,
     social,
     housingMarket,
+    business: businessApplied.world,
     lifeLogEntries,
     needsDelta: mergeNeedsDelta(decayApplied.delta, comfortNeedsDelta),
     messages
@@ -302,7 +355,7 @@ function applyBoxingOperationState(
   return {
     ...currentState,
     player: elapsedApplied.player,
-    world: { ...currentState.world, population: elapsedApplied.population, social: elapsedApplied.social, housingMarket: elapsedApplied.housingMarket },
+    world: { ...currentState.world, population: elapsedApplied.population, social: elapsedApplied.social, housingMarket: elapsedApplied.housingMarket, business: elapsedApplied.business },
     time: applied.time,
     lastResult: {
       ok: true,
@@ -603,6 +656,96 @@ export function useGameController() {
     };
   }, [gameState.player, gameState.time.day, gameState.world.housingMarket]);
 
+  const businessState = useMemo(() => {
+    const world = gameState.world.business;
+    const selectedType = businessTypes[0];
+    const premisesListings = world.activePremisesIds
+      .map((id) => getBusinessPremisesById(id))
+      .filter((premises): premises is NonNullable<typeof premises> => Boolean(premises))
+      .map((premises) => {
+        const location = getLocationById(premises.locationId);
+        const district = getDistrictById(premises.districtId);
+        const startup = selectedType
+          ? getBusinessStartupCost({ premises, businessType: selectedType, equipment: businessEquipment, supplies: businessSupplies })
+          : { equipmentCost: 0, starterInventoryCost: 0, total: 0 };
+        const failure = selectedType
+          ? getBusinessLaunchFailure({ player: gameState.player, world, premises, businessType: selectedType, equipment: businessEquipment, supplies: businessSupplies })
+          : 'Формат бизнеса не найден.';
+        return {
+          premises,
+          location,
+          district,
+          startup,
+          canLaunch: !failure,
+          failure,
+          isAtLocation: gameState.player.locationId === premises.locationId
+        };
+      })
+      .sort((left, right) => left.premises.rentPerWeek - right.premises.rentPerWeek);
+
+    const business = world.ownedBusiness;
+    const premises = getBusinessPremisesById(business?.premisesId);
+    const businessType = getBusinessTypeById(business?.typeId);
+    const scheduleStatus = getScheduleStatus(business?.schedule, gameState.time);
+    const menu = (businessType?.menuItemIds ?? [])
+      .map((id) => getBusinessMenuItemById(id))
+      .filter((item): item is NonNullable<typeof item> => Boolean(item))
+      .map((item) => ({
+        item,
+        price: business?.menuPrices[item.id] ?? item.recommendedPrice,
+        canProduce: Boolean(business && item.ingredients.every((ingredient) => (business.inventory[ingredient.supplyId] ?? 0) >= ingredient.quantity))
+      }));
+    const supplies = businessSupplies.map((supply) => ({
+      supply,
+      quantity: business?.inventory[supply.id] ?? 0,
+      batchCost: supply.unitCost * supply.purchaseBatch,
+      canBuy: Boolean(business && business.balance >= supply.unitCost * supply.purchaseBatch)
+    }));
+    const equipment = businessEquipment.map((item) => ({
+      equipment: item,
+      owned: Boolean(business?.equipmentIds.includes(item.id)),
+      canBuy: Boolean(business && !business.equipmentIds.includes(item.id) && business.balance >= item.price)
+    }));
+    const upgrades = businessUpgrades.map((upgrade) => ({
+      upgrade,
+      owned: Boolean(business?.upgradeIds.includes(upgrade.id)),
+      canBuy: Boolean(business && !business.upgradeIds.includes(upgrade.id) && business.balance >= upgrade.price)
+    }));
+    const employees = (business?.employees ?? []).map((employee) => ({
+      employee,
+      npc: gameState.world.population.npcs.find((npc) => npc.id === employee.npcId),
+      onShift: isBusinessEmployeeOnShift(employee, gameState.time)
+    }));
+    const candidates = getBusinessHireCandidates(gameState.world.population, world, gameState.time.day);
+    const recentCustomers = (business?.lastCustomerNpcIds ?? [])
+      .map((id) => gameState.world.population.npcs.find((npc) => npc.id === id))
+      .filter((npc): npc is NonNullable<typeof npc> => Boolean(npc));
+    const ownerShiftFailure = !business || !premises
+      ? 'Сначала открой бизнес.'
+      : gameState.player.locationId !== premises.locationId
+        ? 'Нужно быть в своей кофейне.'
+        : getScheduleActivityFailure(business.schedule, gameState.time, 240, 'Смена владельца')
+          ?? getNeedsRequirementFailure(gameState.player.needs, { minEnergy: 20, minHealth: 25, minHunger: 6, minThirst: 6 });
+
+    return {
+      world,
+      business,
+      businessType,
+      premises,
+      premisesListings,
+      scheduleStatus,
+      menu,
+      supplies,
+      equipment,
+      upgrades,
+      employees,
+      candidates,
+      recentCustomers,
+      ownerShiftFailure,
+      canWorkOwnerShift: Boolean(business && premises && !ownerShiftFailure)
+    };
+  }, [gameState.player, gameState.time, gameState.world.business, gameState.world.population]);
+
   const populationState = useMemo(() => ({
     presence: getLocationPopulationPresence(gameState.world.population, gameState.player.locationId),
     summary: getPopulationSummary(gameState.world.population, gameState.time.day)
@@ -746,7 +889,7 @@ export function useGameController() {
       return {
         ...currentState,
         player: elapsedApplied.player,
-        world: { ...currentState.world, population: elapsedApplied.population, social: elapsedApplied.social, housingMarket: elapsedApplied.housingMarket },
+        world: { ...currentState.world, population: elapsedApplied.population, social: elapsedApplied.social, housingMarket: elapsedApplied.housingMarket, business: elapsedApplied.business },
         time: applied.time,
         lastResult: {
           ...applied.result,
@@ -810,7 +953,7 @@ export function useGameController() {
         ...currentState,
         time: nextTime,
         player: elapsedApplied.player,
-        world: { ...currentState.world, population: elapsedApplied.population, social: elapsedApplied.social, housingMarket: elapsedApplied.housingMarket },
+        world: { ...currentState.world, population: elapsedApplied.population, social: elapsedApplied.social, housingMarket: elapsedApplied.housingMarket, business: elapsedApplied.business },
         lastResult: {
           ok: true,
           timeDeltaMinutes: travel.durationMinutes,
@@ -874,7 +1017,7 @@ export function useGameController() {
         ...currentState,
         time: nextTime,
         player: elapsedApplied.player,
-        world: { ...currentState.world, population: elapsedApplied.population, social: elapsedApplied.social, housingMarket: elapsedApplied.housingMarket },
+        world: { ...currentState.world, population: elapsedApplied.population, social: elapsedApplied.social, housingMarket: elapsedApplied.housingMarket, business: elapsedApplied.business },
         lastResult: {
           ok: true,
           timeDeltaMinutes: travel.durationMinutes,
@@ -999,7 +1142,7 @@ export function useGameController() {
         ...currentState,
         time: nextTime,
         player: elapsedApplied.player,
-        world: { ...currentState.world, population: elapsedApplied.population, social: elapsedApplied.social, housingMarket: elapsedApplied.housingMarket },
+        world: { ...currentState.world, population: elapsedApplied.population, social: elapsedApplied.social, housingMarket: elapsedApplied.housingMarket, business: elapsedApplied.business },
         lastResult: {
           ok: true,
           timeDeltaMinutes: product.useDurationMinutes,
@@ -1096,7 +1239,7 @@ export function useGameController() {
       return {
         ...currentState,
         player: elapsedApplied.player,
-        world: { ...currentState.world, population: elapsedApplied.population, social: elapsedApplied.social, housingMarket: elapsedApplied.housingMarket },
+        world: { ...currentState.world, population: elapsedApplied.population, social: elapsedApplied.social, housingMarket: elapsedApplied.housingMarket, business: elapsedApplied.business },
         time: applied.time,
         lastResult: {
           ok: applied.result.ok,
@@ -1152,7 +1295,7 @@ export function useGameController() {
       return {
         ...currentState,
         player: elapsedApplied.player,
-        world: { ...currentState.world, population: elapsedApplied.population, social: elapsedApplied.social, housingMarket: elapsedApplied.housingMarket },
+        world: { ...currentState.world, population: elapsedApplied.population, social: elapsedApplied.social, housingMarket: elapsedApplied.housingMarket, business: elapsedApplied.business },
         time: applied.time,
         lastResult: {
           ok: true,
@@ -1315,7 +1458,8 @@ export function useGameController() {
           ...currentState.world,
           population: elapsedApplied.population,
           social: elapsedApplied.social,
-          housingMarket: elapsedApplied.housingMarket
+          housingMarket: elapsedApplied.housingMarket,
+          business: elapsedApplied.business
         },
         lastResult: {
           ok: true,
@@ -1372,7 +1516,8 @@ export function useGameController() {
           ...currentState.world,
           population: elapsedApplied.population,
           social: elapsedApplied.social,
-          housingMarket: elapsedApplied.housingMarket
+          housingMarket: elapsedApplied.housingMarket,
+          business: elapsedApplied.business
         },
         lastResult: {
           ok: true,
@@ -1450,7 +1595,8 @@ export function useGameController() {
           ...currentState.world,
           population: elapsedApplied.population,
           social: nextSocial,
-          housingMarket: elapsedApplied.housingMarket
+          housingMarket: elapsedApplied.housingMarket,
+          business: elapsedApplied.business
         },
         lastResult: {
           ok: true,
@@ -1517,7 +1663,8 @@ export function useGameController() {
           ...currentState.world,
           population: elapsedApplied.population,
           social: elapsedApplied.social,
-          housingMarket: elapsedApplied.housingMarket
+          housingMarket: elapsedApplied.housingMarket,
+          business: elapsedApplied.business
         },
         lastResult: {
           ok: true,
@@ -1528,6 +1675,235 @@ export function useGameController() {
           messages
         },
         lifeLog: mergeLifeLog([logEntry, ...elapsedApplied.lifeLogEntries], currentState.lifeLog)
+      };
+    });
+  }
+
+  function openCoffeeBusiness(premisesId: BusinessPremisesId, name: string): void {
+    setGameState((currentState) => {
+      const premises = getBusinessPremisesById(premisesId);
+      const businessType = businessTypes[0];
+      if (!premises || !businessType) return currentState;
+      const launched = launchBusiness({
+        player: currentState.player,
+        world: currentState.world.business,
+        premises,
+        businessType,
+        equipment: businessEquipment,
+        supplies: businessSupplies,
+        menuItems: businessMenuItems,
+        time: currentState.time,
+        name
+      });
+      const logEntry = createLifeLogEntry(
+        currentState,
+        launched.result.ok ? 'Открытие бизнеса' : 'Бизнес недоступен',
+        launched.result.messages.join(' ')
+      );
+      return {
+        ...currentState,
+        player: launched.player,
+        world: { ...currentState.world, business: launched.world },
+        lastResult: {
+          ok: launched.result.ok,
+          actionName: launched.result.actionName,
+          timeDeltaMinutes: 0,
+          moneyDelta: launched.result.playerMoneyDelta,
+          messages: launched.result.messages
+        },
+        lifeLog: mergeLifeLog([logEntry], currentState.lifeLog)
+      };
+    });
+  }
+
+  function purchaseBusinessSupply(supplyId: BusinessSupplyId, batches = 1): void {
+    const supply = getBusinessSupplyById(supplyId);
+    if (!supply) return;
+    setGameState((currentState) => {
+      const storageMultiplier = (currentState.world.business.ownedBusiness?.upgradeIds ?? []).reduce((value, id) => {
+        const upgrade = getBusinessUpgradeById(id);
+        return value * (upgrade?.effect.storageMultiplier ?? 1);
+      }, 1);
+      const applied = buyBusinessSupply({ world: currentState.world.business, supply, batches, storageMultiplier });
+      const logEntry = createLifeLogEntry(currentState, applied.result.ok ? 'Закупка бизнеса' : 'Закупка недоступна', applied.result.messages.join(' '));
+      return {
+        ...currentState,
+        world: { ...currentState.world, business: applied.world },
+        lastResult: { ok: applied.result.ok, actionName: applied.result.actionName, timeDeltaMinutes: 0, moneyDelta: applied.result.businessMoneyDelta, messages: applied.result.messages },
+        lifeLog: mergeLifeLog([logEntry], currentState.lifeLog)
+      };
+    });
+  }
+
+  function changeBusinessMenuPrice(itemId: BusinessMenuItemId, price: number): void {
+    const item = getBusinessMenuItemById(itemId);
+    if (!item) return;
+    setGameState((currentState) => {
+      const applied = setBusinessMenuPrice({ world: currentState.world.business, item, price });
+      return {
+        ...currentState,
+        world: { ...currentState.world, business: applied.world },
+        lastResult: { ok: applied.result.ok, actionName: applied.result.actionName, timeDeltaMinutes: 0, messages: applied.result.messages }
+      };
+    });
+  }
+
+  function hireBusinessNpc(npcId: NpcId, role: BusinessEmployeeRole): void {
+    setGameState((currentState) => {
+      const premises = getBusinessPremisesById(currentState.world.business.ownedBusiness?.premisesId);
+      if (!premises) return currentState;
+      const roleId = role === 'barista'
+        ? NPC_ROLE_IDS.barista
+        : role === 'administrator'
+          ? NPC_ROLE_IDS.administrator
+          : NPC_ROLE_IDS.cleaner;
+      const applied = hireBusinessEmployee({
+        world: currentState.world.business,
+        population: currentState.world.population,
+        npcId,
+        role,
+        roleId,
+        currentDay: currentState.time.day,
+        premisesLocationId: premises.locationId
+      });
+      const logEntry = createLifeLogEntry(currentState, applied.result.ok ? 'Новый сотрудник' : 'Найм недоступен', applied.result.messages.join(' '));
+      return {
+        ...currentState,
+        world: { ...currentState.world, business: applied.world, population: applied.population },
+        lastResult: { ok: applied.result.ok, actionName: applied.result.actionName, timeDeltaMinutes: 0, messages: applied.result.messages },
+        lifeLog: mergeLifeLog([logEntry], currentState.lifeLog)
+      };
+    });
+  }
+
+  function fireBusinessNpc(npcId: NpcId): void {
+    setGameState((currentState) => {
+      const applied = fireBusinessEmployee({ world: currentState.world.business, population: currentState.world.population, npcId });
+      const logEntry = createLifeLogEntry(currentState, applied.result.ok ? 'Сотрудник уволен' : 'Увольнение недоступно', applied.result.messages.join(' '));
+      return {
+        ...currentState,
+        world: { ...currentState.world, business: applied.world, population: applied.population },
+        lastResult: { ok: applied.result.ok, actionName: applied.result.actionName, timeDeltaMinutes: 0, messages: applied.result.messages },
+        lifeLog: mergeLifeLog([logEntry], currentState.lifeLog)
+      };
+    });
+  }
+
+  function addBusinessFunds(amount: number): void {
+    setGameState((currentState) => {
+      const applied = investInBusiness({ player: currentState.player, world: currentState.world.business, amount });
+      const logEntry = createLifeLogEntry(currentState, applied.result.ok ? 'Пополнение бизнеса' : 'Пополнение недоступно', applied.result.messages.join(' '));
+      return {
+        ...currentState,
+        player: applied.player,
+        world: { ...currentState.world, business: applied.world },
+        lastResult: { ok: applied.result.ok, actionName: applied.result.actionName, timeDeltaMinutes: 0, moneyDelta: applied.result.playerMoneyDelta, messages: applied.result.messages },
+        lifeLog: mergeLifeLog([logEntry], currentState.lifeLog)
+      };
+    });
+  }
+
+  function purchaseBusinessEquipment(equipmentId: BusinessEquipmentId): void {
+    const equipment = getBusinessEquipmentById(equipmentId);
+    if (!equipment) return;
+    setGameState((currentState) => {
+      const applied = buyBusinessEquipment({ world: currentState.world.business, equipment });
+      const logEntry = createLifeLogEntry(currentState, applied.result.ok ? 'Оборудование бизнеса' : 'Покупка недоступна', applied.result.messages.join(' '));
+      return {
+        ...currentState,
+        world: { ...currentState.world, business: applied.world },
+        lastResult: { ok: applied.result.ok, actionName: applied.result.actionName, timeDeltaMinutes: 0, moneyDelta: applied.result.businessMoneyDelta, messages: applied.result.messages },
+        lifeLog: mergeLifeLog([logEntry], currentState.lifeLog)
+      };
+    });
+  }
+
+  function purchaseBusinessUpgrade(upgradeId: BusinessUpgradeId): void {
+    const upgrade = getBusinessUpgradeById(upgradeId);
+    if (!upgrade) return;
+    setGameState((currentState) => {
+      const applied = buyBusinessUpgrade({ world: currentState.world.business, upgrade });
+      const logEntry = createLifeLogEntry(currentState, applied.result.ok ? 'Развитие бизнеса' : 'Улучшение недоступно', applied.result.messages.join(' '));
+      return {
+        ...currentState,
+        world: { ...currentState.world, business: applied.world },
+        lastResult: { ok: applied.result.ok, actionName: applied.result.actionName, timeDeltaMinutes: 0, moneyDelta: applied.result.businessMoneyDelta, messages: applied.result.messages },
+        lifeLog: mergeLifeLog([logEntry], currentState.lifeLog)
+      };
+    });
+  }
+
+  function workBusinessOwnerShift(): void {
+    setGameState((currentState) => {
+      const business = currentState.world.business.ownedBusiness;
+      const premises = getBusinessPremisesById(business?.premisesId);
+      const businessType = getBusinessTypeById(business?.typeId);
+      if (!business || !premises || !businessType) return currentState;
+      const failure = currentState.player.locationId !== premises.locationId
+        ? 'Нужно быть в своей кофейне.'
+        : getScheduleActivityFailure(business.schedule, currentState.time, 240, 'Смена владельца')
+          ?? getNeedsRequirementFailure(currentState.player.needs, { minEnergy: 20, minHealth: 25, minHunger: 6, minThirst: 6 });
+      if (failure) {
+        const logEntry = createLifeLogEntry(currentState, 'Смена владельца недоступна', failure);
+        return {
+          ...currentState,
+          lastResult: { ok: false, actionName: 'Смена владельца', timeDeltaMinutes: 0, messages: [failure] },
+          lifeLog: mergeLifeLog([logEntry], currentState.lifeLog)
+        };
+      }
+
+      const needsApplied = applyActivityNeedsDelta(currentState.player.needs, { energy: -16, hunger: -6, thirst: -8, mood: -1 }, { scaleEnergyCost: true });
+      const skillApplied = applySkillExperience(currentState.player.skills, basicSkills[0].id, 12);
+      const ownerPlayer = { ...currentState.player, needs: needsApplied.needs, skills: skillApplied.skills };
+      const nextTime = addMinutes(currentState.time, 240);
+      const simulated = simulateBusinessTime({
+        world: currentState.world.business,
+        fromTime: currentState.time,
+        toTime: nextTime,
+        population: currentState.world.population,
+        premises,
+        businessType,
+        equipment: businessEquipment,
+        menuItems: businessMenuItems,
+        supplies: businessSupplies,
+        upgrades: businessUpgrades,
+        ownerWorking: true
+      });
+      const balanceBefore = business.balance;
+      const elapsedApplied = applyElapsedTimeConsequences(
+        currentState,
+        ownerPlayer,
+        nextTime,
+        'active',
+        currentState.world.social,
+        currentState.world.housingMarket,
+        simulated.world
+      );
+      const balanceAfter = elapsedApplied.business.ownedBusiness?.balance ?? balanceBefore;
+      const businessMessages = simulated.events.map((event) => event.text);
+      const levelMessage = skillApplied.update.leveledUp ? `Навык «Сервис» повышен до уровня ${skillApplied.update.nextLevel}.` : undefined;
+      const shiftMessage = `Ты отработал четыре часа в своей кофейне. Изменение счёта бизнеса: ${balanceAfter - balanceBefore >= 0 ? '+' : ''}${balanceAfter - balanceBefore} ₽.`;
+      const messages = [shiftMessage, levelMessage, ...businessMessages, ...elapsedApplied.messages].filter((message): message is string => Boolean(message));
+      const logEntry = createLifeLogEntry({ time: nextTime }, 'Смена владельца', messages.join(' '));
+      return {
+        ...currentState,
+        time: nextTime,
+        player: elapsedApplied.player,
+        world: {
+          ...currentState.world,
+          population: elapsedApplied.population,
+          social: elapsedApplied.social,
+          housingMarket: elapsedApplied.housingMarket,
+          business: elapsedApplied.business
+        },
+        lastResult: {
+          ok: true,
+          actionName: 'Смена владельца',
+          timeDeltaMinutes: 240,
+          needsDelta: mergeNeedsDelta(needsApplied.delta, elapsedApplied.needsDelta),
+          messages
+        },
+        lifeLog: mergeLifeLog([logEntry, ...simulated.events.map((event) => createLifeLogEntry({ time: nextTime }, event.title, event.text)), ...elapsedApplied.lifeLogEntries], currentState.lifeLog)
       };
     });
   }
@@ -1548,6 +1924,7 @@ export function useGameController() {
     populationState,
     socialState,
     housingState,
+    businessState,
     performAction,
     moveToDistrict,
     moveToLocation,
@@ -1567,6 +1944,15 @@ export function useGameController() {
     scheduleHousingViewing: scheduleHousingViewingAction,
     viewHousing,
     rentHousing,
+    openCoffeeBusiness,
+    purchaseBusinessSupply,
+    changeBusinessMenuPrice,
+    hireBusinessNpc,
+    fireBusinessNpc,
+    addBusinessFunds,
+    purchaseBusinessEquipment,
+    purchaseBusinessUpgrade,
+    workBusinessOwnerShift,
     resetGame
   };
 }

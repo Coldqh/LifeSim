@@ -22,3 +22,5 @@ export * from './PeoplePanel';
 export * from './SocialEventModal';
 
 export * from './HousingMarketPanel';
+
+export * from './BusinessPanel';

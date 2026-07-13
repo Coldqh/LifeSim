@@ -15,3 +15,5 @@ export * from './sports';
 export * from './population';
 
 export * from './social';
+
+export * from './business';

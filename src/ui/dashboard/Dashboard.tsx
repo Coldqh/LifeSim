@@ -21,9 +21,15 @@ import type {
   BoxingTournamentId,
   NpcId,
   NpcInteractionId,
-  SocialEventChoiceId
+  SocialEventChoiceId,
+  BusinessEquipmentId,
+  BusinessMenuItemId,
+  BusinessPremisesId,
+  BusinessSupplyId,
+  BusinessUpgradeId
 } from '../../types/ids';
 import type { HousingId } from '../../types/housing';
+import type { BusinessEmployeeRole } from '../../types/business';
 import type { TravelModeId } from '../../types/transport';
 import type { City, District, Location } from '../../types/location';
 import type { Job, JobLevel } from '../../types/job';
@@ -44,6 +50,7 @@ import { ActionCard } from './ActionCard';
 import { createNeedsEffectItems, EffectList } from './EffectList';
 import { HousingPanel } from './HousingPanel';
 import { HousingMarketPanel, type HousingMarketPanelState } from './HousingMarketPanel';
+import { BusinessPanel, type BusinessPanelState } from './BusinessPanel';
 import { ConditionPanel } from './ConditionPanel';
 import { DevelopmentPanel } from './DevelopmentPanel';
 import { InventoryPanel } from './InventoryPanel';
@@ -57,7 +64,7 @@ import { LocationPeoplePanel } from './LocationPeoplePanel';
 import { PeoplePanel } from './PeoplePanel';
 import { SocialEventModal } from './SocialEventModal';
 
-type DashboardTab = 'character' | 'city' | 'housing' | 'jobs' | 'development' | 'sport' | 'people' | 'log';
+type DashboardTab = 'character' | 'city' | 'housing' | 'business' | 'jobs' | 'development' | 'sport' | 'people' | 'log';
 
 type JobView = {
   job: Job;
@@ -143,6 +150,7 @@ type DashboardProps = {
     scheduledCount: number;
   };
   housingState: HousingMarketPanelState;
+  businessState: BusinessPanelState;
   onPerformAction: (actionId: ActionId) => void;
   onMoveDistrict: (districtId: DistrictId, modeId: TravelModeId) => void;
   onMoveLocation: (locationId: LocationId, modeId: TravelModeId) => void;
@@ -162,6 +170,15 @@ type DashboardProps = {
   onScheduleHousingViewing: (housingId: HousingId) => void;
   onViewHousing: (housingId: HousingId) => void;
   onRentHousing: (housingId: HousingId) => void;
+  onOpenBusiness: (premisesId: BusinessPremisesId, name: string) => void;
+  onBuyBusinessSupply: (supplyId: BusinessSupplyId, batches?: number) => void;
+  onSetBusinessPrice: (itemId: BusinessMenuItemId, price: number) => void;
+  onHireBusinessNpc: (npcId: NpcId, role: BusinessEmployeeRole) => void;
+  onFireBusinessNpc: (npcId: NpcId) => void;
+  onInvestBusiness: (amount: number) => void;
+  onBuyBusinessEquipment: (equipmentId: BusinessEquipmentId) => void;
+  onBuyBusinessUpgrade: (upgradeId: BusinessUpgradeId) => void;
+  onWorkBusinessOwnerShift: () => void;
   onReset: () => void;
 };
 
@@ -171,6 +188,7 @@ const NAVIGATION: NavigationItem[] = [
   { id: 'character', label: 'Персонаж', icon: 'character' },
   { id: 'city', label: 'Город', icon: 'city' },
   { id: 'housing', label: 'Жильё', icon: 'home' },
+  { id: 'business', label: 'Бизнес', icon: 'building' },
   { id: 'jobs', label: 'Работа', icon: 'work' },
   { id: 'development', label: 'Развитие', icon: 'growth' },
   { id: 'sport', label: 'Спорт', icon: 'boxing' },
@@ -182,6 +200,7 @@ const PAGE_TITLES: Record<DashboardTab, { title: string; eyebrow: string }> = {
   character: { title: 'Состояние', eyebrow: 'Личная панель' },
   city: { title: 'Город', eyebrow: 'Москва' },
   housing: { title: 'Жильё', eyebrow: 'Рынок аренды' },
+  business: { title: 'Бизнес', eyebrow: 'Собственное предприятие' },
   jobs: { title: 'Работа', eyebrow: 'Карьера' },
   development: { title: 'Развитие', eyebrow: 'Навыки и обучение' },
   sport: { title: 'Спорт', eyebrow: 'Боксёрская карьера' },
@@ -209,6 +228,7 @@ export function Dashboard({
   populationState,
   socialState,
   housingState,
+  businessState,
   onPerformAction,
   onMoveDistrict,
   onMoveLocation,
@@ -228,6 +248,15 @@ export function Dashboard({
   onScheduleHousingViewing,
   onViewHousing,
   onRentHousing,
+  onOpenBusiness,
+  onBuyBusinessSupply,
+  onSetBusinessPrice,
+  onHireBusinessNpc,
+  onFireBusinessNpc,
+  onInvestBusiness,
+  onBuyBusinessEquipment,
+  onBuyBusinessUpgrade,
+  onWorkBusinessOwnerShift,
   onReset
 }: DashboardProps) {
   const { player, time, lastResult } = gameState;
@@ -421,6 +450,24 @@ export function Dashboard({
                 onScheduleViewing={onScheduleHousingViewing}
                 onViewHousing={onViewHousing}
                 onRentHousing={onRentHousing}
+              />
+            </section>
+          ) : null}
+
+          {activeTab === 'business' ? (
+            <section className="screen screen-enter business-screen">
+              <BusinessPanel
+                state={businessState}
+                playerMoney={player.money}
+                onOpenBusiness={onOpenBusiness}
+                onBuySupply={onBuyBusinessSupply}
+                onSetPrice={onSetBusinessPrice}
+                onHireNpc={onHireBusinessNpc}
+                onFireNpc={onFireBusinessNpc}
+                onInvest={onInvestBusiness}
+                onBuyEquipment={onBuyBusinessEquipment}
+                onBuyUpgrade={onBuyBusinessUpgrade}
+                onOwnerShift={onWorkBusinessOwnerShift}
               />
             </section>
           ) : null}

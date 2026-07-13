@@ -3,6 +3,7 @@ import type { CityId, DistrictId, LocationId, PlayerId, ProductId, SkillId } fro
 import type { Player } from '../types/player';
 import type { PlayerSkills } from '../types/skill';
 import type { HousingId, HousingMarketState, RentalContract } from '../types/housing';
+import type { BusinessWorldState, OwnedBusiness } from '../types/business';
 import type { GameTime } from '../types/time';
 import { createInitialTime, formatGameTime } from '../core/time';
 import { createInitialBoxingProfile } from '../core/sport';
@@ -15,9 +16,11 @@ import { moscowLocations } from '../data/locations/moscowLocations';
 import { populationDataSource } from '../data/population/config';
 import { basicHousing } from '../data/housing/basicHousing';
 import { createHousingMarket } from '../core/housing';
+import { createEmptyBusinessReport, createInitialBusinessWorldState } from '../core/business';
+import { businessPremises } from '../data/business/premises';
 
-export const GAME_STATE_STORAGE_KEY = 'lifesim.gameState.v15';
-const LEGACY_GAME_STATE_STORAGE_KEYS = ['lifesim.gameState.v14', 'lifesim.gameState.v13', 'lifesim.gameState.v12', 'lifesim.gameState.v11', 'lifesim.gameState.v10', 'lifesim.gameState.v9', 'lifesim.gameState.v8', 'lifesim.gameState.v7'];
+export const GAME_STATE_STORAGE_KEY = 'lifesim.gameState.v16';
+const LEGACY_GAME_STATE_STORAGE_KEYS = ['lifesim.gameState.v15', 'lifesim.gameState.v14', 'lifesim.gameState.v13', 'lifesim.gameState.v12', 'lifesim.gameState.v11', 'lifesim.gameState.v10', 'lifesim.gameState.v9', 'lifesim.gameState.v8', 'lifesim.gameState.v7'];
 const STARTER_INVENTORY_BACKFILL_KEYS = new Set(['lifesim.gameState.v9', 'lifesim.gameState.v8', 'lifesim.gameState.v7']);
 const REMOVED_PRODUCT_IDS = new Set(['hygiene_kit', 'toothpaste', 'laundry_powder']);
 
@@ -33,6 +36,7 @@ export type WorldState = {
   population: PopulationState;
   social: SocialState;
   housingMarket: HousingMarketState;
+  business: BusinessWorldState;
 };
 
 export type GameState = {
@@ -202,7 +206,8 @@ export function createInitialGameState(): GameState {
         day: time.day,
         currentHousingId: housingId('housing_room_danilovsky'),
         catalogue: basicHousing
-      })
+      }),
+      business: createInitialBusinessWorldState(population.seed, businessPremises.map((premises) => premises.id))
     },
     lifeLog: [
       {
@@ -324,6 +329,51 @@ function normalizeHousingMarket(value: unknown, time: GameTime, populationSeed: 
   };
 }
 
+
+function normalizeBusinessWorld(value: unknown, time: GameTime, populationSeed: number): BusinessWorldState {
+  const initial = createInitialBusinessWorldState(populationSeed, businessPremises.map((premises) => premises.id));
+  if (!value || typeof value !== 'object') return initial;
+  const candidate = value as Partial<BusinessWorldState>;
+  const knownPremisesIds = new Set(businessPremises.map((premises) => premises.id));
+  const owned = candidate.ownedBusiness && typeof candidate.ownedBusiness === 'object'
+    ? candidate.ownedBusiness as Partial<OwnedBusiness>
+    : undefined;
+  const normalizedOwned = owned?.id && owned.typeId && owned.premisesId && knownPremisesIds.has(owned.premisesId)
+    ? {
+        ...owned,
+        id: owned.id,
+        name: typeof owned.name === 'string' ? owned.name : 'Городской кофе',
+        typeId: owned.typeId,
+        premisesId: owned.premisesId,
+        createdDay: typeof owned.createdDay === 'number' ? owned.createdDay : time.day,
+        balance: typeof owned.balance === 'number' ? Math.max(0, Math.floor(owned.balance)) : 0,
+        debt: typeof owned.debt === 'number' ? Math.max(0, Math.floor(owned.debt)) : 0,
+        reputation: typeof owned.reputation === 'number' ? Math.min(100, Math.max(0, owned.reputation)) : 45,
+        schedule: owned.schedule ?? { kind: 'always' as const },
+        equipmentIds: Array.isArray(owned.equipmentIds) ? owned.equipmentIds : [],
+        inventory: owned.inventory && typeof owned.inventory === 'object' ? owned.inventory : {},
+        menuPrices: owned.menuPrices && typeof owned.menuPrices === 'object' ? owned.menuPrices : {},
+        employees: Array.isArray(owned.employees) ? owned.employees : [],
+        upgradeIds: Array.isArray(owned.upgradeIds) ? owned.upgradeIds : [],
+        currentReport: owned.currentReport && typeof owned.currentReport === 'object'
+          ? { ...createEmptyBusinessReport(time.day), ...owned.currentReport }
+          : createEmptyBusinessReport(time.day),
+        reports: Array.isArray(owned.reports) ? owned.reports.slice(0, 30) : [],
+        nextRentDay: typeof owned.nextRentDay === 'number' ? owned.nextRentDay : time.day + 7,
+        lastProcessedTotalMinutes: typeof owned.lastProcessedTotalMinutes === 'number' ? owned.lastProcessedTotalMinutes : 0,
+        lastCustomerNpcIds: Array.isArray(owned.lastCustomerNpcIds) ? owned.lastCustomerNpcIds.slice(0, 12) : []
+      } as OwnedBusiness
+    : undefined;
+
+  return {
+    seed: typeof candidate.seed === 'number' ? candidate.seed : initial.seed,
+    activePremisesIds: Array.isArray(candidate.activePremisesIds)
+      ? candidate.activePremisesIds.filter((id) => knownPremisesIds.has(id) && id !== normalizedOwned?.premisesId)
+      : businessPremises.map((premises) => premises.id).filter((id) => id !== normalizedOwned?.premisesId),
+    ownedBusiness: normalizedOwned
+  };
+}
+
 export function loadGameState(): GameState | undefined {
   try {
     const storageKeys = [GAME_STATE_STORAGE_KEY, ...LEGACY_GAME_STATE_STORAGE_KEYS];
@@ -347,7 +397,8 @@ export function loadGameState(): GameState | undefined {
         world: {
           population,
           social: normalizeSocialState(parsed.world?.social),
-          housingMarket: normalizeHousingMarket(parsed.world?.housingMarket, parsed.time, population.seed, playerHousingId)
+          housingMarket: normalizeHousingMarket(parsed.world?.housingMarket, parsed.time, population.seed, playerHousingId),
+          business: normalizeBusinessWorld(parsed.world?.business, parsed.time, population.seed)
         },
         player: {
           ...parsed.player,
