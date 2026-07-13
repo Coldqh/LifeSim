@@ -31,6 +31,15 @@ import {
 import { applyMoneyDelta, canAfford } from '../core/economy';
 import { applyEducationProgram, getEducationProgramFailure } from '../core/education';
 import {
+  accrueSalary,
+  createSavingsGoal,
+  fundSavingsGoal,
+  processFinanceDay,
+  reconcileExternalBankBalance,
+  setFinanceAutoSave,
+  transferFinanceFunds
+} from '../core/finance';
+import {
   applyForJob as applyJob,
   applyJobPromotion,
   applyJobShift,
@@ -161,6 +170,7 @@ import type {
 } from '../types/ids';
 import type { HousingId, HousingMarketState } from '../types/housing';
 import type { BusinessEmployeeRole, BusinessWorldState } from '../types/business';
+import type { UpcomingPayment } from '../types/finance';
 import type { TravelModeId } from '../types/transport';
 import type { NeedsState } from '../types/needs';
 import type { Player } from '../types/player';
@@ -425,6 +435,37 @@ export function useGameController() {
     });
   }, [gameState.time.day, gameState.time.hour, gameState.time.minute]);
 
+
+  useEffect(() => {
+    setGameState((currentState) => {
+      const totalMinutes = getTotalMinutes(currentState.time);
+      const crossedDayWithExpense = currentState.time.day > currentState.world.finance.lastProcessedDay
+        && currentState.player.money < currentState.world.finance.lastObservedBankBalance;
+      const reconciled = reconcileExternalBankBalance({
+        state: currentState.world.finance,
+        bankBalance: currentState.player.money,
+        totalMinutes,
+        actionTitle: crossedDayWithExpense ? 'Жильё и регулярные платежи' : currentState.lastResult?.actionName
+      });
+      const processed = processFinanceDay({
+        state: reconciled,
+        player: currentState.player,
+        currentDay: currentState.time.day,
+        totalMinutes
+      });
+      const financeChanged = processed.state !== currentState.world.finance;
+      const playerChanged = processed.player !== currentState.player;
+      if (!financeChanged && !playerChanged && processed.messages.length === 0) return currentState;
+      const entries = processed.messages.map((message) => createLifeLogEntry(currentState, 'Банк', message));
+      return {
+        ...currentState,
+        player: processed.player,
+        world: { ...currentState.world, finance: processed.state },
+        lifeLog: entries.length ? mergeLifeLog(entries, currentState.lifeLog) : currentState.lifeLog
+      };
+    });
+  }, [gameState.player.money, gameState.time.day, gameState.time.hour, gameState.time.minute]);
+
   const locationState = useMemo(() => {
     const city = getCityById(gameState.player.cityId);
     const district = getDistrictById(gameState.player.districtId);
@@ -542,6 +583,46 @@ export function useGameController() {
     };
   }, [gameState.player, gameState.time]);
 
+  const financeState = useMemo(() => {
+    const finance = gameState.world.finance;
+    const housing = getHousingById(gameState.player.housingId);
+    const upcomingPayments: UpcomingPayment[] = [];
+    if (housing) {
+      upcomingPayments.push({
+        id: 'housing_rent',
+        title: `Аренда: ${housing.name}`,
+        amount: housing.rentPerWeek,
+        dueDay: gameState.player.rentalContract.nextPaymentDay,
+        category: 'housing'
+      });
+      upcomingPayments.push({
+        id: 'housing_upkeep',
+        title: 'Бытовые расходы',
+        amount: housing.dailyUtilities,
+        dueDay: gameState.time.day + 1,
+        category: 'housing'
+      });
+    }
+    const business = gameState.world.business.ownedBusiness;
+    const premises = getBusinessPremisesById(business?.premisesId);
+    if (business && premises) {
+      upcomingPayments.push({
+        id: 'business_rent',
+        title: `Аренда бизнеса: ${business.name}`,
+        amount: premises.rentPerWeek,
+        dueDay: business.nextRentDay,
+        category: 'business'
+      });
+    }
+    return {
+      finance,
+      bankBalance: gameState.player.money,
+      totalAssets: gameState.player.money + finance.cash + finance.savings,
+      totalDebt: gameState.player.rentDebt + (business?.debt ?? 0),
+      upcomingPayments: upcomingPayments.sort((a, b) => a.dueDay - b.dueDay)
+    };
+  }, [gameState.player.money, gameState.player.housingId, gameState.player.rentalContract.nextPaymentDay, gameState.player.rentDebt, gameState.time.day, gameState.world.finance, gameState.world.business]);
+
   const phoneState = useMemo(() => {
     const phone = gameState.world.phone;
     const currentLocation = getLocationById(gameState.player.locationId);
@@ -585,9 +666,11 @@ export function useGameController() {
       unreadMessages: phone.messages.filter((entry) => !entry.read).length,
       unreadNotifications: phone.notifications.filter((entry) => !entry.read).length,
       mapTarget,
-      mapRoute
+      mapRoute,
+      finance: financeState,
+      districtTravelOptions: locationState.districtTravelOptions
     };
-  }, [gameState.player, gameState.time, gameState.world.phone]);
+  }, [gameState.player, gameState.time, gameState.world.phone, financeState, locationState.districtTravelOptions]);
 
   const educationState = useMemo(() => {
     const skills = basicSkills.map((skill) => ({
@@ -1298,11 +1381,19 @@ export function useGameController() {
         time: currentState.time,
         job
       });
-      const elapsedApplied = applyElapsedTimeConsequences(currentState, applied.player, applied.time, 'active');
+      const earnedSalary = applied.result.ok ? Math.max(0, applied.result.moneyDelta ?? 0) : 0;
+      const deferredPlayer = earnedSalary > 0
+        ? { ...applied.player, money: Math.max(0, applied.player.money - earnedSalary) }
+        : applied.player;
+      const finance = earnedSalary > 0
+        ? accrueSalary(currentState.world.finance, earnedSalary, getTotalMinutes(applied.time), applied.result.jobTitle)
+        : currentState.world.finance;
+      const elapsedApplied = applyElapsedTimeConsequences(currentState, deferredPlayer, applied.time, 'active');
       const skillLevelMessages = (applied.result.skillProgressUpdates ?? [])
         .filter((update) => update.leveledUp)
         .map((update) => `Навык «${getSkillById(update.skillId)?.name ?? 'Навык'}» повышен до уровня ${update.nextLevel}.`);
-      const resultMessages = [...applied.result.messages, ...skillLevelMessages, ...elapsedApplied.messages];
+      const salaryMessage = earnedSalary > 0 ? `Начислено ${earnedSalary} ₽. Выплата в день ${finance.nextSalaryPayoutDay}.` : undefined;
+      const resultMessages = [...applied.result.messages, salaryMessage, ...skillLevelMessages, ...elapsedApplied.messages].filter((message): message is string => Boolean(message));
       const logEntry = createLifeLogEntry(
         { time: applied.time },
         applied.result.ok ? 'Смена' : 'Смена недоступна',
@@ -1315,13 +1406,13 @@ export function useGameController() {
       return {
         ...currentState,
         player: elapsedApplied.player,
-        world: { ...currentState.world, population: elapsedApplied.population, social: elapsedApplied.social, housingMarket: elapsedApplied.housingMarket, business: elapsedApplied.business },
+        world: { ...currentState.world, population: elapsedApplied.population, social: elapsedApplied.social, housingMarket: elapsedApplied.housingMarket, business: elapsedApplied.business, finance },
         time: applied.time,
         lastResult: {
           ok: applied.result.ok,
           actionName: applied.result.jobTitle,
           timeDeltaMinutes: applied.result.timeDeltaMinutes,
-          moneyDelta: applied.result.moneyDelta,
+          moneyDelta: 0,
           needsDelta: mergeNeedsDelta(applied.result.needsDelta, elapsedApplied.needsDelta),
           messages: resultMessages
         },
@@ -2116,6 +2207,62 @@ export function useGameController() {
     });
   }
 
+  function transferPersonalFunds(direction: 'bank_to_cash' | 'cash_to_bank' | 'bank_to_savings' | 'savings_to_bank', amount: number): void {
+    setGameState((currentState) => {
+      const applied = transferFinanceFunds({
+        state: currentState.world.finance,
+        player: currentState.player,
+        direction,
+        amount,
+        totalMinutes: getTotalMinutes(currentState.time)
+      });
+      const logEntry = createLifeLogEntry(currentState, applied.result.title, applied.result.message);
+      return {
+        ...currentState,
+        player: applied.player,
+        world: { ...currentState.world, finance: applied.state },
+        lastResult: { ok: applied.result.ok, actionName: applied.result.title, timeDeltaMinutes: 0, messages: [applied.result.message] },
+        lifeLog: mergeLifeLog([logEntry], currentState.lifeLog)
+      };
+    });
+  }
+
+  function updateAutoSave(percent: number): void {
+    setGameState((currentState) => ({
+      ...currentState,
+      world: { ...currentState.world, finance: setFinanceAutoSave(currentState.world.finance, percent) }
+    }));
+  }
+
+  function addSavingsGoal(title: string, targetAmount: number): void {
+    setGameState((currentState) => {
+      const applied = createSavingsGoal({ state: currentState.world.finance, title, targetAmount, day: currentState.time.day });
+      return {
+        ...currentState,
+        world: { ...currentState.world, finance: applied.state },
+        lastResult: { ok: applied.result.ok, actionName: applied.result.title, timeDeltaMinutes: 0, messages: [applied.result.message] }
+      };
+    });
+  }
+
+  function addMoneyToSavingsGoal(goalId: string, amount: number): void {
+    setGameState((currentState) => {
+      const applied = fundSavingsGoal({
+        state: currentState.world.finance,
+        player: currentState.player,
+        goalId,
+        amount,
+        totalMinutes: getTotalMinutes(currentState.time)
+      });
+      return {
+        ...currentState,
+        player: applied.player,
+        world: { ...currentState.world, finance: applied.state },
+        lastResult: { ok: applied.result.ok, actionName: applied.result.title, timeDeltaMinutes: 0, messages: [applied.result.message] }
+      };
+    });
+  }
+
   function resetGame(): void {
     clearSavedGameState();
     setGameState(createInitialGameState());
@@ -2134,6 +2281,7 @@ export function useGameController() {
     housingState,
     businessState,
     phoneState,
+    financeState,
     performAction,
     moveToDistrict,
     moveToLocation,
@@ -2168,6 +2316,10 @@ export function useGameController() {
     readPhoneNotification,
     readPhoneMessage,
     attendJobInterview,
+    transferPersonalFunds,
+    updateAutoSave,
+    addSavingsGoal,
+    addMoneyToSavingsGoal,
     resetGame
   };
 }

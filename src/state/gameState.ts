@@ -6,6 +6,7 @@ import type { HousingId, HousingMarketState, RentalContract } from '../types/hou
 import type { BusinessWorldState, OwnedBusiness } from '../types/business';
 import type { GameTime } from '../types/time';
 import type { PhoneState } from '../types/phone';
+import type { PersonalFinanceState } from '../types/finance';
 import { createInitialTime, formatGameTime, getTotalMinutes } from '../core/time';
 import { createInitialBoxingProfile } from '../core/sport';
 import type { BoxingProfile } from '../types/boxing';
@@ -19,10 +20,11 @@ import { basicHousing } from '../data/housing/basicHousing';
 import { createHousingMarket } from '../core/housing';
 import { createEmptyBusinessReport, createInitialBusinessWorldState } from '../core/business';
 import { createInitialPhoneState } from '../core/phone';
+import { createInitialFinanceState } from '../core/finance';
 import { businessPremises } from '../data/business/premises';
 
-export const GAME_STATE_STORAGE_KEY = 'lifesim.gameState.v17';
-const LEGACY_GAME_STATE_STORAGE_KEYS = ['lifesim.gameState.v16', 'lifesim.gameState.v15', 'lifesim.gameState.v14', 'lifesim.gameState.v13', 'lifesim.gameState.v12', 'lifesim.gameState.v11', 'lifesim.gameState.v10', 'lifesim.gameState.v9', 'lifesim.gameState.v8', 'lifesim.gameState.v7'];
+export const GAME_STATE_STORAGE_KEY = 'lifesim.gameState.v18';
+const LEGACY_GAME_STATE_STORAGE_KEYS = ['lifesim.gameState.v17', 'lifesim.gameState.v16', 'lifesim.gameState.v15', 'lifesim.gameState.v14', 'lifesim.gameState.v13', 'lifesim.gameState.v12', 'lifesim.gameState.v11', 'lifesim.gameState.v10', 'lifesim.gameState.v9', 'lifesim.gameState.v8', 'lifesim.gameState.v7'];
 const STARTER_INVENTORY_BACKFILL_KEYS = new Set(['lifesim.gameState.v9', 'lifesim.gameState.v8', 'lifesim.gameState.v7']);
 const REMOVED_PRODUCT_IDS = new Set(['hygiene_kit', 'toothpaste', 'laundry_powder']);
 
@@ -40,6 +42,7 @@ export type WorldState = {
   housingMarket: HousingMarketState;
   business: BusinessWorldState;
   phone: PhoneState;
+  finance: PersonalFinanceState;
 };
 
 export type GameState = {
@@ -153,7 +156,7 @@ export function createInitialPlayer(): Player {
     id: playerId('player_001'),
     name: 'Игрок',
     age: 18,
-    money: 12000,
+    money: 11000,
     cityId: cityId('moscow'),
     districtId: districtId('msk_danilovsky'),
     locationId: locationId('msk_danilovsky_home'),
@@ -211,7 +214,8 @@ export function createInitialGameState(): GameState {
         catalogue: basicHousing
       }),
       business: createInitialBusinessWorldState(population.seed, businessPremises.map((premises) => premises.id)),
-      phone: createInitialPhoneState(getTotalMinutes(time))
+      phone: createInitialPhoneState(getTotalMinutes(time)),
+      finance: createInitialFinanceState(11000, time.day)
     },
     lifeLog: [
       {
@@ -396,6 +400,27 @@ function normalizePhoneState(value: unknown, time: GameTime): PhoneState {
   };
 }
 
+function normalizeFinanceState(value: unknown, bankBalance: number, time: GameTime): PersonalFinanceState {
+  const initial = createInitialFinanceState(bankBalance, time.day);
+  if (!value || typeof value !== 'object') return { ...initial, cash: 0, lastObservedBankBalance: bankBalance };
+  const candidate = value as Partial<PersonalFinanceState>;
+  return {
+    cash: typeof candidate.cash === 'number' ? Math.max(0, Math.floor(candidate.cash)) : 0,
+    savings: typeof candidate.savings === 'number' ? Math.max(0, Math.floor(candidate.savings)) : 0,
+    pendingSalary: typeof candidate.pendingSalary === 'number' ? Math.max(0, Math.floor(candidate.pendingSalary)) : 0,
+    nextSalaryPayoutDay: typeof candidate.nextSalaryPayoutDay === 'number'
+      ? Math.max(time.day, Math.floor(candidate.nextSalaryPayoutDay))
+      : Math.max(time.day + 6, 7),
+    autoSavePercent: typeof candidate.autoSavePercent === 'number' ? Math.max(0, Math.min(30, Math.floor(candidate.autoSavePercent))) : 0,
+    transactions: Array.isArray(candidate.transactions) ? candidate.transactions.slice(0, 120) : [],
+    goals: Array.isArray(candidate.goals) ? candidate.goals.slice(0, 5) : [],
+    lastObservedBankBalance: typeof candidate.lastObservedBankBalance === 'number'
+      ? Math.max(0, Math.floor(candidate.lastObservedBankBalance))
+      : bankBalance,
+    lastProcessedDay: typeof candidate.lastProcessedDay === 'number' ? Math.max(1, Math.floor(candidate.lastProcessedDay)) : time.day
+  };
+}
+
 export function loadGameState(): GameState | undefined {
   try {
     const storageKeys = [GAME_STATE_STORAGE_KEY, ...LEGACY_GAME_STATE_STORAGE_KEYS];
@@ -421,7 +446,8 @@ export function loadGameState(): GameState | undefined {
           social: normalizeSocialState(parsed.world?.social),
           housingMarket: normalizeHousingMarket(parsed.world?.housingMarket, parsed.time, population.seed, playerHousingId),
           business: normalizeBusinessWorld(parsed.world?.business, parsed.time, population.seed),
-          phone: normalizePhoneState(parsed.world?.phone, parsed.time)
+          phone: normalizePhoneState(parsed.world?.phone, parsed.time),
+          finance: normalizeFinanceState(parsed.world?.finance, parsed.player.money ?? 0, parsed.time)
         },
         player: {
           ...parsed.player,

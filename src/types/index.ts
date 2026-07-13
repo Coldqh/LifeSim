@@ -28,3 +28,5 @@ export * from './risk';
 export * from './business';
 
 export * from './phone';
+
+export * from './finance';

@@ -1,18 +1,40 @@
-# LifeSim — Smartphone & Diegetic UI Vertical Slice
+# LifeSim — Personal Finance, Banking & Payments Vertical Slice
 
-Overlay the contents of this archive onto `C:\LifeSim`.
+## Patch type
+
+FEATURE_MVP + UI/UX INTEGRATION
 
 ## Included
 
-- Diegetic smartphone shell with desktop side presentation and full-screen mobile mode.
-- Home screen, notifications, messages, calendar, jobs and maps apps.
-- Persistent phone state in the main save (`lifesim.gameState.v17`).
-- Job application pipeline: submit → wait → invite/reject → calendar → in-person interview → employment.
-- Job location route planning and transport selection through the phone.
-- Existing city vacancy buttons now open the vacancy in the phone instead of hiring instantly.
+- personal bank account, cash, savings and pending salary;
+- weekly salary payout instead of instant shift income;
+- transaction history with categories;
+- savings goals and automatic salary saving;
+- upcoming housing and business payments;
+- debt summary from housing and business;
+- Bank app inside the diegetic phone;
+- desktop navigation moved into a slide-out drawer;
+- phone launcher no longer covers main navigation;
+- interactive Moscow SVG map with Presnya, Tverskoy, Khamovniki and Danilovsky;
+- district click opens travel options and uses existing travel controller;
+- save migration to lifesim.gameState.v18.
 
-## Verification
+## Install
 
-- `npm run verify:lock`
-- `npm run typecheck`
-- `npm run build`
+Extract this archive over C:\LifeSim.
+
+```powershell
+cd C:\LifeSim; npm run verify:lock
+cd C:\LifeSim; npm run typecheck
+cd C:\LifeSim; npm run build
+cd C:\LifeSim; npm run dev
+```
+
+## Commit
+
+```powershell
+cd C:\LifeSim; git status
+cd C:\LifeSim; git add .
+cd C:\LifeSim; git commit -m "feat: add personal finance and phone map"
+cd C:\LifeSim; git push
+```

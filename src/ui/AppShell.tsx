@@ -3,6 +3,7 @@ import { useGameController } from '../state';
 import type { JobId } from '../types/ids';
 import type { PhoneAppId } from '../types/phone';
 import { Dashboard } from './dashboard';
+import { DiegeticNavigation } from './navigation';
 import { PhoneShell } from './phone';
 
 export function AppShell() {
@@ -52,6 +53,10 @@ export function AppShell() {
     readPhoneNotification,
     readPhoneMessage,
     attendJobInterview,
+    transferPersonalFunds,
+    updateAutoSave,
+    addSavingsGoal,
+    addMoneyToSavingsGoal,
     resetGame
   } = useGameController();
   const [phoneOpen, setPhoneOpen] = useState(false);
@@ -108,6 +113,7 @@ export function AppShell() {
         onBuyBusinessUpgrade={purchaseBusinessUpgrade}
         onWorkBusinessOwnerShift={workBusinessOwnerShift}
       />
+      <DiegeticNavigation onReset={resetGame}/>
       <PhoneShell
         open={phoneOpen}
         activeApp={phoneApp}
@@ -123,9 +129,14 @@ export function AppShell() {
         onToggleSavedJob={togglePhoneSavedJob}
         onSetMapTarget={setPhoneMapLocation}
         onMoveLocation={moveToLocation}
+        onMoveDistrict={moveToDistrict}
         onReadNotification={readPhoneNotification}
         onReadMessage={readPhoneMessage}
         onAttendInterview={attendJobInterview}
+        onTransferFunds={transferPersonalFunds}
+        onSetAutoSave={updateAutoSave}
+        onCreateSavingsGoal={addSavingsGoal}
+        onFundSavingsGoal={addMoneyToSavingsGoal}
       />
     </>
   );

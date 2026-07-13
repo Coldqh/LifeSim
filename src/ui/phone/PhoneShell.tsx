@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import type { Job } from '../../types/job';
 import type { District, Location } from '../../types/location';
 import type {
+  DistrictId,
   JobId,
   LocationId,
   PhoneMessageId,
@@ -13,7 +14,8 @@ import type {
   PhoneState
 } from '../../types/phone';
 import type { GameTime } from '../../types/time';
-import type { LocationTravelOption } from '../../types/travel';
+import type { DistrictTravelOption, LocationTravelOption } from '../../types/travel';
+import type { PersonalFinanceState, UpcomingPayment } from '../../types/finance';
 import type { TravelModeId } from '../../types/transport';
 import { formatGameTime } from '../../core/time';
 import { Icon, type IconName } from '../icons';
@@ -39,6 +41,14 @@ export type PhonePanelState = {
   unreadNotifications: number;
   mapTarget?: Location;
   mapRoute?: LocationTravelOption;
+  districtTravelOptions: DistrictTravelOption[];
+  finance: {
+    finance: PersonalFinanceState;
+    bankBalance: number;
+    totalAssets: number;
+    totalDebt: number;
+    upcomingPayments: UpcomingPayment[];
+  };
 };
 
 type PhoneShellProps = {
@@ -56,9 +66,14 @@ type PhoneShellProps = {
   onToggleSavedJob: (jobId: JobId) => void;
   onSetMapTarget: (locationId?: LocationId) => void;
   onMoveLocation: (locationId: LocationId, modeId: TravelModeId) => void;
+  onMoveDistrict: (districtId: DistrictId, modeId: TravelModeId) => void;
   onReadNotification: (id: PhoneNotificationId) => void;
   onReadMessage: (id: PhoneMessageId) => void;
   onAttendInterview: (jobId: JobId) => void;
+  onTransferFunds: (direction: 'bank_to_cash' | 'cash_to_bank' | 'bank_to_savings' | 'savings_to_bank', amount: number) => void;
+  onSetAutoSave: (percent: number) => void;
+  onCreateSavingsGoal: (title: string, targetAmount: number) => void;
+  onFundSavingsGoal: (goalId: string, amount: number) => void;
 };
 
 const APPLICATION_LABELS: Record<PhoneJobApplication['status'], string> = {
@@ -72,6 +87,7 @@ const APPLICATION_LABELS: Record<PhoneJobApplication['status'], string> = {
 const APP_META: Array<{ id: PhoneAppId; label: string; icon: IconName; tone: string }> = [
   { id: 'jobs', label: 'hh', icon: 'briefcase', tone: 'red' },
   { id: 'maps', label: 'Карты', icon: 'pin', tone: 'blue' },
+  { id: 'bank', label: 'Банк', icon: 'wallet', tone: 'cyan' },
   { id: 'messages', label: 'Сообщения', icon: 'message', tone: 'green' },
   { id: 'calendar', label: 'Календарь', icon: 'calendar', tone: 'violet' },
   { id: 'notifications', label: 'Уведомления', icon: 'bell', tone: 'amber' }
@@ -228,27 +244,123 @@ function MapsApp(props: {
   currentLocation?: Location;
   onClear: () => void;
   onMove: (locationId: LocationId, modeId: TravelModeId) => void;
+  onMoveDistrict: (districtId: DistrictId, modeId: TravelModeId) => void;
 }) {
+  const [selectedDistrictId, setSelectedDistrictId] = useState<DistrictId>();
   const target = props.state.mapTarget;
   const route = props.state.mapRoute;
+  const districtRoute = props.state.districtTravelOptions.find((entry) => entry.district.id === selectedDistrictId);
+  const currentDistrictSlug = String(props.currentLocation?.districtId ?? '').replace('msk_', '');
+  const selectedTitle = target?.name ?? districtRoute?.district.name ?? 'Москва';
+  const selectedAddress = target?.address ?? (districtRoute ? `Переезд в район: ${districtRoute.district.name}` : `Сейчас: ${props.currentLocation?.name ?? 'Москва'}`);
+
+  function selectDistrict(id: DistrictId): void {
+    setSelectedDistrictId(id);
+    props.onClear();
+  }
+
   return (
     <div className="phone-app-page phone-screen-enter phone-maps-app">
-      <div className="phone-map-canvas" aria-hidden="true"><i/><i/><i/><span className="phone-map-current">Ты</span>{target ? <span className="phone-map-target">Цель</span> : null}</div>
+      <div className="moscow-map" role="img" aria-label="Карта Москвы с районами">
+        <svg viewBox="0 0 420 360" aria-hidden="true">
+          <defs>
+            <linearGradient id="mapBg" x1="0" y1="0" x2="1" y2="1"><stop stopColor="#1a3441"/><stop offset="1" stopColor="#0a1720"/></linearGradient>
+            <filter id="mapGlow"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+          </defs>
+          <path className="moscow-map__mkad" d="M57 62C111 8 302 7 365 69c51 51 48 171 3 225-54 65-232 72-306 9C4 253 8 111 57 62Z" fill="url(#mapBg)"/>
+          <path className="moscow-map__river" d="M4 202c64-30 90-5 128-20 41-17 54-70 102-69 39 1 53 39 91 45 37 6 64-15 95-44"/>
+          <path className="moscow-map__road" d="M80 80 340 287M342 75 82 292M205 28v310M40 178h345"/>
+          <circle className="moscow-map__ring" cx="212" cy="176" r="82"/>
+          <g className="moscow-map__districts">
+            <path data-id="msk_presnya" d="M104 94 188 78 201 142 165 184 94 159Z"/>
+            <path data-id="msk_tverskoy" d="M190 70 264 83 280 147 218 166 201 142Z"/>
+            <path data-id="msk_khamovniki" d="M109 171 166 184 216 168 224 236 151 260 92 225Z"/>
+            <path data-id="msk_danilovsky" d="M218 168 282 151 321 213 284 276 224 236Z"/>
+          </g>
+          <text x="119" y="125">Пресня</text><text x="218" y="113">Тверской</text><text x="119" y="221">Хамовники</text><text x="248" y="222">Даниловский</text>
+        </svg>
+        <div className="moscow-map__hitboxes">
+          {props.state.districtTravelOptions.map((option) => {
+            const slug = String(option.district.id).replace('msk_', '');
+            return <button className={`map-hitbox map-hitbox--${slug} ${selectedDistrictId === option.district.id ? 'is-active' : ''}`} key={option.district.id} type="button" aria-label={option.district.name} onClick={() => selectDistrict(option.district.id)}/>;
+          })}
+        </div>
+        <span className={`moscow-map__current moscow-map__current--${currentDistrictSlug}`}><i/>Ты здесь</span>
+      </div>
       <section className="phone-map-sheet">
         <span className="phone-kicker">Маршрут</span>
-        <h2>{target?.name ?? 'Выбери адрес из вакансии'}</h2>
-        <p>{target?.address ?? `Сейчас: ${props.currentLocation?.name ?? 'Москва'}`}</p>
+        <h2>{selectedTitle}</h2>
+        <p>{selectedAddress}</p>
         {route?.transportOptions.length ? (
           <div className="phone-route-options">
             {route.transportOptions.map((option) => (
               <button disabled={!option.available} key={option.modeId} type="button" onClick={() => target && props.onMove(target.id, option.modeId)}>
-                <Icon name={option.modeId} size={19}/>
-                <div><strong>{option.name}</strong><span>{option.durationMinutes} мин · {option.moneyCost ? formatRubles(option.moneyCost) : 'Бесплатно'}</span></div>
+                <Icon name={option.modeId} size={19}/><div><strong>{option.name}</strong><span>{option.durationMinutes} мин · {option.moneyCost ? formatRubles(option.moneyCost) : 'Бесплатно'}</span></div>
               </button>
             ))}
           </div>
-        ) : <p className="phone-muted">Открой вакансию и нажми «Маршрут».</p>}
-        {target ? <button className="phone-text-button" type="button" onClick={props.onClear}>Сбросить маршрут</button> : null}
+        ) : districtRoute ? (
+          <div className="phone-route-options">
+            {districtRoute.transportOptions.map((option) => (
+              <button disabled={!option.available || districtRoute.isCurrent} key={option.modeId} type="button" onClick={() => props.onMoveDistrict(districtRoute.district.id, option.modeId)}>
+                <Icon name={option.modeId} size={19}/><div><strong>{option.name}</strong><span>{districtRoute.isCurrent ? 'Ты уже в этом районе' : `${option.durationMinutes} мин · ${option.moneyCost ? formatRubles(option.moneyCost) : 'Бесплатно'}`}</span></div>
+              </button>
+            ))}
+          </div>
+        ) : <p className="phone-muted">Нажми на цветной район или открой маршрут из вакансии.</p>}
+        {target || selectedDistrictId ? <button className="phone-text-button" type="button" onClick={() => { props.onClear(); setSelectedDistrictId(undefined); }}>Сбросить маршрут</button> : null}
+      </section>
+    </div>
+  );
+}
+
+function BankApp(props: {
+  state: PhonePanelState;
+  onTransfer: PhoneShellProps['onTransferFunds'];
+  onSetAutoSave: PhoneShellProps['onSetAutoSave'];
+  onCreateGoal: PhoneShellProps['onCreateSavingsGoal'];
+  onFundGoal: PhoneShellProps['onFundSavingsGoal'];
+}) {
+  const [amount, setAmount] = useState(1000);
+  const [goalTitle, setGoalTitle] = useState('');
+  const [goalTarget, setGoalTarget] = useState(50000);
+  const finance = props.state.finance;
+  return (
+    <div className="phone-app-page phone-screen-enter phone-bank-app">
+      <div className="phone-bank-card"><span>LifeBank · дебетовая</span><strong>{formatRubles(finance.bankBalance)}</strong><small>Доступно на счёте</small><i>•• 1842</i></div>
+      <div className="phone-balance-grid">
+        <div><span>Наличные</span><strong>{formatRubles(finance.finance.cash)}</strong></div>
+        <div><span>Накопления</span><strong>{formatRubles(finance.finance.savings)}</strong></div>
+        <div><span>Начислено</span><strong>{formatRubles(finance.finance.pendingSalary)}</strong></div>
+        <div><span>Долги</span><strong className={finance.totalDebt > 0 ? 'negative' : ''}>{formatRubles(finance.totalDebt)}</strong></div>
+      </div>
+      <section className="phone-subsection">
+        <div className="phone-section-title"><span>Переводы</span><em>{formatRubles(amount)}</em></div>
+        <input className="phone-money-input" type="number" min="100" step="100" value={amount} onChange={(event) => setAmount(Number(event.target.value) || 100)}/>
+        <div className="phone-transfer-grid">
+          <button type="button" onClick={() => props.onTransfer('bank_to_cash', amount)}>Снять</button>
+          <button type="button" onClick={() => props.onTransfer('cash_to_bank', amount)}>Внести</button>
+          <button type="button" onClick={() => props.onTransfer('bank_to_savings', amount)}>В накопления</button>
+          <button type="button" onClick={() => props.onTransfer('savings_to_bank', amount)}>Из накоплений</button>
+        </div>
+      </section>
+      <section className="phone-subsection">
+        <div className="phone-section-title"><span>Автосбережение с зарплаты</span><em>{finance.finance.autoSavePercent}%</em></div>
+        <div className="phone-autosave-row">{[0,5,10,20,30].map((value) => <button className={finance.finance.autoSavePercent === value ? 'active' : ''} key={value} type="button" onClick={() => props.onSetAutoSave(value)}>{value}%</button>)}</div>
+        <p className="phone-muted">Следующая выплата: день {finance.finance.nextSalaryPayoutDay}</p>
+      </section>
+      <section className="phone-subsection">
+        <div className="phone-section-title"><span>Цели</span><em>{finance.finance.goals.length}/5</em></div>
+        <div className="phone-goal-create"><input placeholder="Например, новая квартира" value={goalTitle} onChange={(event) => setGoalTitle(event.target.value)}/><input type="number" min="1000" step="1000" value={goalTarget} onChange={(event) => setGoalTarget(Number(event.target.value) || 1000)}/><button type="button" onClick={() => { props.onCreateGoal(goalTitle, goalTarget); setGoalTitle(''); }}>Создать</button></div>
+        <div className="phone-goal-list">{finance.finance.goals.map((goal) => { const percent = Math.min(100, Math.round(goal.currentAmount / goal.targetAmount * 100)); return <article key={goal.id}><div><strong>{goal.title}</strong><span>{formatRubles(goal.currentAmount)} / {formatRubles(goal.targetAmount)}</span></div><i><b style={{width:`${percent}%`}}/></i><button type="button" onClick={() => props.onFundGoal(goal.id, amount)}>+ {formatRubles(amount)}</button></article>; })}</div>
+      </section>
+      <section className="phone-subsection">
+        <div className="phone-section-title"><span>Ближайшие платежи</span><em>{finance.upcomingPayments.length}</em></div>
+        <div className="phone-payment-list">{finance.upcomingPayments.map((payment) => <div key={payment.id}><span><strong>{payment.title}</strong><small>День {payment.dueDay}</small></span><b>-{formatRubles(payment.amount)}</b></div>)}</div>
+      </section>
+      <section className="phone-subsection">
+        <div className="phone-section-title"><span>История</span><em>{finance.finance.transactions.length}</em></div>
+        <div className="phone-transaction-list">{finance.finance.transactions.length ? finance.finance.transactions.slice(0,20).map((transaction) => <div key={transaction.id}><span><strong>{transaction.title}</strong><small>{formatTotalMinutes(transaction.totalMinutes)}</small></span><b className={transaction.amount >= 0 ? 'positive' : 'negative'}>{transaction.amount >= 0 ? '+' : ''}{formatRubles(transaction.amount)}</b></div>) : <p className="phone-muted">Операций пока нет.</p>}</div>
       </section>
     </div>
   );
@@ -320,6 +432,8 @@ export function PhoneShell(props: PhoneShellProps) {
   useEffect(() => {
     if (props.open) setMounted(true);
     const onKeyDown = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (target?.matches('input, textarea, select, [contenteditable="true"]')) return;
       if (event.key.toLowerCase() === 'p') props.open ? props.onClose() : props.onOpen();
       if (event.key === 'Escape' && props.open) props.onClose();
     };
@@ -361,7 +475,8 @@ export function PhoneShell(props: PhoneShellProps) {
             <div className="phone-app-content">
               {props.activeApp === 'home' ? <PhoneHome state={props.state} onOpenApp={props.onOpenApp}/> : null}
               {props.activeApp === 'jobs' ? <JobsApp state={props.state} selectedJobId={props.selectedJobId} onSelectJob={props.onSelectJob} onSubmit={props.onSubmitApplication} onToggleSaved={props.onToggleSavedJob} onRoute={(locationId) => { props.onSetMapTarget(locationId); props.onOpenApp('maps'); }} onAttendInterview={props.onAttendInterview}/> : null}
-              {props.activeApp === 'maps' ? <MapsApp state={props.state} currentLocation={props.currentLocation} onClear={() => props.onSetMapTarget(undefined)} onMove={(locationId, modeId) => { props.onMoveLocation(locationId, modeId); props.onClose(); }}/> : null}
+              {props.activeApp === 'maps' ? <MapsApp state={props.state} currentLocation={props.currentLocation} onClear={() => props.onSetMapTarget(undefined)} onMove={(locationId, modeId) => { props.onMoveLocation(locationId, modeId); props.onClose(); }} onMoveDistrict={(districtId, modeId) => { props.onMoveDistrict(districtId, modeId); props.onClose(); }}/> : null}
+              {props.activeApp === 'bank' ? <BankApp state={props.state} onTransfer={props.onTransferFunds} onSetAutoSave={props.onSetAutoSave} onCreateGoal={props.onCreateSavingsGoal} onFundGoal={props.onFundSavingsGoal}/> : null}
               {props.activeApp === 'messages' ? <MessagesApp state={props.state} onRead={props.onReadMessage}/> : null}
               {props.activeApp === 'calendar' ? <CalendarApp state={props.state} onRoute={(locationId) => { props.onSetMapTarget(locationId); props.onOpenApp('maps'); }} onAttend={props.onAttendInterview}/> : null}
               {props.activeApp === 'notifications' ? <NotificationsApp state={props.state} onRead={props.onReadNotification}/> : null}

@@ -213,3 +213,70 @@
   .phone-overlay__backdrop,.diegetic-phone,.phone-screen-enter { animation-duration:.01ms !important; }
   .phone-app-tile:hover .phone-app-icon,.phone-launcher:hover,.phone-job-card:hover { transform:none; }
 }
+
+/* Finance + Moscow map patch */
+.phone-app-icon--cyan { background:linear-gradient(145deg,#4dd8e5,#147f9a); }
+.phone-launcher { right:24px; bottom:24px; min-width:132px; }
+
+.moscow-map { position:relative; min-height:360px; overflow:hidden; background:#0a1720; }
+.moscow-map svg { width:100%; height:auto; display:block; }
+.moscow-map__mkad { stroke:rgba(115,234,208,.42); stroke-width:3; }
+.moscow-map__river { fill:none; stroke:#4e9dd2; stroke-width:12; opacity:.72; }
+.moscow-map__road { fill:none; stroke:rgba(255,255,255,.1); stroke-width:2; stroke-dasharray:7 8; }
+.moscow-map__ring { fill:none; stroke:rgba(255,255,255,.16); stroke-width:5; }
+.moscow-map__districts path { stroke-width:3; filter:url(#mapGlow); opacity:.72; }
+.moscow-map__districts path[data-id="msk_presnya"] { fill:rgba(255,112,122,.24); stroke:#ff7180; }
+.moscow-map__districts path[data-id="msk_tverskoy"] { fill:rgba(124,155,255,.22); stroke:#7c9bff; }
+.moscow-map__districts path[data-id="msk_khamovniki"] { fill:rgba(177,120,255,.22); stroke:#b178ff; }
+.moscow-map__districts path[data-id="msk_danilovsky"] { fill:rgba(94,227,188,.22); stroke:#5ee3bc; }
+.moscow-map text { fill:rgba(244,250,252,.78); font:700 12px system-ui,sans-serif; pointer-events:none; }
+.moscow-map__hitboxes { position:absolute; inset:0; }
+.map-hitbox { position:absolute; border:0; background:transparent; cursor:pointer; }
+.map-hitbox--presnya { left:21%; top:19%; width:28%; height:31%; }
+.map-hitbox--tverskoy { left:45%; top:16%; width:28%; height:31%; }
+.map-hitbox--khamovniki { left:21%; top:45%; width:32%; height:32%; }
+.map-hitbox--danilovsky { left:51%; top:42%; width:31%; height:37%; }
+.map-hitbox:hover,.map-hitbox.is-active { outline:2px solid rgba(255,255,255,.72); outline-offset:-4px; background:rgba(255,255,255,.06); }
+.moscow-map__current { position:absolute; left:49%; top:45%; z-index:4; padding:6px 9px 6px 22px; border-radius:10px; color:#06110e; background:#78ead2; font-size:10px; font-weight:900; box-shadow:0 10px 26px rgba(0,0,0,.35); }
+.moscow-map__current i { position:absolute; left:8px; top:50%; width:7px; height:7px; transform:translateY(-50%); border-radius:50%; background:#06110e; }
+
+.phone-bank-card { position:relative; min-height:170px; padding:22px; display:flex; flex-direction:column; justify-content:flex-end; overflow:hidden; border:1px solid rgba(143,239,226,.28); border-radius:24px; background:radial-gradient(circle at 78% 22%,rgba(125,242,217,.32),transparent 30%),linear-gradient(145deg,#193646,#0d1b26 58%,#081017); box-shadow:0 22px 45px rgba(0,0,0,.3),inset 0 1px rgba(255,255,255,.1); }
+.phone-bank-card::before { content:''; position:absolute; inset:-30% 45% 20% -20%; transform:rotate(-18deg); border:1px solid rgba(255,255,255,.12); border-radius:50%; }
+.phone-bank-card span { color:#78ead2; font-size:10px; letter-spacing:.12em; text-transform:uppercase; }
+.phone-bank-card strong { margin-top:14px; font-size:31px; line-height:1; }
+.phone-bank-card small { margin-top:6px; color:rgba(255,255,255,.45); }
+.phone-bank-card i { position:absolute; right:20px; bottom:20px; color:rgba(255,255,255,.5); font-style:normal; letter-spacing:.12em; }
+.phone-balance-grid { margin-top:12px; display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+.phone-balance-grid div { padding:13px; display:flex; flex-direction:column; gap:5px; border:1px solid rgba(255,255,255,.07); border-radius:14px; background:rgba(255,255,255,.035); }
+.phone-balance-grid span { color:rgba(255,255,255,.43); font-size:9px; text-transform:uppercase; }
+.phone-balance-grid strong { font-size:14px; }
+.phone-money-input,.phone-goal-create input { width:100%; box-sizing:border-box; margin-top:10px; padding:11px 12px; border:1px solid rgba(255,255,255,.1); border-radius:11px; outline:0; color:#eef8f9; background:rgba(255,255,255,.045); font:inherit; }
+.phone-transfer-grid { margin-top:9px; display:grid; grid-template-columns:1fr 1fr; gap:7px; }
+.phone-transfer-grid button,.phone-autosave-row button,.phone-goal-create button,.phone-goal-list article button { min-height:38px; border:1px solid rgba(255,255,255,.09); border-radius:10px; color:#eaf6f7; background:rgba(255,255,255,.045); cursor:pointer; }
+.phone-transfer-grid button:hover,.phone-goal-list article button:hover { border-color:rgba(113,235,207,.35); background:rgba(113,235,207,.08); }
+.phone-autosave-row { margin-top:10px; display:grid; grid-template-columns:repeat(5,1fr); gap:5px; }
+.phone-autosave-row button.active { color:#06110e; border-color:#72e9cd; background:#72e9cd; font-weight:900; }
+.phone-goal-create { margin-top:10px; display:grid; grid-template-columns:1.4fr .8fr; gap:7px; }
+.phone-goal-create input { margin:0; min-width:0; }
+.phone-goal-create button { grid-column:1/-1; color:#06110e; border:0; background:#72e8cb; font-weight:900; }
+.phone-goal-list { margin-top:12px; display:flex; flex-direction:column; gap:9px; }
+.phone-goal-list article { padding:11px; display:grid; grid-template-columns:1fr auto; gap:8px; border:1px solid rgba(255,255,255,.07); border-radius:12px; background:rgba(255,255,255,.025); }
+.phone-goal-list article > div { display:flex; flex-direction:column; gap:3px; }
+.phone-goal-list article span { color:rgba(255,255,255,.46); font-size:10px; }
+.phone-goal-list article > i { grid-column:1/-1; height:5px; overflow:hidden; border-radius:5px; background:rgba(255,255,255,.08); }
+.phone-goal-list article > i b { display:block; height:100%; border-radius:inherit; background:#72e8cb; }
+.phone-goal-list article button { grid-column:2; grid-row:1; padding:0 9px; font-size:10px; }
+.phone-payment-list,.phone-transaction-list { margin-top:10px; display:flex; flex-direction:column; }
+.phone-payment-list > div,.phone-transaction-list > div { padding:10px 0; display:flex; justify-content:space-between; gap:12px; border-bottom:1px solid rgba(255,255,255,.06); }
+.phone-payment-list span,.phone-transaction-list span { min-width:0; display:flex; flex-direction:column; gap:3px; }
+.phone-payment-list strong,.phone-transaction-list strong { font-size:11px; }
+.phone-payment-list small,.phone-transaction-list small { color:rgba(255,255,255,.38); font-size:9px; }
+.phone-payment-list b,.phone-transaction-list b { flex:0 0 auto; font-size:11px; }
+
+@media (min-width:761px) {
+  .phone-launcher { bottom:24px; right:24px; }
+}
+.moscow-map__current--presnya { left:31%; top:30%; }
+.moscow-map__current--tverskoy { left:53%; top:28%; }
+.moscow-map__current--khamovniki { left:31%; top:58%; }
+.moscow-map__current--danilovsky { left:60%; top:57%; }

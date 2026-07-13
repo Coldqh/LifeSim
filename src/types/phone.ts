@@ -7,7 +7,7 @@ import type {
   PhoneNotificationId
 } from './ids';
 
-export type PhoneAppId = 'home' | 'jobs' | 'maps' | 'messages' | 'calendar' | 'notifications';
+export type PhoneAppId = 'home' | 'jobs' | 'maps' | 'bank' | 'messages' | 'calendar' | 'notifications';
 
 export type JobApplicationStatus = 'submitted' | 'invited' | 'rejected' | 'accepted' | 'missed';
 
