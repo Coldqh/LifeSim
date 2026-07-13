@@ -203,20 +203,22 @@ export const basicProducts: Product[] = [
     name: 'Регидрон Био',
     category: 'medicine',
     price: 260,
-    description: 'Помогают восстановиться после сильной усталости.',
+    description: 'Раствор электролитов при обезвоживании и потере жидкости.',
     useDurationMinutes: 5,
     imageSrc: electrolyte_packImage,
-    effects: { thirst: 25, health: 4, energy: 4 }
+    effects: { thirst: 25, health: 2, energy: 4 },
+    medicalUse: { conditionIds: ['dehydration', 'food_poisoning'], treatmentHours: 10, symptomRelief: 18 }
   },
   {
     id: productId('painkiller'),
     name: 'Нурофен Экспресс',
     category: 'medicine',
     price: 220,
-    description: 'Базовая аптечная покупка.',
+    description: 'Снижает боль при ушибах и растяжениях, но не заменяет лечение.',
     useDurationMinutes: 5,
     imageSrc: painkillerImage,
-    effects: { health: 6, mood: 1 }
+    effects: { health: 2, mood: 1 },
+    medicalUse: { conditionIds: ['muscle_strain', 'hand_contusion', 'facial_cut'], treatmentHours: 5, symptomRelief: 14 }
   },
   {
     id: productId('vitamins_pack'),
@@ -233,20 +235,42 @@ export const basicProducts: Product[] = [
     name: 'Hartmann Cosmos',
     category: 'medicine',
     price: 160,
-    description: 'Мелкая аптечная расходка.',
+    description: 'Повязка для ушибов, растяжений и небольших рассечений.',
     useDurationMinutes: 5,
     imageSrc: bandage_kitImage,
-    effects: { health: 3 }
+    effects: { health: 1 },
+    medicalUse: { conditionIds: ['muscle_strain', 'hand_contusion', 'facial_cut'], treatmentHours: 8, symptomRelief: 10 }
   },
   {
     id: productId('cold_medicine'),
     name: 'ТераФлю',
     category: 'medicine',
     price: 420,
-    description: 'Базовое средство для восстановления здоровья.',
+    description: 'Снимает часть симптомов простуды и помогает восстановлению.',
     useDurationMinutes: 5,
     imageSrc: cold_medicineImage,
-    effects: { health: 10, energy: -2 }
+    effects: { health: 3, energy: -2 },
+    medicalUse: { conditionIds: ['common_cold'], treatmentHours: 14, symptomRelief: 18 }
+  },
+  {
+    id: productId('stomach_relief'),
+    name: 'Алмагель А 170 мл',
+    category: 'medicine',
+    price: 390,
+    description: 'Средство для краткого облегчения симптомов желудка.',
+    useDurationMinutes: 5,
+    effects: { health: 1, mood: 1 },
+    medicalUse: { conditionIds: ['gastritis_flare'], treatmentHours: 12, symptomRelief: 22, requiresDiagnosis: true }
+  },
+  {
+    id: productId('antiseptic'),
+    name: 'Хлоргексидин 0.05% 100 мл',
+    category: 'medicine',
+    price: 110,
+    description: 'Антисептик для обработки небольших повреждений кожи.',
+    useDurationMinutes: 5,
+    effects: {},
+    medicalUse: { conditionIds: ['facial_cut'], treatmentHours: 10, symptomRelief: 16 }
   },
   {
     id: productId('fruit_pack'),

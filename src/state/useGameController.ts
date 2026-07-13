@@ -49,6 +49,18 @@ import {
   getJobShiftFailure
 } from '../core/jobs';
 import { addInventoryItem, hasInventoryItem, removeInventoryItem } from '../core/inventory';
+import {
+  applyBoxingMedicalRisk,
+  applyMedicalProduct,
+  applyProductMedicalRisk,
+  applyWorkWhileSick,
+  attendMedicalAppointment,
+  getMedicalActivityFailure,
+  getMedicalAppointmentFailure,
+  issueSickLeave,
+  processMedicalTime,
+  scheduleMedicalAppointment
+} from '../core/healthcare';
 import { applySkillExperience, getMissingSkillRequirements, getSkillProgress } from '../core/progression';
 import {
   getActionsForLocation,
@@ -152,6 +164,8 @@ import { businessUpgrades, getBusinessUpgradeById } from '../data/business/upgra
 import { basicEducationPrograms, getEducationProgramById } from '../data/education/basicPrograms';
 import { basicJobs, getJobById, getJobsForLocation } from '../data/jobs/basicJobs';
 import { getProductById } from '../data/products/basicProducts';
+import { getMedicalServiceById, medicalServices } from '../data/healthcare/services';
+import { getMedicalConditionDefinition } from '../data/healthcare/conditions';
 import { basicSkills, getSkillById } from '../data/skills/basicSkills';
 import { boxingGyms, getBoxingGymById } from '../data/sports/boxingGyms';
 import { boxingTrainers, getBoxingTrainerById } from '../data/sports/boxingTrainers';
@@ -175,8 +189,10 @@ import type {
   DistrictId,
   EducationProgramId,
   JobId,
+  MedicalServiceId,
   PhoneMessageId,
   PhoneNotificationId,
+  PhoneCalendarEventId,
   LocationId,
   ProductId,
   NpcId,
@@ -196,6 +212,7 @@ import type { Npc } from '../types/npc';
 import type { SocialContext, SocialNpcView } from '../types/relationship';
 import type { SocialState } from '../types/socialEvent';
 import type { VehicleModel, VehicleOperationResult, VehicleWorldState } from '../types/vehicle';
+import type { MedicalState } from '../types/healthcare';
 import type { DistrictTravelOption, LocationTravelOption, TransportOption, TravelResult } from '../types/travel';
 import {
   clearSavedGameState,
@@ -237,8 +254,9 @@ function applyElapsedTimeConsequences(
   decayProfile: NeedsDecayProfile = 'active',
   socialOverride: SocialState = currentState.world.social,
   housingMarketOverride: HousingMarketState = currentState.world.housingMarket,
-  businessOverride: BusinessWorldState = currentState.world.business
-): { player: Player; population: GameState['world']['population']; social: SocialState; housingMarket: HousingMarketState; business: BusinessWorldState; lifeLogEntries: LifeLogEntry[]; needsDelta?: Partial<NeedsState>; messages: string[] } {
+  businessOverride: BusinessWorldState = currentState.world.business,
+  medicalOverride: MedicalState = currentState.world.medical
+): { player: Player; population: GameState['world']['population']; social: SocialState; housingMarket: HousingMarketState; business: BusinessWorldState; medical: MedicalState; lifeLogEntries: LifeLogEntry[]; needsDelta?: Partial<NeedsState>; messages: string[] } {
   const elapsedMinutes = getElapsedMinutes(currentState.time, nextTime);
   const lifeLogEntries: LifeLogEntry[] = [];
   const messages: string[] = [];
@@ -361,12 +379,26 @@ function applyElapsedTimeConsequences(
     }
   }
 
+  const medicalApplied = processMedicalTime({
+    state: medicalOverride,
+    player: nextPlayer,
+    fromTime: currentState.time,
+    toTime: nextTime,
+    profile: decayProfile
+  });
+  nextPlayer = medicalApplied.player;
+  if (medicalApplied.messages.length > 0) {
+    messages.push(...medicalApplied.messages);
+    lifeLogEntries.push(...medicalApplied.messages.map((message) => createLifeLogEntry({ time: nextTime }, 'Здоровье', message)));
+  }
+
   return {
     player: nextPlayer,
     population,
     social,
     housingMarket,
     business: businessApplied.world,
+    medical: medicalApplied.state,
     lifeLogEntries,
     needsDelta: mergeNeedsDelta(decayApplied.delta, comfortNeedsDelta),
     messages
@@ -393,12 +425,23 @@ function applyBoxingOperationState(
   }
 
   const elapsedApplied = applyElapsedTimeConsequences(currentState, applied.player, applied.time, 'active');
-  const messages = [...applied.result.messages, ...elapsedApplied.messages];
+  const combatKind = logTitle === 'Спарринг' ? 'sparring' : logTitle === 'Турнир' ? 'tournament' : undefined;
+  const riskApplied = combatKind
+    ? applyBoxingMedicalRisk({
+        state: elapsedApplied.medical,
+        player: elapsedApplied.player,
+        totalMinutes: getTotalMinutes(applied.time),
+        kind: combatKind,
+        seed: getTotalMinutes(applied.time) + currentState.world.population.seed
+      })
+    : { state: elapsedApplied.medical, player: elapsedApplied.player, message: undefined };
+  const messages = [...applied.result.messages, riskApplied.message, ...elapsedApplied.messages]
+    .filter((message): message is string => Boolean(message));
   const logEntry = createLifeLogEntry({ time: applied.time }, logTitle, messages.join(' '));
   return {
     ...currentState,
-    player: elapsedApplied.player,
-    world: { ...currentState.world, population: elapsedApplied.population, social: elapsedApplied.social, housingMarket: elapsedApplied.housingMarket, business: elapsedApplied.business },
+    player: riskApplied.player,
+    world: { ...currentState.world, population: elapsedApplied.population, social: elapsedApplied.social, housingMarket: elapsedApplied.housingMarket, business: elapsedApplied.business, medical: riskApplied.state },
     time: applied.time,
     lastResult: {
       ok: true,
@@ -602,6 +645,7 @@ function applyVehicleOperationState(
       social: elapsedApplied.social,
       housingMarket: elapsedApplied.housingMarket,
       business: elapsedApplied.business,
+          medical: elapsedApplied.medical,
       vehicles
     },
     lastResult: {
@@ -641,6 +685,49 @@ export function useGameController() {
     });
   }, [gameState.time.day, gameState.time.hour, gameState.time.minute]);
 
+
+  useEffect(() => {
+    setGameState((currentState) => {
+      const now = getTotalMinutes(currentState.time);
+      let changed = false;
+      let phone = currentState.world.phone;
+      const appointmentsById = new Map(currentState.world.medical.appointments.map((entry) => [String(entry.id), entry]));
+      const calendarEvents = phone.calendarEvents.map((event) => {
+        if (!event.medicalAppointmentId) return event;
+        const appointment = appointmentsById.get(String(event.medicalAppointmentId));
+        if (!appointment || appointment.status === event.status) return event;
+        changed = true;
+        return { ...event, status: appointment.status === 'cancelled' ? 'missed' as const : appointment.status };
+      });
+      if (calendarEvents !== phone.calendarEvents) phone = { ...phone, calendarEvents };
+
+      for (const appointment of currentState.world.medical.appointments) {
+        if (appointment.status !== 'scheduled') continue;
+        const reminderId = (`notification_medical_reminder_${appointment.id}`) as PhoneNotificationId;
+        const dueSoon = now >= appointment.startsAtTotalMinutes - 90 && now <= appointment.startsAtTotalMinutes;
+        if (!dueSoon || phone.notifications.some((entry) => entry.id === reminderId)) continue;
+        const service = getMedicalServiceById(appointment.serviceId);
+        phone = {
+          ...phone,
+          notifications: [{
+            id: reminderId,
+            appId: 'health' as const,
+            title: 'Скоро приём',
+            body: `${service?.name ?? 'Медицинский приём'} начнётся в ближайшие 90 минут.`,
+            createdAtTotalMinutes: now,
+            read: false,
+            locationId: appointment.clinicLocationId,
+            medicalServiceId: appointment.serviceId,
+            medicalAppointmentId: appointment.id
+          }, ...phone.notifications].slice(0, 80)
+        };
+        changed = true;
+      }
+
+      if (!changed) return currentState;
+      return { ...currentState, world: { ...currentState.world, phone } };
+    });
+  }, [gameState.time.day, gameState.time.hour, gameState.time.minute, gameState.world.medical.appointments]);
 
   useEffect(() => {
     setGameState((currentState) => {
@@ -755,7 +842,8 @@ export function useGameController() {
       const location = getLocationById(job.locationId);
       const district = location ? getDistrictById(location.districtId) : undefined;
       const applicationFailure = getJobApplicationFailure(gameState.player, job);
-      const shiftFailure = getJobShiftFailure(gameState.player, job, gameState.time);
+      const shiftFailure = getMedicalActivityFailure(gameState.world.medical, 'work')
+        ?? getJobShiftFailure(gameState.player, job, gameState.time);
       const promotionFailure = getJobPromotionFailure(gameState.player, job);
       const progress = getJobProgress(gameState.player, job);
       const missingSkillRequirements = getMissingSkillRequirements(gameState.player, job.requirements?.skills).map((requirement) => ({
@@ -808,7 +896,7 @@ export function useGameController() {
       currentJobView,
       currentLocationJobs
     };
-  }, [gameState.player, gameState.time]);
+  }, [gameState.player, gameState.time, gameState.world.medical]);
 
   const financeState = useMemo(() => {
     const finance = gameState.world.finance;
@@ -985,14 +1073,15 @@ export function useGameController() {
         return { trainer, selected: selectedTrainer?.id === trainer.id, canSelect: !failure, failure };
       });
     const trainings = boxingTrainings.map((training) => {
-      const failure = gym ? getBoxingTrainingFailure({
+      const failure = getMedicalActivityFailure(gameState.world.medical, 'boxing_training')
+        ?? (gym ? getBoxingTrainingFailure({
         player: gameState.player,
         time: gameState.time,
         gym,
         training,
         trainer: selectedTrainer,
         schedule: gymLocation?.openingHours
-      }) : 'Зал не найден.';
+      }) : 'Зал не найден.');
       return {
         training,
         canTrain: !failure,
@@ -1002,24 +1091,26 @@ export function useGameController() {
       };
     });
     const opponents = boxingOpponents.map((opponent) => {
-      const failure = gym ? getBoxingSparringFailure({
+      const failure = getMedicalActivityFailure(gameState.world.medical, 'sparring')
+        ?? (gym ? getBoxingSparringFailure({
         player: gameState.player,
         time: gameState.time,
         gym,
         opponent,
         trainer: selectedTrainer,
         schedule: gymLocation?.openingHours
-      }) : 'Зал не найден.';
+      }) : 'Зал не найден.');
       return { opponent, canSpar: !failure, failure };
     });
     const tournaments = boxingTournaments.map((tournament) => {
-      const failure = gym ? getBoxingTournamentFailure({
+      const failure = getMedicalActivityFailure(gameState.world.medical, 'tournament')
+        ?? (gym ? getBoxingTournamentFailure({
         player: gameState.player,
         time: gameState.time,
         gym,
         tournament,
         schedule: gymLocation?.openingHours
-      }) : 'Зал не найден.';
+      }) : 'Зал не найден.');
       return { tournament, canEnter: !failure, failure };
     });
 
@@ -1039,12 +1130,58 @@ export function useGameController() {
       opponents,
       tournaments
     };
-  }, [gameState.player, gameState.time]);
+  }, [gameState.player, gameState.time, gameState.world.medical]);
 
   const conditionState = useMemo(() => ({
     conditions: getNeedConditions(gameState.player.needs),
     consequences: getNeedsConsequences(gameState.player.needs)
   }), [gameState.player.needs]);
+
+  const healthState = useMemo(() => {
+    const conditions = gameState.world.medical.conditions.map((condition) => ({
+      condition,
+      definition: getMedicalConditionDefinition(condition.id)
+    }));
+    const services = medicalServices.map((service) => {
+      const clinic = getLocationById(service.clinicLocationId);
+      const appointment = gameState.world.medical.appointments.find((entry) => entry.serviceId === service.id && entry.status === 'scheduled');
+      const attendFailure = appointment
+        ? getMedicalAppointmentFailure({
+            state: gameState.world.medical,
+            service,
+            time: gameState.time,
+            currentLocationId: gameState.player.locationId,
+            playerMoney: gameState.player.money
+          })
+        : undefined;
+      return {
+        service,
+        clinic,
+        appointment,
+        scheduleStatus: getScheduleStatus(service.schedule, gameState.time),
+        attendFailure
+      };
+    });
+    const prescriptions = gameState.world.medical.prescriptions.map((prescription) => ({
+      prescription,
+      product: getProductById(prescription.productId),
+      conditionName: getMedicalConditionDefinition(prescription.conditionId)?.name ?? prescription.conditionId
+    }));
+    const symptoms = conditions.flatMap(({ condition, definition }) =>
+      (definition?.symptoms ?? []).map((symptom) => ({ symptom, diagnosed: condition.diagnosed, conditionId: condition.id }))
+    );
+    return {
+      medical: gameState.world.medical,
+      conditions,
+      services,
+      prescriptions,
+      symptoms,
+      sickLeave: gameState.world.medical.sickLeave,
+      upcomingAppointment: gameState.world.medical.appointments
+        .filter((entry) => entry.status === 'scheduled')
+        .sort((a, b) => a.startsAtTotalMinutes - b.startsAtTotalMinutes)[0]
+    };
+  }, [gameState.player.locationId, gameState.player.money, gameState.time, gameState.world.medical]);
 
   const housingState = useMemo(() => {
     const currentHousing = getHousingById(gameState.player.housingId);
@@ -1319,7 +1456,7 @@ export function useGameController() {
       return {
         ...currentState,
         player: elapsedApplied.player,
-        world: { ...currentState.world, population: elapsedApplied.population, social: elapsedApplied.social, housingMarket: elapsedApplied.housingMarket, business: elapsedApplied.business },
+        world: { ...currentState.world, population: elapsedApplied.population, social: elapsedApplied.social, housingMarket: elapsedApplied.housingMarket, business: elapsedApplied.business, medical: elapsedApplied.medical },
         time: applied.time,
         lastResult: {
           ...applied.result,
@@ -1404,7 +1541,7 @@ export function useGameController() {
         ...currentState,
         time: nextTime,
         player: elapsedApplied.player,
-        world: { ...currentState.world, population: elapsedApplied.population, social: elapsedApplied.social, housingMarket: elapsedApplied.housingMarket, business: elapsedApplied.business, vehicles },
+        world: { ...currentState.world, population: elapsedApplied.population, social: elapsedApplied.social, housingMarket: elapsedApplied.housingMarket, business: elapsedApplied.business, medical: elapsedApplied.medical, vehicles },
         lastResult: {
           ok: true,
           timeDeltaMinutes: travel.durationMinutes,
@@ -1489,7 +1626,7 @@ export function useGameController() {
         ...currentState,
         time: nextTime,
         player: elapsedApplied.player,
-        world: { ...currentState.world, population: elapsedApplied.population, social: elapsedApplied.social, housingMarket: elapsedApplied.housingMarket, business: elapsedApplied.business, vehicles },
+        world: { ...currentState.world, population: elapsedApplied.population, social: elapsedApplied.social, housingMarket: elapsedApplied.housingMarket, business: elapsedApplied.business, medical: elapsedApplied.medical, vehicles },
         lastResult: {
           ok: true,
           timeDeltaMinutes: travel.durationMinutes,
@@ -1569,6 +1706,7 @@ export function useGameController() {
         player: nextPlayer,
         lastResult: {
           ok: true,
+          actionName: product.category === 'medicine' ? `Аптека: ${product.name}` : `Покупка: ${product.name}`,
           timeDeltaMinutes: 0,
           moneyDelta: -product.price,
           messages: [message]
@@ -1598,15 +1736,45 @@ export function useGameController() {
       }
 
       const nextTime = addMinutes(currentState.time, product.useDurationMinutes);
+      const medicalUse = applyMedicalProduct({
+        state: currentState.world.medical,
+        productId: product.id,
+        medicalUse: product.medicalUse,
+        totalMinutes: getTotalMinutes(nextTime)
+      });
+      if (product.medicalUse && medicalUse.appliedConditionIds.length === 0) {
+        const message = medicalUse.message ?? 'Средство сейчас не требуется.';
+        const logEntry = createLifeLogEntry(currentState, 'Лечение недоступно', message);
+        return {
+          ...currentState,
+          lastResult: { ok: false, actionName: product.name, timeDeltaMinutes: 0, messages: [message] },
+          lifeLog: mergeLifeLog([logEntry], currentState.lifeLog)
+        };
+      }
       const consumedPlayer = {
         ...currentState.player,
         needs: applyNeedsDelta(currentState.player.needs, product.effects),
         inventory: removeInventoryItem(currentState.player.inventory, productId)
       };
-      const elapsedApplied = applyElapsedTimeConsequences(currentState, consumedPlayer, nextTime, 'active');
+      const productRisk = applyProductMedicalRisk({
+        state: medicalUse.state,
+        player: consumedPlayer,
+        productId: product.id,
+        totalMinutes: getTotalMinutes(nextTime)
+      });
+      const elapsedApplied = applyElapsedTimeConsequences(
+        currentState,
+        productRisk.player,
+        nextTime,
+        'active',
+        currentState.world.social,
+        currentState.world.housingMarket,
+        currentState.world.business,
+        productRisk.state
+      );
       const warning = getNeedWarning(elapsedApplied.player.needs);
       const message = `Использовано: ${product.name}. Потрачено ${product.useDurationMinutes} мин.`;
-      const messages = [message, warning, ...elapsedApplied.messages]
+      const messages = [message, medicalUse.message, productRisk.message, warning, ...elapsedApplied.messages]
         .filter((entry): entry is string => Boolean(entry));
       const logEntry = createLifeLogEntry({ time: nextTime }, 'Инвентарь', messages.join(' '));
 
@@ -1614,7 +1782,7 @@ export function useGameController() {
         ...currentState,
         time: nextTime,
         player: elapsedApplied.player,
-        world: { ...currentState.world, population: elapsedApplied.population, social: elapsedApplied.social, housingMarket: elapsedApplied.housingMarket, business: elapsedApplied.business },
+        world: { ...currentState.world, population: elapsedApplied.population, social: elapsedApplied.social, housingMarket: elapsedApplied.housingMarket, business: elapsedApplied.business, medical: elapsedApplied.medical },
         lastResult: {
           ok: true,
           timeDeltaMinutes: product.useDurationMinutes,
@@ -1689,6 +1857,15 @@ export function useGameController() {
     if (!job) return;
 
     setGameState((currentState) => {
+      const medicalFailure = getMedicalActivityFailure(currentState.world.medical, 'work');
+      if (medicalFailure) {
+        const logEntry = createLifeLogEntry(currentState, 'Смена недоступна', medicalFailure);
+        return {
+          ...currentState,
+          lastResult: { ok: false, actionName: job.title, timeDeltaMinutes: 0, messages: [medicalFailure] },
+          lifeLog: mergeLifeLog([logEntry], currentState.lifeLog)
+        };
+      }
       const applied = applyJobShift({
         player: currentState.player,
         time: currentState.time,
@@ -1702,11 +1879,14 @@ export function useGameController() {
         ? accrueSalary(currentState.world.finance, earnedSalary, getTotalMinutes(applied.time), applied.result.jobTitle)
         : currentState.world.finance;
       const elapsedApplied = applyElapsedTimeConsequences(currentState, deferredPlayer, applied.time, 'active');
+      const sicknessApplied = applied.result.ok
+        ? applyWorkWhileSick(elapsedApplied.medical, elapsedApplied.player, getTotalMinutes(applied.time))
+        : { state: elapsedApplied.medical, player: elapsedApplied.player, message: undefined };
       const skillLevelMessages = (applied.result.skillProgressUpdates ?? [])
         .filter((update) => update.leveledUp)
         .map((update) => `Навык «${getSkillById(update.skillId)?.name ?? 'Навык'}» повышен до уровня ${update.nextLevel}.`);
       const salaryMessage = earnedSalary > 0 ? `Начислено ${earnedSalary} ₽. Выплата в день ${finance.nextSalaryPayoutDay}.` : undefined;
-      const resultMessages = [...applied.result.messages, salaryMessage, ...skillLevelMessages, ...elapsedApplied.messages].filter((message): message is string => Boolean(message));
+      const resultMessages = [...applied.result.messages, salaryMessage, sicknessApplied.message, ...skillLevelMessages, ...elapsedApplied.messages].filter((message): message is string => Boolean(message));
       const logEntry = createLifeLogEntry(
         { time: applied.time },
         applied.result.ok ? 'Смена' : 'Смена недоступна',
@@ -1718,8 +1898,8 @@ export function useGameController() {
 
       return {
         ...currentState,
-        player: elapsedApplied.player,
-        world: { ...currentState.world, population: elapsedApplied.population, social: elapsedApplied.social, housingMarket: elapsedApplied.housingMarket, business: elapsedApplied.business, finance },
+        player: sicknessApplied.player,
+        world: { ...currentState.world, population: elapsedApplied.population, social: elapsedApplied.social, housingMarket: elapsedApplied.housingMarket, business: elapsedApplied.business, medical: sicknessApplied.state, finance },
         time: applied.time,
         lastResult: {
           ok: applied.result.ok,
@@ -1775,7 +1955,7 @@ export function useGameController() {
       return {
         ...currentState,
         player: elapsedApplied.player,
-        world: { ...currentState.world, population: elapsedApplied.population, social: elapsedApplied.social, housingMarket: elapsedApplied.housingMarket, business: elapsedApplied.business },
+        world: { ...currentState.world, population: elapsedApplied.population, social: elapsedApplied.social, housingMarket: elapsedApplied.housingMarket, business: elapsedApplied.business, medical: elapsedApplied.medical },
         time: applied.time,
         lastResult: {
           ok: true,
@@ -1823,6 +2003,15 @@ export function useGameController() {
     const training = getBoxingTrainingById(trainingId);
     if (!training) return;
     setGameState((currentState) => {
+      const medicalFailure = getMedicalActivityFailure(currentState.world.medical, 'boxing_training');
+      if (medicalFailure) {
+        const logEntry = createLifeLogEntry(currentState, 'Бокс недоступен', medicalFailure);
+        return {
+          ...currentState,
+          lastResult: { ok: false, actionName: 'Бокс', timeDeltaMinutes: 0, messages: [medicalFailure] },
+          lifeLog: mergeLifeLog([logEntry], currentState.lifeLog)
+        };
+      }
       const gym = boxingGyms[0];
       const location = getLocationById(gym.locationId);
       const trainer = getBoxingTrainerById(currentState.player.boxing.selectedTrainerId);
@@ -1841,6 +2030,15 @@ export function useGameController() {
     const opponent = getBoxingOpponentById(opponentId);
     if (!opponent) return;
     setGameState((currentState) => {
+      const medicalFailure = getMedicalActivityFailure(currentState.world.medical, 'sparring');
+      if (medicalFailure) {
+        const logEntry = createLifeLogEntry(currentState, 'Бокс недоступен', medicalFailure);
+        return {
+          ...currentState,
+          lastResult: { ok: false, actionName: 'Бокс', timeDeltaMinutes: 0, messages: [medicalFailure] },
+          lifeLog: mergeLifeLog([logEntry], currentState.lifeLog)
+        };
+      }
       const gym = boxingGyms[0];
       const location = getLocationById(gym.locationId);
       const trainer = getBoxingTrainerById(currentState.player.boxing.selectedTrainerId);
@@ -1859,6 +2057,15 @@ export function useGameController() {
     const tournament = getBoxingTournamentById(tournamentId);
     if (!tournament) return;
     setGameState((currentState) => {
+      const medicalFailure = getMedicalActivityFailure(currentState.world.medical, 'tournament');
+      if (medicalFailure) {
+        const logEntry = createLifeLogEntry(currentState, 'Бокс недоступен', medicalFailure);
+        return {
+          ...currentState,
+          lastResult: { ok: false, actionName: 'Бокс', timeDeltaMinutes: 0, messages: [medicalFailure] },
+          lifeLog: mergeLifeLog([logEntry], currentState.lifeLog)
+        };
+      }
       const gym = boxingGyms[0];
       const location = getLocationById(gym.locationId);
       const opponents = tournament.opponentIds
@@ -1939,7 +2146,8 @@ export function useGameController() {
           population: elapsedApplied.population,
           social: elapsedApplied.social,
           housingMarket: elapsedApplied.housingMarket,
-          business: elapsedApplied.business
+          business: elapsedApplied.business,
+          medical: elapsedApplied.medical
         },
         lastResult: {
           ok: true,
@@ -1997,7 +2205,8 @@ export function useGameController() {
           population: elapsedApplied.population,
           social: elapsedApplied.social,
           housingMarket: elapsedApplied.housingMarket,
-          business: elapsedApplied.business
+          business: elapsedApplied.business,
+          medical: elapsedApplied.medical
         },
         lastResult: {
           ok: true,
@@ -2076,7 +2285,8 @@ export function useGameController() {
           population: elapsedApplied.population,
           social: nextSocial,
           housingMarket: elapsedApplied.housingMarket,
-          business: elapsedApplied.business
+          business: elapsedApplied.business,
+          medical: elapsedApplied.medical
         },
         lastResult: {
           ok: true,
@@ -2144,7 +2354,8 @@ export function useGameController() {
           population: elapsedApplied.population,
           social: elapsedApplied.social,
           housingMarket: elapsedApplied.housingMarket,
-          business: elapsedApplied.business
+          business: elapsedApplied.business,
+          medical: elapsedApplied.medical
         },
         lastResult: {
           ok: true,
@@ -2319,10 +2530,11 @@ export function useGameController() {
       const premises = getBusinessPremisesById(business?.premisesId);
       const businessType = getBusinessTypeById(business?.typeId);
       if (!business || !premises || !businessType) return currentState;
-      const failure = currentState.player.locationId !== premises.locationId
+      const failure = getMedicalActivityFailure(currentState.world.medical, 'work')
+        ?? (currentState.player.locationId !== premises.locationId
         ? 'Нужно быть в своей кофейне.'
         : getScheduleActivityFailure(business.schedule, currentState.time, 240, 'Смена владельца')
-          ?? getNeedsRequirementFailure(currentState.player.needs, { minEnergy: 20, minHealth: 25, minHunger: 6, minThirst: 6 });
+          ?? getNeedsRequirementFailure(currentState.player.needs, { minEnergy: 20, minHealth: 25, minHunger: 6, minThirst: 6 }));
       if (failure) {
         const logEntry = createLifeLogEntry(currentState, 'Смена владельца недоступна', failure);
         return {
@@ -2359,22 +2571,24 @@ export function useGameController() {
         currentState.world.housingMarket,
         simulated.world
       );
+      const sicknessApplied = applyWorkWhileSick(elapsedApplied.medical, elapsedApplied.player, getTotalMinutes(nextTime));
       const balanceAfter = elapsedApplied.business.ownedBusiness?.balance ?? balanceBefore;
       const businessMessages = simulated.events.map((event) => event.text);
       const levelMessage = skillApplied.update.leveledUp ? `Навык «Сервис» повышен до уровня ${skillApplied.update.nextLevel}.` : undefined;
       const shiftMessage = `Ты отработал четыре часа в своей кофейне. Изменение счёта бизнеса: ${balanceAfter - balanceBefore >= 0 ? '+' : ''}${balanceAfter - balanceBefore} ₽.`;
-      const messages = [shiftMessage, levelMessage, ...businessMessages, ...elapsedApplied.messages].filter((message): message is string => Boolean(message));
+      const messages = [shiftMessage, levelMessage, sicknessApplied.message, ...businessMessages, ...elapsedApplied.messages].filter((message): message is string => Boolean(message));
       const logEntry = createLifeLogEntry({ time: nextTime }, 'Смена владельца', messages.join(' '));
       return {
         ...currentState,
         time: nextTime,
-        player: elapsedApplied.player,
+        player: sicknessApplied.player,
         world: {
           ...currentState.world,
           population: elapsedApplied.population,
           social: elapsedApplied.social,
           housingMarket: elapsedApplied.housingMarket,
-          business: elapsedApplied.business
+          business: elapsedApplied.business,
+          medical: sicknessApplied.state
         },
         lastResult: {
           ok: true,
@@ -2506,6 +2720,7 @@ export function useGameController() {
           social: elapsedApplied.social,
           housingMarket: elapsedApplied.housingMarket,
           business: elapsedApplied.business,
+          medical: elapsedApplied.medical,
           phone: interview.state
         },
         lastResult: {
@@ -2516,6 +2731,150 @@ export function useGameController() {
           messages
         },
         lifeLog: mergeLifeLog([logEntry, ...elapsedApplied.lifeLogEntries], currentState.lifeLog)
+      };
+    });
+  }
+
+
+  function scheduleMedicalVisit(serviceId: MedicalServiceId): void {
+    const service = getMedicalServiceById(serviceId);
+    if (!service) return;
+    setGameState((currentState) => {
+      const applied = scheduleMedicalAppointment({ state: currentState.world.medical, service, time: currentState.time });
+      if (!applied.result.ok || !applied.appointment) {
+        const entry = createLifeLogEntry(currentState, applied.result.title, applied.result.message);
+        return {
+          ...currentState,
+          lastResult: { ok: false, actionName: applied.result.title, timeDeltaMinutes: 0, messages: [applied.result.message] },
+          lifeLog: mergeLifeLog([entry], currentState.lifeLog)
+        };
+      }
+      const appointment = applied.appointment;
+      const calendarId = (`calendar_medical_${appointment.id}`) as PhoneCalendarEventId;
+      const notificationId = (`notification_medical_${appointment.id}`) as PhoneNotificationId;
+      const phone = {
+        ...currentState.world.phone,
+        calendarEvents: [{
+          id: calendarId,
+          type: 'medical_appointment' as const,
+          title: service.name,
+          locationId: service.clinicLocationId,
+          startsAtTotalMinutes: appointment.startsAtTotalMinutes,
+          durationMinutes: appointment.durationMinutes,
+          status: 'scheduled' as const,
+          medicalServiceId: service.id,
+          medicalAppointmentId: appointment.id
+        }, ...currentState.world.phone.calendarEvents].slice(0, 60),
+        notifications: [{
+          id: notificationId,
+          appId: 'health' as const,
+          title: 'Запись подтверждена',
+          body: `${service.name}. Приём добавлен в календарь.`,
+          createdAtTotalMinutes: getTotalMinutes(currentState.time),
+          read: false,
+          locationId: service.clinicLocationId,
+          medicalServiceId: service.id,
+          medicalAppointmentId: appointment.id
+        }, ...currentState.world.phone.notifications].slice(0, 80)
+      };
+      const entry = createLifeLogEntry(currentState, 'Запись к врачу', applied.result.message);
+      return {
+        ...currentState,
+        world: { ...currentState.world, medical: applied.state, phone },
+        lastResult: { ok: true, actionName: applied.result.title, timeDeltaMinutes: 0, messages: [applied.result.message] },
+        lifeLog: mergeLifeLog([entry], currentState.lifeLog)
+      };
+    });
+  }
+
+  function attendMedicalVisit(serviceId: MedicalServiceId): void {
+    const service = getMedicalServiceById(serviceId);
+    if (!service) return;
+    setGameState((currentState) => {
+      const applied = attendMedicalAppointment({
+        state: currentState.world.medical,
+        player: currentState.player,
+        service,
+        time: currentState.time,
+        currentLocationId: currentState.player.locationId
+      });
+      if (!applied.result.ok) {
+        const entry = createLifeLogEntry(currentState, applied.result.title, applied.result.message);
+        return {
+          ...currentState,
+          lastResult: { ok: false, actionName: applied.result.title, timeDeltaMinutes: 0, messages: [applied.result.message] },
+          lifeLog: mergeLifeLog([entry], currentState.lifeLog)
+        };
+      }
+      const elapsedApplied = applyElapsedTimeConsequences(
+        currentState,
+        applied.player,
+        applied.time,
+        'active',
+        currentState.world.social,
+        currentState.world.housingMarket,
+        currentState.world.business,
+        applied.state
+      );
+      const completedAppointment = applied.state.appointments.find((entry) => entry.serviceId === service.id && entry.status === 'completed');
+      const phone = {
+        ...currentState.world.phone,
+        calendarEvents: currentState.world.phone.calendarEvents.map((event) =>
+          event.medicalAppointmentId === completedAppointment?.id ? { ...event, status: 'completed' as const } : event
+        ),
+        notifications: [{
+          id: (`notification_medical_result_${getTotalMinutes(applied.time)}`) as PhoneNotificationId,
+          appId: 'health' as const,
+          title: 'Приём завершён',
+          body: applied.result.message,
+          createdAtTotalMinutes: getTotalMinutes(applied.time),
+          read: false,
+          locationId: service.clinicLocationId,
+          medicalServiceId: service.id,
+          medicalAppointmentId: completedAppointment?.id
+        }, ...currentState.world.phone.notifications].slice(0, 80)
+      };
+      const messages = [applied.result.message, ...elapsedApplied.messages];
+      const entry = createLifeLogEntry({ time: applied.time }, 'Медицина', messages.join(' '));
+      return {
+        ...currentState,
+        time: applied.time,
+        player: elapsedApplied.player,
+        world: {
+          ...currentState.world,
+          population: elapsedApplied.population,
+          social: elapsedApplied.social,
+          housingMarket: elapsedApplied.housingMarket,
+          business: elapsedApplied.business,
+          medical: elapsedApplied.medical,
+          phone
+        },
+        lastResult: {
+          ok: true,
+          actionName: applied.result.title,
+          timeDeltaMinutes: applied.result.timeDeltaMinutes,
+          moneyDelta: applied.result.moneyDelta,
+          needsDelta: mergeNeedsDelta(applied.result.needsDelta, elapsedApplied.needsDelta),
+          messages
+        },
+        lifeLog: mergeLifeLog([entry, ...elapsedApplied.lifeLogEntries], currentState.lifeLog)
+      };
+    });
+  }
+
+  function requestSickLeave(): void {
+    setGameState((currentState) => {
+      const applied = issueSickLeave({
+        state: currentState.world.medical,
+        day: currentState.time.day,
+        totalMinutes: getTotalMinutes(currentState.time)
+      });
+      const entry = createLifeLogEntry(currentState, applied.result.title, applied.result.message);
+      return {
+        ...currentState,
+        world: { ...currentState.world, medical: applied.state },
+        lastResult: { ok: applied.result.ok, actionName: applied.result.title, timeDeltaMinutes: 0, messages: [applied.result.message] },
+        lifeLog: mergeLifeLog([entry], currentState.lifeLog)
       };
     });
   }
@@ -2697,6 +3056,7 @@ export function useGameController() {
     phoneState,
     financeState,
     vehicleState,
+    healthState,
     performAction,
     moveToDistrict,
     moveToLocation,
@@ -2731,6 +3091,9 @@ export function useGameController() {
     readPhoneNotification,
     readPhoneMessage,
     attendJobInterview,
+    scheduleMedicalVisit,
+    attendMedicalVisit,
+    requestSickLeave,
     transferPersonalFunds,
     updateAutoSave,
     addSavingsGoal,

@@ -21,6 +21,7 @@ export function AppShell() {
     businessState,
     phoneState,
     vehicleState,
+    healthState,
     performAction,
     moveToDistrict,
     moveToLocation,
@@ -54,6 +55,9 @@ export function AppShell() {
     readPhoneNotification,
     readPhoneMessage,
     attendJobInterview,
+    scheduleMedicalVisit,
+    attendMedicalVisit,
+    requestSickLeave,
     transferPersonalFunds,
     updateAutoSave,
     addSavingsGoal,
@@ -128,7 +132,7 @@ export function AppShell() {
         selectedJobId={selectedPhoneJobId}
         time={gameState.time}
         currentLocation={locationState.location}
-        state={{ ...phoneState, vehicles: vehicleState }}
+        state={{ ...phoneState, vehicles: vehicleState, health: healthState }}
         onClose={() => setPhoneOpen(false)}
         onOpen={() => openPhone('home')}
         onOpenApp={(app) => setPhoneApp(app)}
@@ -141,6 +145,9 @@ export function AppShell() {
         onReadNotification={readPhoneNotification}
         onReadMessage={readPhoneMessage}
         onAttendInterview={attendJobInterview}
+        onScheduleMedicalVisit={scheduleMedicalVisit}
+        onAttendMedicalVisit={attendMedicalVisit}
+        onRequestSickLeave={requestSickLeave}
         onTransferFunds={transferPersonalFunds}
         onSetAutoSave={updateAutoSave}
         onCreateSavingsGoal={addSavingsGoal}

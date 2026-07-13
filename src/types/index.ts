@@ -32,3 +32,5 @@ export * from './phone';
 export * from './finance';
 
 export * from './vehicle';
+
+export * from './healthcare';

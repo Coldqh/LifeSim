@@ -19,3 +19,5 @@ export * from './social';
 export * from './business';
 
 export * from './vehicles';
+
+export * from './healthcare';

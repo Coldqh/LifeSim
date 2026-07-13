@@ -7,6 +7,7 @@ export type FinanceCategory =
   | 'education'
   | 'business'
   | 'shopping'
+  | 'health'
   | 'transfer'
   | 'other';
 

@@ -29,6 +29,7 @@ function classifyAction(title?: string): FinanceCategory {
   if (normalized.includes('аренд') || normalized.includes('жиль') || normalized.includes('переезд')) return 'housing';
   if (normalized.includes('магаз') || normalized.includes('покуп') || normalized.includes('еда') || normalized.includes('напит')) return 'food';
   if (normalized.includes('поезд') || normalized.includes('такси') || normalized.includes('метро') || normalized.includes('автобус') || normalized.includes('автомоб') || normalized.includes('машин') || normalized.includes('заправ') || normalized.includes('техническое обслуживание') || normalized.includes('то выполнено')) return 'transport';
+  if (normalized.includes('врач') || normalized.includes('клиник') || normalized.includes('аптек') || normalized.includes('лечен') || normalized.includes('медицин') || normalized.includes('терапевт') || normalized.includes('травматолог') || normalized.includes('анализ') || normalized.includes('лекар')) return 'health';
   if (normalized.includes('бокс') || normalized.includes('трениров') || normalized.includes('абонемент')) return 'sport';
   if (normalized.includes('курс') || normalized.includes('обуч') || normalized.includes('учёб')) return 'education';
   if (normalized.includes('бизнес') || normalized.includes('кофейн') || normalized.includes('закуп')) return 'business';

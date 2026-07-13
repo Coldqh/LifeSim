@@ -338,3 +338,167 @@
   .vehicle-owner-actions { grid-template-columns:1fr; }
   .vehicle-owner-actions .vehicle-sell-button { grid-column:auto; }
 }
+
+/* Healthcare vertical slice */
+.phone-app-icon--rose {
+  background: linear-gradient(145deg, #ff5f78, #c8274a);
+  color: #fff;
+}
+
+.phone-app-banner--health {
+  background:
+    linear-gradient(135deg, rgba(255, 78, 112, .2), rgba(255, 78, 112, .04)),
+    var(--phone-card-bg, rgba(255,255,255,.06));
+  border-color: rgba(255, 95, 120, .28);
+}
+
+.phone-health-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin: 12px 0 16px;
+}
+
+.phone-health-summary > div {
+  min-height: 72px;
+  padding: 11px;
+  border: 1px solid rgba(255,255,255,.1);
+  background: rgba(255,255,255,.045);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.phone-health-summary span,
+.phone-health-condition span,
+.phone-health-service span,
+.phone-health-prescriptions span,
+.phone-health-sick-leave span {
+  color: var(--phone-muted, rgba(255,255,255,.58));
+  font-size: 10px;
+  line-height: 1.25;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+}
+
+.phone-health-summary strong {
+  font-size: 20px;
+}
+
+.phone-health-sick-leave {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px;
+  margin-bottom: 14px;
+  border-left: 3px solid #ffc857;
+  background: rgba(255, 200, 87, .1);
+}
+
+.phone-health-sick-leave div {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.phone-health-condition-list,
+.phone-health-service-list,
+.phone-health-prescriptions {
+  display: grid;
+  gap: 8px;
+}
+
+.phone-health-condition {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid rgba(255,255,255,.1);
+  border-left-width: 3px;
+  background: rgba(255,255,255,.04);
+}
+
+.phone-health-condition--mild { border-left-color: #ffcb66; }
+.phone-health-condition--moderate { border-left-color: #ff8a4c; }
+.phone-health-condition--severe { border-left-color: #ff4f67; }
+
+.phone-health-condition h3,
+.phone-health-service h3 {
+  margin: 4px 0;
+  font-size: 14px;
+}
+
+.phone-health-condition p,
+.phone-health-service p {
+  margin: 0;
+  color: var(--phone-muted, rgba(255,255,255,.58));
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.phone-health-condition > strong {
+  white-space: nowrap;
+  font-size: 12px;
+}
+
+.phone-health-service {
+  padding: 12px;
+  border: 1px solid rgba(255,255,255,.1);
+  background: rgba(255,255,255,.035);
+}
+
+.phone-health-service__top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.phone-health-service__top > strong {
+  color: #76e2b3;
+  white-space: nowrap;
+}
+
+.phone-health-service > small {
+  display: block;
+  margin-top: 7px;
+  color: var(--phone-muted, rgba(255,255,255,.58));
+}
+
+.phone-health-appointment {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 9px;
+  padding: 8px;
+  background: rgba(84, 155, 255, .1);
+  border-left: 2px solid #549bff;
+}
+
+.phone-health-prescriptions > div {
+  display: grid;
+  gap: 3px;
+  padding: 10px 12px;
+  border-left: 2px solid #65d6a6;
+  background: rgba(101, 214, 166, .08);
+}
+
+.phone-health-prescriptions small {
+  color: var(--phone-muted, rgba(255,255,255,.58));
+}
+
+.phone-health-leave-button {
+  width: 100%;
+  margin-top: 14px;
+}
+
+@media (max-width: 420px) {
+  .phone-health-summary {
+    grid-template-columns: 1fr;
+  }
+
+  .phone-health-summary > div {
+    min-height: 54px;
+  }
+}

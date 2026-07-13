@@ -28,7 +28,7 @@ export const basicShops: Shop[] = [
     id: shopId('shop_pharmacy'),
     name: 'Аптека',
     description: 'Лекарства и средства восстановления.',
-    productIds: products(['painkiller', 'vitamins_pack', 'bandage_kit', 'electrolyte_pack', 'cold_medicine'])
+    productIds: products(['painkiller', 'vitamins_pack', 'bandage_kit', 'electrolyte_pack', 'cold_medicine', 'stomach_relief', 'antiseptic'])
   },
   {
     id: shopId('shop_canteen'),

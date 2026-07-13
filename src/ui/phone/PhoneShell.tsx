@@ -5,6 +5,7 @@ import type {
   DistrictId,
   JobId,
   LocationId,
+  MedicalServiceId,
   PhoneMessageId,
   PhoneNotificationId,
   VehicleListingId,
@@ -20,6 +21,9 @@ import type { DistrictTravelOption, LocationTravelOption } from '../../types/tra
 import type { PersonalFinanceState, UpcomingPayment } from '../../types/finance';
 import type { TravelModeId } from '../../types/transport';
 import type { VehicleListingView, VehicleModel, VehicleWorldState } from '../../types/vehicle';
+import type { ActiveMedicalCondition, MedicalAppointment, MedicalConditionDefinition, MedicalPrescription, MedicalService, MedicalState, SickLeave } from '../../types/healthcare';
+import type { Product } from '../../types/product';
+import type { ScheduleStatus } from '../../types/schedule';
 import { VEHICLE_DEFECT_LABELS } from '../../core/vehicles';
 import { formatGameTime } from '../../core/time';
 import { Icon, type IconName } from '../icons';
@@ -56,6 +60,22 @@ export type VehiclePanelState = {
   fuelPriceLabel?: string;
 };
 
+export type HealthPanelState = {
+  medical: MedicalState;
+  conditions: Array<{ condition: ActiveMedicalCondition; definition?: MedicalConditionDefinition }>;
+  services: Array<{
+    service: MedicalService;
+    clinic?: Location;
+    appointment?: MedicalAppointment;
+    scheduleStatus: ScheduleStatus;
+    attendFailure?: string;
+  }>;
+  prescriptions: Array<{ prescription: MedicalPrescription; product?: Product; conditionName: string }>;
+  symptoms: Array<{ symptom: string; diagnosed: boolean; conditionId: ActiveMedicalCondition['id'] }>;
+  sickLeave?: SickLeave;
+  upcomingAppointment?: MedicalAppointment;
+};
+
 export type PhonePanelState = {
   phone: PhoneState;
   jobs: PhoneVacancyView[];
@@ -73,6 +93,7 @@ export type PhonePanelState = {
     upcomingPayments: UpcomingPayment[];
   };
   vehicles: VehiclePanelState;
+  health: HealthPanelState;
 };
 
 type PhoneShellProps = {
@@ -94,6 +115,9 @@ type PhoneShellProps = {
   onReadNotification: (id: PhoneNotificationId) => void;
   onReadMessage: (id: PhoneMessageId) => void;
   onAttendInterview: (jobId: JobId) => void;
+  onScheduleMedicalVisit: (serviceId: MedicalServiceId) => void;
+  onAttendMedicalVisit: (serviceId: MedicalServiceId) => void;
+  onRequestSickLeave: () => void;
   onTransferFunds: (direction: 'bank_to_cash' | 'cash_to_bank' | 'bank_to_savings' | 'savings_to_bank', amount: number) => void;
   onSetAutoSave: (percent: number) => void;
   onCreateSavingsGoal: (title: string, targetAmount: number) => void;
@@ -120,6 +144,7 @@ const APP_META: Array<{ id: PhoneAppId; label: string; icon: IconName; tone: str
   { id: 'maps', label: 'Карты', icon: 'pin', tone: 'blue' },
   { id: 'bank', label: 'Банк', icon: 'wallet', tone: 'cyan' },
   { id: 'auto', label: 'Авто', icon: 'car', tone: 'steel' },
+  { id: 'health', label: 'Здоровье', icon: 'heart', tone: 'rose' },
   { id: 'messages', label: 'Сообщения', icon: 'message', tone: 'green' },
   { id: 'calendar', label: 'Календарь', icon: 'calendar', tone: 'violet' },
   { id: 'notifications', label: 'Уведомления', icon: 'bell', tone: 'amber' }
@@ -153,7 +178,8 @@ function PhoneHome({ state, onOpenApp }: { state: PhonePanelState; onOpenApp: (a
     messages: state.unreadMessages,
     notifications: state.unreadNotifications,
     calendar: state.phone.calendarEvents.filter((event) => event.status === 'scheduled').length,
-    jobs: state.phone.applications.filter((entry) => entry.status === 'invited').length
+    jobs: state.phone.applications.filter((entry) => entry.status === 'invited').length,
+    health: state.health.conditions.length
   };
 
   return (
@@ -517,6 +543,97 @@ function VehiclesApp(props: {
   );
 }
 
+function HealthApp(props: {
+  state: PhonePanelState;
+  onRoute: (locationId: LocationId) => void;
+  onSchedule: (serviceId: MedicalServiceId) => void;
+  onAttend: (serviceId: MedicalServiceId) => void;
+  onSickLeave: () => void;
+}) {
+  const activeConditions = props.state.health.conditions;
+  const diagnosedCount = activeConditions.filter((entry) => entry.condition.diagnosed).length;
+  const severeCount = activeConditions.filter((entry) => entry.condition.severity === 'severe').length;
+  const severityLabel = severeCount > 0 ? 'Нужен врач' : activeConditions.length > 0 ? 'Есть симптомы' : 'Состояние стабильное';
+
+  return (
+    <div className="phone-app-page phone-screen-enter phone-health-app">
+      <div className="phone-app-banner phone-app-banner--health">
+        <Icon name="heart" size={25}/>
+        <div><strong>Здоровье</strong><small>{severityLabel}</small></div>
+      </div>
+
+      <section className="phone-health-summary">
+        <div><span>Активные состояния</span><strong>{activeConditions.length}</strong></div>
+        <div><span>Подтверждено врачом</span><strong>{diagnosedCount}</strong></div>
+        <div><span>Назначения</span><strong>{props.state.health.prescriptions.filter((entry) => entry.prescription.active).length}</strong></div>
+      </section>
+
+      {props.state.health.sickLeave?.active ? (
+        <section className="phone-health-sick-leave">
+          <Icon name="calendar" size={19}/>
+          <div><span>Больничный открыт</span><strong>До дня {props.state.health.sickLeave.endsAtDay}</strong></div>
+        </section>
+      ) : null}
+
+      <section className="phone-subsection">
+        <div className="phone-section-title"><span>Симптомы и состояния</span><em>{activeConditions.length}</em></div>
+        {activeConditions.length ? (
+          <div className="phone-health-condition-list">
+            {activeConditions.map(({ condition, definition }) => (
+              <article className={`phone-health-condition phone-health-condition--${condition.severity}`} key={condition.id}>
+                <div>
+                  <span>{condition.diagnosed ? 'Диагноз подтверждён' : 'По симптомам'}</span>
+                  <h3>{condition.diagnosed ? definition?.name ?? condition.id : (definition?.symptoms.slice(0, 2).join(', ') || 'Недомогание')}</h3>
+                  <p>{definition?.symptoms.join(' · ')}</p>
+                </div>
+                <strong>{Math.max(1, Math.ceil(condition.recoveryHoursRemaining / 24))} дн.</strong>
+              </article>
+            ))}
+          </div>
+        ) : <div className="phone-empty-state">Активных состояний нет</div>}
+      </section>
+
+      <section className="phone-subsection">
+        <div className="phone-section-title"><span>Запись в клинику</span><em>МЕДСИ</em></div>
+        <div className="phone-health-service-list">
+          {props.state.health.services.map(({ service, clinic, appointment, scheduleStatus, attendFailure }) => (
+            <article className="phone-health-service" key={service.id}>
+              <div className="phone-health-service__top">
+                <div><span>{service.specialty === 'therapist' ? 'Терапия' : service.specialty === 'traumatologist' ? 'Травматология' : service.specialty === 'sports_doctor' ? 'Спортивная медицина' : 'Диагностика'}</span><h3>{service.name}</h3></div>
+                <strong>{formatRubles(service.price)}</strong>
+              </div>
+              <p>{clinic?.name}<br/>{clinic?.address}</p>
+              <small>{scheduleStatus.label} · {service.durationMinutes} мин.</small>
+              {appointment ? <div className="phone-health-appointment"><span>Запись</span><strong>{formatTotalMinutes(appointment.startsAtTotalMinutes)}</strong></div> : null}
+              <div className="phone-inline-actions">
+                {clinic ? <button type="button" onClick={() => props.onRoute(clinic.id)}>Маршрут</button> : null}
+                {!appointment ? <button type="button" onClick={() => props.onSchedule(service.id)}>Записаться</button> : null}
+                {appointment ? <button type="button" disabled={Boolean(attendFailure)} onClick={() => props.onAttend(service.id)}>Пройти приём</button> : null}
+              </div>
+              {appointment && attendFailure ? <small className="phone-inline-error">{attendFailure}</small> : null}
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className="phone-subsection">
+        <div className="phone-section-title"><span>Назначения</span><em>{props.state.health.prescriptions.filter((entry) => entry.prescription.active).length}</em></div>
+        {props.state.health.prescriptions.filter((entry) => entry.prescription.active).length ? (
+          <div className="phone-health-prescriptions">
+            {props.state.health.prescriptions.filter((entry) => entry.prescription.active).map(({ prescription, product, conditionName }) => (
+              <div key={prescription.id}><span>{conditionName}</span><strong>{product?.name ?? 'Назначенное средство'}</strong><small>{prescription.completedUses}/{prescription.recommendedUses} применений</small></div>
+            ))}
+          </div>
+        ) : <p className="phone-muted">Назначений пока нет. Лекарства из аптеки работают только для подходящих состояний.</p>}
+      </section>
+
+      <button className="phone-primary-action phone-health-leave-button" type="button" disabled={!activeConditions.some((entry) => entry.condition.diagnosed && entry.condition.severity !== 'mild') || Boolean(props.state.health.sickLeave?.active)} onClick={props.onSickLeave}>
+        Оформить больничный
+      </button>
+    </div>
+  );
+}
+
 function MessagesApp({ state, onRead }: { state: PhonePanelState; onRead: (id: PhoneMessageId) => void }) {
   return (
     <div className="phone-app-page phone-screen-enter">
@@ -537,20 +654,30 @@ function CalendarApp(props: {
   state: PhonePanelState;
   onRoute: (locationId: LocationId) => void;
   onAttend: (jobId: JobId) => void;
+  onAttendMedical: (serviceId: MedicalServiceId) => void;
 }) {
   const events = [...props.state.phone.calendarEvents].sort((a, b) => a.startsAtTotalMinutes - b.startsAtTotalMinutes);
   return (
     <div className="phone-app-page phone-screen-enter">
-      <div className="phone-app-banner phone-app-banner--calendar"><Icon name="calendar" size={25}/><div><strong>Календарь</strong><small>Встречи и дедлайны</small></div></div>
+      <div className="phone-app-banner phone-app-banner--calendar"><Icon name="calendar" size={25}/><div><strong>Календарь</strong><small>Встречи и приёмы</small></div></div>
       <div className="phone-calendar-list">
         {events.length ? events.map((event) => {
-          const vacancy = props.state.jobs.find((entry) => entry.job.id === event.jobId);
+          const vacancy = event.jobId ? props.state.jobs.find((entry) => entry.job.id === event.jobId) : undefined;
+          const medicalService = event.medicalServiceId
+            ? props.state.health.services.find((entry) => entry.service.id === event.medicalServiceId)
+            : undefined;
+          const location = vacancy?.location ?? medicalService?.clinic;
+          const failure = vacancy?.interviewFailure ?? medicalService?.attendFailure;
           return (
             <article className={`phone-calendar-event phone-calendar-event--${event.status}`} key={event.id}>
               <time><strong>{formatTotalMinutes(event.startsAtTotalMinutes).split(' · ')[0]}</strong><span>{formatTotalMinutes(event.startsAtTotalMinutes).split(' · ')[1]}</span></time>
-              <div><em>{event.status === 'scheduled' ? 'Запланировано' : event.status === 'completed' ? 'Завершено' : 'Пропущено'}</em><h3>{event.title}</h3><p>{vacancy?.location?.name}<br/>{vacancy?.location?.address}</p>
-                {event.status === 'scheduled' ? <div className="phone-inline-actions"><button type="button" onClick={() => props.onRoute(event.locationId)}>Маршрут</button><button disabled={Boolean(vacancy?.interviewFailure)} type="button" onClick={() => props.onAttend(event.jobId)}>Собеседование</button></div> : null}
-                {event.status === 'scheduled' && vacancy?.interviewFailure ? <small>{vacancy.interviewFailure}</small> : null}
+              <div><em>{event.status === 'scheduled' ? 'Запланировано' : event.status === 'completed' ? 'Завершено' : 'Пропущено'}</em><h3>{event.title}</h3><p>{location?.name}<br/>{location?.address}</p>
+                {event.status === 'scheduled' ? <div className="phone-inline-actions">
+                  <button type="button" onClick={() => props.onRoute(event.locationId)}>Маршрут</button>
+                  {event.type === 'job_interview' && event.jobId ? <button disabled={Boolean(failure)} type="button" onClick={() => props.onAttend(event.jobId!)}>Собеседование</button> : null}
+                  {event.type === 'medical_appointment' && event.medicalServiceId ? <button disabled={Boolean(failure)} type="button" onClick={() => props.onAttendMedical(event.medicalServiceId!)}>Приём</button> : null}
+                </div> : null}
+                {event.status === 'scheduled' && failure ? <small>{failure}</small> : null}
               </div>
             </article>
           );
@@ -567,7 +694,7 @@ function NotificationsApp({ state, onRead }: { state: PhonePanelState; onRead: (
       <div className="phone-notification-list">
         {state.phone.notifications.length ? state.phone.notifications.map((notification) => (
           <button className={`phone-notification-row ${notification.read ? '' : 'is-unread'}`} key={notification.id} type="button" onClick={() => onRead(notification.id)}>
-            <span><Icon name={notification.appId === 'jobs' ? 'briefcase' : notification.appId === 'calendar' ? 'calendar' : 'bell'} size={18}/></span>
+            <span><Icon name={notification.appId === 'jobs' ? 'briefcase' : notification.appId === 'calendar' ? 'calendar' : notification.appId === 'health' ? 'heart' : 'bell'} size={18}/></span>
             <div><strong>{notification.title}</strong><p>{notification.body}</p><small>{formatTotalMinutes(notification.createdAtTotalMinutes)}</small></div>
           </button>
         )) : <div className="phone-empty-state">Уведомлений нет</div>}
@@ -629,8 +756,9 @@ export function PhoneShell(props: PhoneShellProps) {
               {props.activeApp === 'maps' ? <MapsApp state={props.state} currentLocation={props.currentLocation} onClear={() => props.onSetMapTarget(undefined)} onMove={(locationId, modeId) => { props.onMoveLocation(locationId, modeId); props.onClose(); }} onMoveDistrict={(districtId, modeId) => { props.onMoveDistrict(districtId, modeId); props.onClose(); }}/> : null}
               {props.activeApp === 'bank' ? <BankApp state={props.state} onTransfer={props.onTransferFunds} onSetAutoSave={props.onSetAutoSave} onCreateGoal={props.onCreateSavingsGoal} onFundGoal={props.onFundSavingsGoal}/> : null}
               {props.activeApp === 'auto' ? <VehiclesApp state={props.state} onRoute={(locationId) => { props.onSetMapTarget(locationId); props.onOpenApp('maps'); }} onScheduleInspection={props.onScheduleVehicleInspection} onInspect={props.onInspectVehicle} onBuyUsed={props.onBuyUsedVehicle} onBuyNew={props.onBuyNewVehicle} onRefuel={props.onRefuelVehicle} onService={props.onServiceVehicle} onSell={props.onSellVehicle}/> : null}
+              {props.activeApp === 'health' ? <HealthApp state={props.state} onRoute={(locationId) => { props.onSetMapTarget(locationId); props.onOpenApp('maps'); }} onSchedule={props.onScheduleMedicalVisit} onAttend={props.onAttendMedicalVisit} onSickLeave={props.onRequestSickLeave}/> : null}
               {props.activeApp === 'messages' ? <MessagesApp state={props.state} onRead={props.onReadMessage}/> : null}
-              {props.activeApp === 'calendar' ? <CalendarApp state={props.state} onRoute={(locationId) => { props.onSetMapTarget(locationId); props.onOpenApp('maps'); }} onAttend={props.onAttendInterview}/> : null}
+              {props.activeApp === 'calendar' ? <CalendarApp state={props.state} onRoute={(locationId) => { props.onSetMapTarget(locationId); props.onOpenApp('maps'); }} onAttend={props.onAttendInterview} onAttendMedical={props.onAttendMedicalVisit}/> : null}
               {props.activeApp === 'notifications' ? <NotificationsApp state={props.state} onRead={props.onReadNotification}/> : null}
             </div>
             <button className="phone-home-indicator" type="button" aria-label="На главный экран" onClick={() => { props.onSelectJob(undefined); props.onOpenApp('home'); }}/>

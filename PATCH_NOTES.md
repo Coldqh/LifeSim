@@ -1,24 +1,51 @@
-# LifeSim — Vehicles & Ownership Vertical Slice
+# LifeSim — Healthcare, Illness & Recovery Vertical Slice
 
 ## Patch Type
+
 FEATURE_MVP
 
-## Added
-- Phone app `Авто` with a used-car marketplace styled as Auto.ru.
-- Seven persistent used-car listings with inspection, hidden defects and market refresh.
-- Eight new-car offers split between mass-market and premium physical dealerships.
-- Real vehicle model names from LADA Granta through Mercedes-Benz S-Class and Porsche Cayenne.
-- One owned vehicle with fuel, odometer, condition, reliability, defects, parking location and service interval.
-- Personal car transport option for location and district travel.
-- Fuel consumption, paid parking, gas stations, maintenance and resale.
-- Seven new Moscow automotive locations inside existing districts.
-- Save migration from v18 to v19.
+## Exact Goal
 
-## Balance Note
-Vehicle prices, specifications, fuel prices, service costs and reliability are gameplay values. They are approximate and are not a live market quotation.
+Добавить медицинский цикл: симптомы, состояния, запись через телефон, поездка в клинику, диагноз, назначения, лекарства, больничный и восстановление.
+
+## Added
+
+- 11 медицинских состояний: обезвоживание, недостаточное питание, истощение, простуда, пищевое отравление, обострение желудка, растяжение, ушиб кисти, рассечение, перетренированность, нарушение сна.
+- Тяжесть: лёгкая / средняя / тяжёлая.
+- Симптомы до диагноза и подтверждённые диагнозы после приёма.
+- Медицинские последствия нулевой воды, еды, энергии, перегруза и боксёрских нагрузок.
+- Детерминированный риск ушиба, растяжения или рассечения после спарринга и турнира.
+- Восстановление, зависящее от сна, отдыха, воды, еды, лечения и больничного.
+- Приём терапевта, травматолога, спортивного врача и базовые анализы.
+- Запись в МЕДСИ через приложение «Здоровье».
+- Личный приём только в нужной клинике и в рабочее время.
+- Диагнозы, рецепты, история обращений и пропущенные записи.
+- Больничный на три игровых дня для подтверждённых состояний средней и тяжёлой степени.
+- Работа больным замедляет восстановление и снижает здоровье.
+- Медицинские ограничения для тренировок, спаррингов и турниров.
+- Целевое действие лекарств: неподходящее средство не расходуется.
+- Алмагель А и хлоргексидин в аптечном ассортименте.
+- Медицинские расходы в отдельной категории финансов.
+- Save migration `v19 -> v20`.
+
+## Phone App
+
+- Новый раздел «Здоровье».
+- Активные состояния, симптомы и ориентировочное время восстановления.
+- Запись, маршрут и личный приём.
+- Назначения и прогресс применения лекарств.
+- Больничный.
+- Медицинские события в календаре.
+- Напоминание за 90 минут до приёма.
 
 ## Verification
-- npm run typecheck — PASS
-- npm run verify:lock — PASS
-- npm run build — PASS
-- vehicle core smoke test — PASS
+
+- `npm run verify:lock` — PASS
+- `npm run typecheck` — PASS
+- `npm run build` — PASS
+- Healthcare core smoke test — PASS
+- Vite build: 171 modules transformed, 554.33 kB JS, 159.40 kB CSS.
+
+## Known Risk
+
+Основной JS-чанк превышает 500 kB. Это существующий архитектурный риск после роста телефона и крупных систем. Патч не меняет Vite-конфигурацию и не добавляет зависимости.

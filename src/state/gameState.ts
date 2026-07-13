@@ -8,6 +8,7 @@ import type { GameTime } from '../types/time';
 import type { PhoneState } from '../types/phone';
 import type { PersonalFinanceState } from '../types/finance';
 import type { VehicleWorldState } from '../types/vehicle';
+import type { MedicalState } from '../types/healthcare';
 import { createInitialTime, formatGameTime, getTotalMinutes } from '../core/time';
 import { createInitialBoxingProfile } from '../core/sport';
 import type { BoxingProfile } from '../types/boxing';
@@ -23,11 +24,12 @@ import { createEmptyBusinessReport, createInitialBusinessWorldState } from '../c
 import { createInitialPhoneState } from '../core/phone';
 import { createInitialFinanceState } from '../core/finance';
 import { createInitialVehicleWorld } from '../core/vehicles';
+import { createInitialMedicalState } from '../core/healthcare';
 import { businessPremises } from '../data/business/premises';
 import { usedVehicleListingTemplates } from '../data/vehicles/usedListingTemplates';
 
-export const GAME_STATE_STORAGE_KEY = 'lifesim.gameState.v19';
-const LEGACY_GAME_STATE_STORAGE_KEYS = ['lifesim.gameState.v18', 'lifesim.gameState.v17', 'lifesim.gameState.v16', 'lifesim.gameState.v15', 'lifesim.gameState.v14', 'lifesim.gameState.v13', 'lifesim.gameState.v12', 'lifesim.gameState.v11', 'lifesim.gameState.v10', 'lifesim.gameState.v9', 'lifesim.gameState.v8', 'lifesim.gameState.v7'];
+export const GAME_STATE_STORAGE_KEY = 'lifesim.gameState.v20';
+const LEGACY_GAME_STATE_STORAGE_KEYS = ['lifesim.gameState.v19', 'lifesim.gameState.v18', 'lifesim.gameState.v17', 'lifesim.gameState.v16', 'lifesim.gameState.v15', 'lifesim.gameState.v14', 'lifesim.gameState.v13', 'lifesim.gameState.v12', 'lifesim.gameState.v11', 'lifesim.gameState.v10', 'lifesim.gameState.v9', 'lifesim.gameState.v8', 'lifesim.gameState.v7'];
 const STARTER_INVENTORY_BACKFILL_KEYS = new Set(['lifesim.gameState.v9', 'lifesim.gameState.v8', 'lifesim.gameState.v7']);
 const REMOVED_PRODUCT_IDS = new Set(['hygiene_kit', 'toothpaste', 'laundry_powder']);
 
@@ -47,6 +49,7 @@ export type WorldState = {
   phone: PhoneState;
   finance: PersonalFinanceState;
   vehicles: VehicleWorldState;
+  medical: MedicalState;
 };
 
 export type GameState = {
@@ -220,7 +223,8 @@ export function createInitialGameState(): GameState {
       business: createInitialBusinessWorldState(population.seed, businessPremises.map((premises) => premises.id)),
       phone: createInitialPhoneState(getTotalMinutes(time)),
       finance: createInitialFinanceState(11000, time.day),
-      vehicles: createInitialVehicleWorld(population.seed, time.day, usedVehicleListingTemplates)
+      vehicles: createInitialVehicleWorld(population.seed, time.day, usedVehicleListingTemplates),
+      medical: createInitialMedicalState(getTotalMinutes(time))
     },
     lifeLog: [
       {
@@ -436,6 +440,26 @@ function normalizeVehicleWorld(value: unknown, populationSeed: number, time: Gam
   };
 }
 
+
+function normalizeMedicalState(value: unknown, time: GameTime): MedicalState {
+  const initial = createInitialMedicalState(getTotalMinutes(time));
+  if (!value || typeof value !== 'object') return initial;
+  const candidate = value as Partial<MedicalState>;
+  return {
+    conditions: Array.isArray(candidate.conditions) ? candidate.conditions.slice(0, 20) : [],
+    appointments: Array.isArray(candidate.appointments) ? candidate.appointments.slice(0, 24) : [],
+    prescriptions: Array.isArray(candidate.prescriptions) ? candidate.prescriptions.slice(0, 30) : [],
+    history: Array.isArray(candidate.history) ? candidate.history.slice(0, 60) : [],
+    sickLeave: candidate.sickLeave && typeof candidate.sickLeave === 'object' ? candidate.sickLeave : undefined,
+    lastProcessedTotalMinutes: typeof candidate.lastProcessedTotalMinutes === 'number'
+      ? Math.min(getTotalMinutes(time), Math.max(0, candidate.lastProcessedTotalMinutes))
+      : getTotalMinutes(time),
+    triggerCooldowns: candidate.triggerCooldowns && typeof candidate.triggerCooldowns === 'object'
+      ? candidate.triggerCooldowns
+      : {}
+  };
+}
+
 function normalizeFinanceState(value: unknown, bankBalance: number, time: GameTime): PersonalFinanceState {
   const initial = createInitialFinanceState(bankBalance, time.day);
   if (!value || typeof value !== 'object') return { ...initial, cash: 0, lastObservedBankBalance: bankBalance };
@@ -484,7 +508,8 @@ export function loadGameState(): GameState | undefined {
           business: normalizeBusinessWorld(parsed.world?.business, parsed.time, population.seed),
           phone: normalizePhoneState(parsed.world?.phone, parsed.time),
           finance: normalizeFinanceState(parsed.world?.finance, parsed.player.money ?? 0, parsed.time),
-          vehicles: normalizeVehicleWorld(parsed.world?.vehicles, population.seed, parsed.time)
+          vehicles: normalizeVehicleWorld(parsed.world?.vehicles, population.seed, parsed.time),
+          medical: normalizeMedicalState(parsed.world?.medical, parsed.time)
         },
         player: {
           ...parsed.player,
