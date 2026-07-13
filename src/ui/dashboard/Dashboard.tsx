@@ -46,6 +46,7 @@ import type { ScheduleStatus } from '../../types/schedule';
 import type { DistrictTravelOption, LocationTravelOption } from '../../types/travel';
 import { Icon, type IconName } from '../icons';
 import { CharacterScene } from '../visuals';
+import lifeSimAppIcon from '../../assets/ui/lifesim-app-icon.webp';
 import { ActionCard } from './ActionCard';
 import { createNeedsEffectItems, EffectList } from './EffectList';
 import { HousingPanel } from './HousingPanel';
@@ -280,7 +281,7 @@ export function Dashboard({
 
       <aside className="desktop-navigation" aria-label="Навигация LifeSim">
         <div className="brand-block" aria-label="LifeSim">
-          <span className="brand-block__mark">LS<i /></span>
+          <span className="brand-block__mark"><img src={lifeSimAppIcon} alt="" /></span>
           <div><strong>LIFESIM</strong><small>URBAN LIFE SYSTEM</small></div>
         </div>
 

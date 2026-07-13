@@ -149,16 +149,22 @@ input:focus-visible {
 }
 
 .brand-block__mark {
-  display: grid;
-  place-items: center;
-  width: 34px;
-  height: 34px;
-  border: 1px solid var(--accent);
-  color: var(--accent);
-  font-family: ui-monospace, "SFMono-Regular", Consolas, monospace;
-  font-size: 12px;
-  font-weight: 900;
-  letter-spacing: -0.06em;
+  display: block;
+  flex: 0 0 auto;
+  width: 42px;
+  height: 42px;
+  overflow: hidden;
+  border: 1px solid rgba(87, 224, 215, .42);
+  border-radius: 13px;
+  background: #080d14;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, .34);
+}
+
+.brand-block__mark img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .brand-block strong,
@@ -2096,21 +2102,8 @@ body {
 
 .brand-block__mark {
   position: relative;
-  border-color: rgba(87, 224, 215, .72);
-  background: linear-gradient(135deg, rgba(84, 229, 220, .16), rgba(70, 141, 255, .06));
-  color: #89fff2;
-  box-shadow: inset 0 0 24px rgba(83, 231, 220, .08), 0 0 24px rgba(83, 231, 220, .08);
-}
-
-.brand-block__mark i {
-  position: absolute;
-  right: -4px;
-  bottom: -4px;
-  width: 7px;
-  height: 7px;
-  background: var(--aqua);
-  box-shadow: 0 0 13px var(--aqua);
-  animation: signal-pulse 2.2s ease-in-out infinite;
+  border-color: rgba(87, 224, 215, .52);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, .38), 0 0 22px rgba(43, 162, 255, .12);
 }
 
 .brand-block strong {
