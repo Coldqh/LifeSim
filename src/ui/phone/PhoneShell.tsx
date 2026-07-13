@@ -13,7 +13,9 @@ import type {
   VehicleModelId,
   IntercityRouteId,
   IntercityTicketId,
-  TemporaryAccommodationId
+  TemporaryAccommodationId,
+  DegreeProgramId,
+  UniversitySubjectId
 } from '../../types/ids';
 import type {
   PhoneAppId,
@@ -29,6 +31,8 @@ import type { ActiveMedicalCondition, MedicalAppointment, MedicalConditionDefini
 import type { Product } from '../../types/product';
 import type { IntercityCarQuote, IntercityDeparture, IntercityRoute, IntercityTicket, IntercityTravelState, TemporaryAccommodation, TemporaryStay } from '../../types/intercity';
 import type { ScheduleStatus } from '../../types/schedule';
+import type { DegreeProgramDefinition, UniversityApplication, UniversityAssignment, UniversityClassView, UniversityDefinition, UniversityEnrollment, UniversityState } from '../../types/university';
+import type { Npc } from '../../types/npc';
 import { VEHICLE_DEFECT_LABELS } from '../../core/vehicles';
 import { formatGameTime } from '../../core/time';
 import { Icon, type IconName } from '../icons';
@@ -113,6 +117,25 @@ export type IntercityPanelState = {
   ownedModel?: VehicleModel;
 };
 
+export type UniversityPanelState = {
+  state: UniversityState;
+  programs: Array<{
+    program: DegreeProgramDefinition;
+    university?: UniversityDefinition;
+    application?: UniversityApplication;
+    missingSkillRequirements: Array<{ name: string; currentLevel: number; minLevel: number }>;
+    examFailure?: string;
+    canApply: boolean;
+    canEnroll: boolean;
+  }>;
+  enrollment?: UniversityEnrollment;
+  activeProgram?: DegreeProgramDefinition;
+  activeUniversity?: UniversityDefinition;
+  classes: UniversityClassView[];
+  assignments: UniversityAssignment[];
+  campusPeople: Npc[];
+};
+
 export type PhonePanelState = {
   phone: PhoneState;
   jobs: PhoneVacancyView[];
@@ -132,6 +155,7 @@ export type PhonePanelState = {
   vehicles: VehiclePanelState;
   health: HealthPanelState;
   intercity: IntercityPanelState;
+  university: UniversityPanelState;
 };
 
 type PhoneShellProps = {
@@ -171,6 +195,13 @@ type PhoneShellProps = {
   onBoardIntercityTicket: (ticketId: IntercityTicketId) => void;
   onBookTemporaryAccommodation: (accommodationId: TemporaryAccommodationId, nights: number) => void;
   onDriveIntercity: (destinationCityId: CityId) => void;
+  onSubmitDegreeApplication: (programId: DegreeProgramId) => void;
+  onAttendDegreeEntranceExam: (programId: DegreeProgramId) => void;
+  onEnrollDegreeProgram: (programId: DegreeProgramId) => void;
+  onAttendDegreeClass: (subjectId: UniversitySubjectId, startsAtTotalMinutes: number) => void;
+  onCompleteDegreeAssignment: (assignmentId: string) => void;
+  onTakeDegreeSemesterExam: () => void;
+  onSkipTime: (minutes: number) => void;
 };
 
 const APPLICATION_LABELS: Record<PhoneJobApplication['status'], string> = {
@@ -183,6 +214,8 @@ const APPLICATION_LABELS: Record<PhoneJobApplication['status'], string> = {
 
 const APP_META: Array<{ id: PhoneAppId; label: string; icon: IconName; tone: string }> = [
   { id: 'jobs', label: 'hh', icon: 'briefcase', tone: 'red' },
+  { id: 'education', label: 'Учёба', icon: 'book', tone: 'violet' },
+  { id: 'clock', label: 'Время', icon: 'clock', tone: 'cyan' },
   { id: 'maps', label: 'Карты', icon: 'pin', tone: 'blue' },
   { id: 'bank', label: 'Банк', icon: 'wallet', tone: 'cyan' },
   { id: 'auto', label: 'Авто', icon: 'car', tone: 'steel' },
@@ -223,7 +256,8 @@ function PhoneHome({ state, onOpenApp }: { state: PhonePanelState; onOpenApp: (a
     calendar: state.phone.calendarEvents.filter((event) => event.status === 'scheduled').length,
     jobs: state.phone.applications.filter((entry) => entry.status === 'invited').length,
     health: state.health.conditions.length,
-    trips: state.intercity.tickets.filter((entry) => entry.ticket.status === 'booked').length
+    trips: state.intercity.tickets.filter((entry) => entry.ticket.status === 'booked').length,
+    education: state.university.state.applications.filter((entry) => ['exam_scheduled', 'passed'].includes(entry.status)).length
   };
 
   return (
@@ -337,6 +371,131 @@ function JobsApp(props: {
           </button>
         ))}
       </div>
+    </div>
+  );
+}
+
+
+function EducationApp(props: {
+  state: PhonePanelState;
+  onRoute: (locationId: LocationId) => void;
+  onSubmit: (programId: DegreeProgramId) => void;
+  onAttendEntrance: (programId: DegreeProgramId) => void;
+  onEnroll: (programId: DegreeProgramId) => void;
+  onAttendClass: (subjectId: UniversitySubjectId, startsAtTotalMinutes: number) => void;
+  onCompleteAssignment: (assignmentId: string) => void;
+  onTakeExam: () => void;
+}) {
+  const university = props.state.university;
+  const enrollment = university.enrollment;
+
+  if (enrollment && university.activeProgram && university.activeUniversity) {
+    const subjectRows = university.activeProgram.subjectIds.map((subjectId) => {
+      const progress = enrollment.subjectProgress[subjectId];
+      const subject = university.classes.find((entry) => entry.subject.id === subjectId)?.subject;
+      return { subjectId, title: subject?.title ?? String(subjectId), progress };
+    });
+    return (
+      <div className="phone-app-page phone-screen-enter">
+        <div className="phone-app-banner phone-app-banner--education">
+          <Icon name="book" size={26}/>
+          <div><strong>{university.activeUniversity.shortName}</strong><small>{university.activeProgram.title}</small></div>
+        </div>
+        <section className="phone-study-overview">
+          <div><span>Семестр</span><strong>{enrollment.semester}/{university.activeProgram.durationSemesters}</strong></div>
+          <div><span>Нагрузка</span><strong>{Math.round(enrollment.studyLoad)}%</strong></div>
+          <div><span>Экзамены</span><strong>{enrollment.examsPassed}</strong></div>
+          <div><span>Кампус</span><strong>{university.campusPeople.length} человек</strong></div>
+        </section>
+        <section className="phone-subsection">
+          <div className="phone-section-title"><span>Ближайшие пары</span><em>{university.classes.length}</em></div>
+          <div className="phone-study-list">
+            {university.classes.length ? university.classes.map((entry) => (
+              <article className="phone-study-row" key={entry.sessionKey}>
+                <div><strong>{entry.subject.title}</strong><small>{formatTotalMinutes(entry.startsAtTotalMinutes)}</small></div>
+                <button type="button" disabled={!entry.canAttend} onClick={() => props.onAttendClass(entry.subject.id, entry.startsAtTotalMinutes)}>Посетить</button>
+                {entry.failure ? <small className="phone-inline-error">{entry.failure}</small> : null}
+              </article>
+            )) : <div className="phone-empty-state">Ближайших пар нет</div>}
+          </div>
+          <button className="phone-secondary-action" type="button" onClick={() => props.onRoute(university.activeUniversity!.locationId)}><Icon name="pin" size={17}/>Маршрут в кампус</button>
+        </section>
+        <section className="phone-subsection">
+          <div className="phone-section-title"><span>Задания</span><em>{university.assignments.filter((entry) => !entry.completed && !entry.missed).length}</em></div>
+          <div className="phone-study-list">
+            {university.assignments.length ? university.assignments.map((assignment) => (
+              <article className="phone-study-row" key={assignment.id}>
+                <div><strong>{assignment.title}</strong><small>Срок: день {assignment.dueDay} · {assignment.completed ? 'сдано' : assignment.missed ? 'просрочено' : `${assignment.durationMinutes} мин`}</small></div>
+                {!assignment.completed && !assignment.missed ? <button type="button" onClick={() => props.onCompleteAssignment(assignment.id)}>Выполнить</button> : null}
+              </article>
+            )) : <div className="phone-empty-state">Заданий пока нет</div>}
+          </div>
+        </section>
+        <section className="phone-subsection">
+          <div className="phone-section-title"><span>Успеваемость</span><em>{subjectRows.length} предмета</em></div>
+          <div className="phone-requirements-list">
+            {subjectRows.map((row) => (
+              <div key={String(row.subjectId)}><span>{row.title}</span><strong>{row.progress?.knowledge ?? 0}% · {row.progress?.classesAttended ?? 0} пар</strong></div>
+            ))}
+          </div>
+          <button className="phone-primary-action" type="button" onClick={props.onTakeExam}>Сдать семестровый экзамен</button>
+        </section>
+      </div>
+    );
+  }
+
+  return (
+    <div className="phone-app-page phone-screen-enter">
+      <div className="phone-app-banner phone-app-banner--education"><Icon name="book" size={26}/><div><strong>Образование</strong><small>Реальные университеты Москвы и Ярославля</small></div></div>
+      <div className="phone-university-list">
+        {university.programs.map((view) => {
+          const status = view.application?.status;
+          return (
+            <article className="phone-university-card" key={view.program.id}>
+              <span>{view.university?.shortName ?? 'Университет'}</span>
+              <h3>{view.program.title}</h3>
+              <p>{view.university?.address}</p>
+              <div className="phone-detail-grid">
+                <div><span>Семестр</span><strong>{formatRubles(view.program.tuitionPerSemester)}</strong></div>
+                <div><span>Срок</span><strong>{view.program.durationSemesters} семестров</strong></div>
+              </div>
+              <div className="phone-tag-row">{view.program.careerTags.map((tag) => <em key={tag}>{tag}</em>)}</div>
+              {view.missingSkillRequirements.length ? <small className="phone-inline-error">Не хватает: {view.missingSkillRequirements.map((entry) => `${entry.name} ${entry.currentLevel}/${entry.minLevel}`).join(', ')}</small> : null}
+              {status ? <div className={`phone-application-status phone-application-status--${status === 'passed' || status === 'enrolled' ? 'positive' : status === 'failed' ? 'negative' : 'neutral'}`}><span>{status === 'exam_scheduled' ? 'Испытание назначено' : status === 'passed' ? 'Испытание сдано' : status === 'failed' ? 'Не сдано' : status === 'enrolled' ? 'Зачислен' : 'Заявка'}</span>{view.application?.score !== undefined ? <strong>{view.application.score} баллов</strong> : null}</div> : null}
+              <div className="phone-sticky-actions phone-sticky-actions--inline">
+                {view.university ? <button className="phone-secondary-action" type="button" onClick={() => props.onRoute(view.university!.locationId)}><Icon name="pin" size={16}/>Маршрут</button> : null}
+                {(!status || status === 'failed') ? <button className="phone-primary-action" type="button" disabled={!view.canApply} onClick={() => props.onSubmit(view.program.id)}>{status === 'failed' ? 'Подать повторно' : 'Подать заявление'}</button> : null}
+                {status === 'exam_scheduled' ? <button className="phone-primary-action" type="button" disabled={Boolean(view.examFailure)} onClick={() => props.onAttendEntrance(view.program.id)}>Сдать испытание</button> : null}
+                {status === 'passed' ? <button className="phone-primary-action" type="button" disabled={!view.canEnroll} onClick={() => props.onEnroll(view.program.id)}>Зачислиться</button> : null}
+              </div>
+              {status === 'exam_scheduled' && view.examFailure ? <small className="phone-inline-error">{view.examFailure}</small> : null}
+            </article>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function ClockApp({ onSkip }: { onSkip: (minutes: number) => void }) {
+  const [hours, setHours] = useState(1);
+  const [minutes, setMinutes] = useState(0);
+  const total = Math.max(0, hours) * 60 + Math.max(0, minutes);
+  return (
+    <div className="phone-app-page phone-screen-enter">
+      <div className="phone-app-banner phone-app-banner--clock"><Icon name="clock" size={26}/><div><strong>Время</strong><small>Ожидание и свободное время</small></div></div>
+      <section className="phone-time-card">
+        <span>Перемотать</span>
+        <div className="phone-time-inputs">
+          <label><input type="number" min="0" max="24" value={hours} onChange={(event) => setHours(Math.max(0, Math.min(24, Number(event.target.value))))}/><small>часов</small></label>
+          <label><input type="number" min="0" max="59" value={minutes} onChange={(event) => setMinutes(Math.max(0, Math.min(59, Number(event.target.value))))}/><small>минут</small></label>
+        </div>
+        <div className="phone-time-presets">
+          {[30, 60, 180, 360].map((value) => <button key={value} type="button" onClick={() => onSkip(value)}>{value < 60 ? `${value} мин` : `${value / 60} ч`}</button>)}
+        </div>
+        <button className="phone-primary-action" disabled={total < 1 || total > 1440} type="button" onClick={() => onSkip(total)}>Подождать</button>
+        <p className="phone-muted">Потребности, расписания, NPC, бизнес, здоровье и учёба продолжают обновляться.</p>
+      </section>
     </div>
   );
 }
@@ -836,6 +995,7 @@ function CalendarApp(props: {
   onAttend: (jobId: JobId) => void;
   onAttendMedical: (serviceId: MedicalServiceId) => void;
   onBoardIntercity: (ticketId: IntercityTicketId) => void;
+  onAttendUniversity: (programId: DegreeProgramId) => void;
 }) {
   const events = [...props.state.phone.calendarEvents].sort((a, b) => a.startsAtTotalMinutes - b.startsAtTotalMinutes);
   return (
@@ -850,8 +1010,9 @@ function CalendarApp(props: {
           const tripTicket = event.intercityTicketId
             ? props.state.intercity.tickets.find((entry) => entry.ticket.id === event.intercityTicketId)
             : undefined;
-          const location = vacancy?.location ?? medicalService?.clinic ?? tripTicket?.originTerminal;
-          const failure = vacancy?.interviewFailure ?? medicalService?.attendFailure ?? tripTicket?.boardFailure;
+          const universityProgram = event.degreeProgramId ? props.state.university.programs.find((entry) => entry.program.id === event.degreeProgramId) : undefined;
+          const location = vacancy?.location ?? medicalService?.clinic ?? tripTicket?.originTerminal ?? (universityProgram?.university ? { name: universityProgram.university.shortName, address: universityProgram.university.address } : undefined);
+          const failure = vacancy?.interviewFailure ?? medicalService?.attendFailure ?? tripTicket?.boardFailure ?? universityProgram?.examFailure;
           return (
             <article className={`phone-calendar-event phone-calendar-event--${event.status}`} key={event.id}>
               <time><strong>{formatTotalMinutes(event.startsAtTotalMinutes).split(' · ')[0]}</strong><span>{formatTotalMinutes(event.startsAtTotalMinutes).split(' · ')[1]}</span></time>
@@ -861,6 +1022,7 @@ function CalendarApp(props: {
                   {event.type === 'job_interview' && event.jobId ? <button disabled={Boolean(failure)} type="button" onClick={() => props.onAttend(event.jobId!)}>Собеседование</button> : null}
                   {event.type === 'medical_appointment' && event.medicalServiceId ? <button disabled={Boolean(failure)} type="button" onClick={() => props.onAttendMedical(event.medicalServiceId!)}>Приём</button> : null}
                   {event.type === 'intercity_departure' && event.intercityTicketId ? <button disabled={Boolean(failure)} type="button" onClick={() => props.onBoardIntercity(event.intercityTicketId!)}>Посадка</button> : null}
+                  {event.type === 'university_entrance_exam' && event.degreeProgramId ? <button disabled={Boolean(failure)} type="button" onClick={() => props.onAttendUniversity(event.degreeProgramId!)}>Испытание</button> : null}
                 </div> : null}
                 {event.status === 'scheduled' && failure ? <small>{failure}</small> : null}
               </div>
@@ -879,7 +1041,7 @@ function NotificationsApp({ state, onRead }: { state: PhonePanelState; onRead: (
       <div className="phone-notification-list">
         {state.phone.notifications.length ? state.phone.notifications.map((notification) => (
           <button className={`phone-notification-row ${notification.read ? '' : 'is-unread'}`} key={notification.id} type="button" onClick={() => onRead(notification.id)}>
-            <span><Icon name={notification.appId === 'jobs' ? 'briefcase' : notification.appId === 'calendar' ? 'calendar' : notification.appId === 'health' ? 'heart' : notification.appId === 'trips' ? 'bus' : 'bell'} size={18}/></span>
+            <span><Icon name={notification.appId === 'jobs' ? 'briefcase' : notification.appId === 'calendar' ? 'calendar' : notification.appId === 'health' ? 'heart' : notification.appId === 'trips' ? 'bus' : notification.appId === 'education' ? 'book' : notification.appId === 'clock' ? 'clock' : 'bell'} size={18}/></span>
             <div><strong>{notification.title}</strong><p>{notification.body}</p><small>{formatTotalMinutes(notification.createdAtTotalMinutes)}</small></div>
           </button>
         )) : <div className="phone-empty-state">Уведомлений нет</div>}
@@ -937,6 +1099,8 @@ export function PhoneShell(props: PhoneShellProps) {
             ) : <button className="phone-close-button" type="button" onClick={props.onClose}><Icon name="close" size={18}/></button>}
             <div className="phone-app-content">
               {props.activeApp === 'home' ? <PhoneHome state={props.state} onOpenApp={props.onOpenApp}/> : null}
+              {props.activeApp === 'education' ? <EducationApp state={props.state} onRoute={(locationId) => { props.onSetMapTarget(locationId); props.onOpenApp('maps'); }} onSubmit={props.onSubmitDegreeApplication} onAttendEntrance={props.onAttendDegreeEntranceExam} onEnroll={props.onEnrollDegreeProgram} onAttendClass={props.onAttendDegreeClass} onCompleteAssignment={props.onCompleteDegreeAssignment} onTakeExam={props.onTakeDegreeSemesterExam}/> : null}
+              {props.activeApp === 'clock' ? <ClockApp onSkip={(minutes) => { props.onSkipTime(minutes); props.onClose(); }}/> : null}
               {props.activeApp === 'jobs' ? <JobsApp state={props.state} selectedJobId={props.selectedJobId} onSelectJob={props.onSelectJob} onSubmit={props.onSubmitApplication} onToggleSaved={props.onToggleSavedJob} onRoute={(locationId) => { props.onSetMapTarget(locationId); props.onOpenApp('maps'); }} onAttendInterview={props.onAttendInterview}/> : null}
               {props.activeApp === 'maps' ? <MapsApp state={props.state} currentLocation={props.currentLocation} onClear={() => props.onSetMapTarget(undefined)} onMove={(locationId, modeId) => { props.onMoveLocation(locationId, modeId); props.onClose(); }} onMoveDistrict={(districtId, modeId) => { props.onMoveDistrict(districtId, modeId); props.onClose(); }}/> : null}
               {props.activeApp === 'bank' ? <BankApp state={props.state} onTransfer={props.onTransferFunds} onSetAutoSave={props.onSetAutoSave} onCreateGoal={props.onCreateSavingsGoal} onFundGoal={props.onFundSavingsGoal}/> : null}
@@ -944,7 +1108,7 @@ export function PhoneShell(props: PhoneShellProps) {
               {props.activeApp === 'health' ? <HealthApp state={props.state} onRoute={(locationId) => { props.onSetMapTarget(locationId); props.onOpenApp('maps'); }} onSchedule={props.onScheduleMedicalVisit} onAttend={props.onAttendMedicalVisit} onSickLeave={props.onRequestSickLeave}/> : null}
               {props.activeApp === 'trips' ? <TripsApp state={props.state} onRoute={(locationId) => { props.onSetMapTarget(locationId); props.onOpenApp('maps'); }} onBuyTicket={props.onBuyIntercityTicket} onBoard={props.onBoardIntercityTicket} onBookStay={props.onBookTemporaryAccommodation} onDrive={props.onDriveIntercity}/> : null}
               {props.activeApp === 'messages' ? <MessagesApp state={props.state} onRead={props.onReadMessage}/> : null}
-              {props.activeApp === 'calendar' ? <CalendarApp state={props.state} onRoute={(locationId) => { props.onSetMapTarget(locationId); props.onOpenApp('maps'); }} onAttend={props.onAttendInterview} onAttendMedical={props.onAttendMedicalVisit} onBoardIntercity={props.onBoardIntercityTicket}/> : null}
+              {props.activeApp === 'calendar' ? <CalendarApp state={props.state} onRoute={(locationId) => { props.onSetMapTarget(locationId); props.onOpenApp('maps'); }} onAttend={props.onAttendInterview} onAttendMedical={props.onAttendMedicalVisit} onBoardIntercity={props.onBoardIntercityTicket} onAttendUniversity={props.onAttendDegreeEntranceExam}/> : null}
               {props.activeApp === 'notifications' ? <NotificationsApp state={props.state} onRead={props.onReadNotification}/> : null}
             </div>
             <button className="phone-home-indicator" type="button" aria-label="На главный экран" onClick={() => { props.onSelectJob(undefined); props.onOpenApp('home'); }}/>

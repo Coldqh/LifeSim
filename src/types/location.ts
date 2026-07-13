@@ -39,6 +39,7 @@ export type LocationType =
   | 'clothing_store'
   | 'bank'
   | 'education_center'
+  | 'university'
   | 'sports_store'
   | 'boxing_gym'
   | 'pool'

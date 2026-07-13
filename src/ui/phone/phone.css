@@ -563,3 +563,35 @@
 .yaroslavl-map__districts path.is-current { stroke: #ffe08a; stroke-width: 4; }
 .yaroslavl-map text { fill: #fff; font-size: 13px; font-weight: 800; pointer-events: none; }
 .yaroslavl-map__caption { position: absolute; left: 12px; bottom: 10px; font-size: 10px; color: rgba(255,255,255,.58); text-transform: uppercase; letter-spacing: .08em; }
+
+.phone-app-icon--violet { background: linear-gradient(145deg, #7a5cff, #4731b8); }
+.phone-app-banner--education { background: linear-gradient(135deg, rgba(104, 76, 255, .95), rgba(43, 29, 112, .96)); }
+.phone-app-banner--clock { background: linear-gradient(135deg, rgba(30, 166, 190, .95), rgba(13, 70, 92, .96)); }
+.phone-university-list,
+.phone-study-list { display: grid; gap: 12px; }
+.phone-university-card,
+.phone-study-row,
+.phone-time-card,
+.phone-study-overview { border: 1px solid rgba(255,255,255,.1); background: rgba(7,14,24,.72); padding: 14px; }
+.phone-university-card h3 { margin: 5px 0 4px; font-size: 17px; }
+.phone-university-card > span { color: #a99bff; font-size: 12px; font-weight: 800; letter-spacing: .04em; }
+.phone-university-card > p { margin: 0 0 12px; color: var(--phone-muted); font-size: 12px; }
+.phone-tag-row { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0; }
+.phone-tag-row em { font-style: normal; font-size: 11px; padding: 5px 7px; background: rgba(122,92,255,.16); color: #c8c0ff; }
+.phone-sticky-actions--inline { position: static; padding: 0; margin-top: 12px; background: none; border: 0; }
+.phone-study-overview { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-bottom: 14px; }
+.phone-study-overview div { display: grid; gap: 3px; }
+.phone-study-overview span { color: var(--phone-muted); font-size: 11px; }
+.phone-study-overview strong { font-size: 16px; }
+.phone-study-row { display: grid; gap: 8px; }
+.phone-study-row div { display: grid; gap: 3px; }
+.phone-study-row small { color: var(--phone-muted); }
+.phone-study-row button { justify-self: start; }
+.phone-time-card { display: grid; gap: 16px; }
+.phone-time-card > span { color: var(--phone-muted); font-size: 12px; text-transform: uppercase; letter-spacing: .08em; }
+.phone-time-inputs { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.phone-time-inputs label { display: grid; gap: 6px; }
+.phone-time-inputs input { width: 100%; min-width: 0; padding: 14px 10px; font: inherit; font-size: 24px; font-weight: 800; color: var(--phone-text); background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.12); }
+.phone-time-inputs small { color: var(--phone-muted); }
+.phone-time-presets { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.phone-time-presets button { padding: 9px 4px; border: 1px solid rgba(255,255,255,.1); background: rgba(255,255,255,.05); color: var(--phone-text); }

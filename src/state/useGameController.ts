@@ -139,7 +139,19 @@ import {
   selectBoxingTrainer,
   type BoxingOperationOutput
 } from '../core/sport';
-import { addMinutes, getElapsedMinutes, getTotalMinutes } from '../core/time';
+import { addMinutes, fromTotalMinutes, getElapsedMinutes, getTotalMinutes } from '../core/time';
+import {
+  attendEntranceExam,
+  attendUniversityClass,
+  completeUniversityAssignment,
+  enrollUniversityProgram,
+  getEntranceExamFailure,
+  getUniversityApplicationForProgram,
+  getUniversityClasses,
+  processUniversityTime,
+  submitUniversityApplication,
+  takeUniversitySemesterExam
+} from '../core/university';
 import {
   applyVehicleTravel,
   buyNewVehicle,
@@ -173,6 +185,7 @@ import { businessSupplies, getBusinessSupplyById } from '../data/business/suppli
 import { businessMenuItems, getBusinessMenuItemById } from '../data/business/menu';
 import { businessUpgrades, getBusinessUpgradeById } from '../data/business/upgrades';
 import { basicEducationPrograms, getEducationProgramById } from '../data/education/basicPrograms';
+import { degreePrograms, getDegreeProgramById, getUniversityById, getUniversitySubjectById, universities, universitySubjects } from '../data/education/universities';
 import { basicJobs, getJobById, getJobsForLocation } from '../data/jobs/basicJobs';
 import { getProductById } from '../data/products/basicProducts';
 import { getMedicalServiceById, medicalServices } from '../data/healthcare/services';
@@ -201,6 +214,8 @@ import type {
   CityId,
   DistrictId,
   EducationProgramId,
+  DegreeProgramId,
+  UniversitySubjectId,
   JobId,
   MedicalServiceId,
   PhoneMessageId,
@@ -230,6 +245,7 @@ import type { SocialState } from '../types/socialEvent';
 import type { VehicleModel, VehicleOperationResult, VehicleWorldState } from '../types/vehicle';
 import type { MedicalState } from '../types/healthcare';
 import type { IntercityDeparture, IntercityRoute } from '../types/intercity';
+import type { UniversityState } from '../types/university';
 import type { DistrictTravelOption, LocationTravelOption, TransportOption, TravelResult } from '../types/travel';
 import {
   clearSavedGameState,
@@ -705,6 +721,30 @@ export function useGameController() {
 
   useEffect(() => {
     setGameState((currentState) => {
+      const currentTotalMinutes = getTotalMinutes(currentState.time);
+      const previous = currentState.world.university;
+      if (previous.lastProcessedTotalMinutes >= currentTotalMinutes) return currentState;
+      const enrollmentProgram = getDegreeProgramById(previous.enrollment?.programId);
+      const processed = processUniversityTime({
+        state: previous,
+        fromTime: fromTotalMinutes(previous.lastProcessedTotalMinutes),
+        toTime: currentState.time,
+        program: enrollmentProgram,
+        subjects: universitySubjects
+      });
+      if (processed.state === previous && processed.messages.length === 0) return currentState;
+      const entries = processed.messages.map((message) => createLifeLogEntry(currentState, 'Учёба', message));
+      return {
+        ...currentState,
+        world: { ...currentState.world, university: processed.state },
+        lifeLog: mergeLifeLog(entries, currentState.lifeLog)
+      };
+    });
+  }, [gameState.time.day, gameState.time.hour, gameState.time.minute]);
+
+
+  useEffect(() => {
+    setGameState((currentState) => {
       const now = getTotalMinutes(currentState.time);
       const previous = currentState.world.intercity;
       let intercity = processIntercityTime(previous, now);
@@ -1142,6 +1182,61 @@ export function useGameController() {
     };
   }, [gameState.player.cityId, gameState.player.locationId, gameState.player.money, gameState.time, gameState.world.intercity, gameState.world.vehicles]);
 
+  const universityState = useMemo(() => {
+    const state = gameState.world.university;
+    const enrollment = state.enrollment;
+    const activeProgram = getDegreeProgramById(enrollment?.programId);
+    const activeUniversity = getUniversityById(activeProgram?.universityId);
+    const classes = getUniversityClasses({
+      state,
+      time: gameState.time,
+      program: activeProgram,
+      subjects: universitySubjects,
+      university: activeUniversity,
+      currentLocationId: gameState.player.locationId
+    });
+    const programViews = degreePrograms.map((program) => {
+      const university = getUniversityById(program.universityId);
+      const application = getUniversityApplicationForProgram(state, program.id);
+      const missingSkillRequirements = (program.requiredSkills ?? []).map((requirement) => ({
+        ...requirement,
+        name: getSkillById(requirement.skillId)?.name ?? String(requirement.skillId),
+        currentLevel: gameState.player.skills[requirement.skillId]?.level ?? 0
+      })).filter((entry) => entry.currentLevel < entry.minLevel);
+      const examFailure = university
+        ? getEntranceExamFailure({
+            state,
+            program,
+            university,
+            currentLocationId: gameState.player.locationId,
+            currentTotalMinutes: getTotalMinutes(gameState.time)
+          })
+        : 'Университет не найден.';
+      return {
+        program,
+        university,
+        application,
+        missingSkillRequirements,
+        examFailure,
+        canApply: !enrollment && missingSkillRequirements.length === 0 && (!application || application.status === 'failed'),
+        canEnroll: application?.status === 'passed' && gameState.player.money >= program.tuitionPerSemester
+      };
+    });
+    const campusPresence = activeUniversity
+      ? getLocationPopulationPresence(gameState.world.population, activeUniversity.locationId)
+      : undefined;
+    return {
+      state,
+      programs: programViews,
+      enrollment,
+      activeProgram,
+      activeUniversity,
+      classes,
+      assignments: enrollment?.assignments ?? [],
+      campusPeople: [...(campusPresence?.staff ?? []), ...(campusPresence?.visitors ?? [])].slice(0, 12)
+    };
+  }, [gameState.player, gameState.time, gameState.world.population, gameState.world.university]);
+
   const phoneState = useMemo(() => {
     const phone = gameState.world.phone;
     const currentLocation = getLocationById(gameState.player.locationId);
@@ -1193,9 +1288,10 @@ export function useGameController() {
       finance: financeState,
       vehicles: vehicleState,
       intercity: intercityState,
+      university: universityState,
       districtTravelOptions: locationState.districtTravelOptions
     };
-  }, [gameState.player, gameState.time, gameState.world.phone, gameState.world.vehicles, financeState, vehicleState, intercityState, locationState.districtTravelOptions]);
+  }, [gameState.player, gameState.time, gameState.world.phone, gameState.world.vehicles, financeState, vehicleState, intercityState, universityState, locationState.districtTravelOptions]);
 
   const educationState = useMemo(() => {
     const skills = basicSkills.map((skill) => ({
@@ -3489,6 +3585,190 @@ export function useGameController() {
     });
   }
 
+  function submitDegreeApplication(programId: DegreeProgramId): void {
+    const program = getDegreeProgramById(programId);
+    const university = getUniversityById(program?.universityId);
+    if (!program || !university) return;
+    setGameState((currentState) => {
+      const currentTotal = getTotalMinutes(currentState.time);
+      const applied = submitUniversityApplication({
+        state: currentState.world.university,
+        player: currentState.player,
+        program,
+        currentTotalMinutes: currentTotal
+      });
+      if (!applied.result.ok || !applied.application) {
+        return { ...currentState, lastResult: { ok: false, actionName: applied.result.title, timeDeltaMinutes: 0, messages: [applied.result.message] } };
+      }
+      const calendarId = (`calendar_university_exam_${String(applied.application.id)}`) as PhoneCalendarEventId;
+      const notificationId = (`notification_university_application_${String(applied.application.id)}`) as PhoneNotificationId;
+      const phone = {
+        ...currentState.world.phone,
+        calendarEvents: [{
+          id: calendarId,
+          type: 'university_entrance_exam' as const,
+          title: `Вступительное испытание: ${program.title}`,
+          locationId: university.locationId,
+          startsAtTotalMinutes: applied.application.entranceExamAtTotalMinutes,
+          durationMinutes: 90,
+          status: 'scheduled' as const,
+          degreeProgramId: program.id
+        }, ...currentState.world.phone.calendarEvents].slice(0, 60),
+        notifications: [{
+          id: notificationId,
+          appId: 'education' as const,
+          title: 'Заявление принято',
+          body: `${university.shortName}: вступительное испытание добавлено в календарь.`,
+          createdAtTotalMinutes: currentTotal,
+          read: false,
+          locationId: university.locationId,
+          degreeProgramId: program.id
+        }, ...currentState.world.phone.notifications].slice(0, 80)
+      };
+      return {
+        ...currentState,
+        world: { ...currentState.world, university: applied.state, phone },
+        lastResult: { ok: true, actionName: applied.result.title, timeDeltaMinutes: 0, messages: [applied.result.message] },
+        lifeLog: mergeLifeLog([createLifeLogEntry(currentState, applied.result.title, `${university.shortName}: ${program.title}.`)], currentState.lifeLog)
+      };
+    });
+  }
+
+  function attendDegreeEntranceExam(programId: DegreeProgramId): void {
+    const program = getDegreeProgramById(programId);
+    const university = getUniversityById(program?.universityId);
+    if (!program || !university) return;
+    setGameState((currentState) => {
+      const applied = attendEntranceExam({ state: currentState.world.university, player: currentState.player, time: currentState.time, program, university });
+      if (!applied.result.ok) {
+        return { ...currentState, lastResult: { ok: false, actionName: applied.result.title, timeDeltaMinutes: 0, messages: [applied.result.message] } };
+      }
+      const elapsedApplied = applyElapsedTimeConsequences(currentState, applied.player, applied.time, 'active');
+      const phone = {
+        ...currentState.world.phone,
+        calendarEvents: currentState.world.phone.calendarEvents.map((event) => event.type === 'university_entrance_exam' && event.degreeProgramId === program.id
+          ? { ...event, status: 'completed' as const }
+          : event),
+        notifications: [{
+          id: (`notification_university_exam_${String(program.id)}_${getTotalMinutes(applied.time)}`) as PhoneNotificationId,
+          appId: 'education' as const,
+          title: applied.passed ? 'Испытание сдано' : 'Испытание не сдано',
+          body: applied.result.message,
+          createdAtTotalMinutes: getTotalMinutes(applied.time),
+          read: false,
+          degreeProgramId: program.id,
+          locationId: university.locationId
+        }, ...currentState.world.phone.notifications].slice(0, 80)
+      };
+      return {
+        ...currentState,
+        player: elapsedApplied.player,
+        time: applied.time,
+        world: {
+          ...currentState.world,
+          university: applied.state,
+          phone,
+          population: elapsedApplied.population,
+          social: elapsedApplied.social,
+          housingMarket: elapsedApplied.housingMarket,
+          business: elapsedApplied.business,
+          medical: elapsedApplied.medical
+        },
+        lastResult: { ok: true, actionName: applied.result.title, timeDeltaMinutes: applied.result.timeDeltaMinutes, needsDelta: elapsedApplied.needsDelta, messages: [applied.result.message, ...elapsedApplied.messages] },
+        lifeLog: mergeLifeLog([createLifeLogEntry({ time: applied.time }, applied.result.title, applied.result.message), ...elapsedApplied.lifeLogEntries], currentState.lifeLog)
+      };
+    });
+  }
+
+  function enrollDegreeProgram(programId: DegreeProgramId): void {
+    const program = getDegreeProgramById(programId);
+    if (!program) return;
+    setGameState((currentState) => {
+      const applied = enrollUniversityProgram({ state: currentState.world.university, player: currentState.player, time: currentState.time, program });
+      return {
+        ...currentState,
+        player: applied.player,
+        world: { ...currentState.world, university: applied.state },
+        lastResult: { ok: applied.result.ok, actionName: applied.result.title, timeDeltaMinutes: 0, moneyDelta: applied.result.moneyDelta, messages: [applied.result.message] },
+        lifeLog: applied.result.ok ? mergeLifeLog([createLifeLogEntry(currentState, applied.result.title, applied.result.message)], currentState.lifeLog) : currentState.lifeLog
+      };
+    });
+  }
+
+  function attendDegreeClass(subjectId: UniversitySubjectId, startsAtTotalMinutes: number): void {
+    const subject = getUniversitySubjectById(subjectId);
+    if (!subject) return;
+    setGameState((currentState) => {
+      const program = getDegreeProgramById(currentState.world.university.enrollment?.programId);
+      const university = getUniversityById(program?.universityId);
+      if (!program || !university) return currentState;
+      const applied = attendUniversityClass({ state: currentState.world.university, player: currentState.player, time: currentState.time, subject, startsAtTotalMinutes, university });
+      if (!applied.result.ok) return { ...currentState, lastResult: { ok: false, actionName: applied.result.title, timeDeltaMinutes: 0, messages: [applied.result.message] } };
+      const elapsedApplied = applyElapsedTimeConsequences(currentState, applied.player, applied.time, 'active');
+      return {
+        ...currentState,
+        player: elapsedApplied.player,
+        time: applied.time,
+        world: { ...currentState.world, university: applied.state, population: elapsedApplied.population, social: elapsedApplied.social, housingMarket: elapsedApplied.housingMarket, business: elapsedApplied.business, medical: elapsedApplied.medical },
+        lastResult: { ok: true, actionName: applied.result.title, timeDeltaMinutes: applied.result.timeDeltaMinutes, needsDelta: elapsedApplied.needsDelta, messages: [applied.result.message, ...elapsedApplied.messages] },
+        lifeLog: mergeLifeLog([createLifeLogEntry({ time: applied.time }, applied.result.title, applied.result.message), ...elapsedApplied.lifeLogEntries], currentState.lifeLog)
+      };
+    });
+  }
+
+  function completeDegreeAssignment(assignmentId: string): void {
+    setGameState((currentState) => {
+      const currentLocation = getLocationById(currentState.player.locationId);
+      const applied = completeUniversityAssignment({ state: currentState.world.university, player: currentState.player, time: currentState.time, assignmentId, currentLocationType: currentLocation?.type });
+      if (!applied.result.ok) return { ...currentState, lastResult: { ok: false, actionName: applied.result.title, timeDeltaMinutes: 0, messages: [applied.result.message] } };
+      const elapsedApplied = applyElapsedTimeConsequences(currentState, applied.player, applied.time, 'active');
+      return {
+        ...currentState,
+        player: elapsedApplied.player,
+        time: applied.time,
+        world: { ...currentState.world, university: applied.state, population: elapsedApplied.population, social: elapsedApplied.social, housingMarket: elapsedApplied.housingMarket, business: elapsedApplied.business, medical: elapsedApplied.medical },
+        lastResult: { ok: true, actionName: applied.result.title, timeDeltaMinutes: applied.result.timeDeltaMinutes, needsDelta: elapsedApplied.needsDelta, messages: [applied.result.message, ...elapsedApplied.messages] },
+        lifeLog: mergeLifeLog([createLifeLogEntry({ time: applied.time }, applied.result.title, applied.result.message), ...elapsedApplied.lifeLogEntries], currentState.lifeLog)
+      };
+    });
+  }
+
+  function takeDegreeSemesterExam(): void {
+    setGameState((currentState) => {
+      const program = getDegreeProgramById(currentState.world.university.enrollment?.programId);
+      const university = getUniversityById(program?.universityId);
+      if (!program || !university) return currentState;
+      const applied = takeUniversitySemesterExam({ state: currentState.world.university, player: currentState.player, time: currentState.time, program, university });
+      if (!applied.result.ok) return { ...currentState, lastResult: { ok: false, actionName: applied.result.title, timeDeltaMinutes: 0, messages: [applied.result.message] } };
+      const elapsedApplied = applyElapsedTimeConsequences(currentState, applied.player, applied.time, 'active');
+      return {
+        ...currentState,
+        player: elapsedApplied.player,
+        time: applied.time,
+        world: { ...currentState.world, university: applied.state, population: elapsedApplied.population, social: elapsedApplied.social, housingMarket: elapsedApplied.housingMarket, business: elapsedApplied.business, medical: elapsedApplied.medical },
+        lastResult: { ok: true, actionName: applied.result.title, timeDeltaMinutes: applied.result.timeDeltaMinutes, needsDelta: elapsedApplied.needsDelta, messages: [applied.result.message, ...elapsedApplied.messages] },
+        lifeLog: mergeLifeLog([createLifeLogEntry({ time: applied.time }, applied.result.title, applied.result.message), ...elapsedApplied.lifeLogEntries], currentState.lifeLog)
+      };
+    });
+  }
+
+  function skipGameTime(minutes: number): void {
+    const safeMinutes = Math.max(1, Math.min(24 * 60, Math.floor(minutes)));
+    setGameState((currentState) => {
+      const nextTime = addMinutes(currentState.time, safeMinutes);
+      const elapsedApplied = applyElapsedTimeConsequences(currentState, currentState.player, nextTime, 'resting');
+      const message = `Прошло ${Math.floor(safeMinutes / 60)} ч ${safeMinutes % 60} мин.`;
+      return {
+        ...currentState,
+        player: elapsedApplied.player,
+        time: nextTime,
+        world: { ...currentState.world, population: elapsedApplied.population, social: elapsedApplied.social, housingMarket: elapsedApplied.housingMarket, business: elapsedApplied.business, medical: elapsedApplied.medical },
+        lastResult: { ok: true, actionName: 'Ожидание', timeDeltaMinutes: safeMinutes, needsDelta: elapsedApplied.needsDelta, messages: [message, ...elapsedApplied.messages] },
+        lifeLog: mergeLifeLog([createLifeLogEntry({ time: nextTime }, 'Ожидание', message), ...elapsedApplied.lifeLogEntries], currentState.lifeLog)
+      };
+    });
+  }
+
   function resetGame(): void {
     clearSavedGameState();
     setGameState(createInitialGameState());
@@ -3510,6 +3790,7 @@ export function useGameController() {
     financeState,
     vehicleState,
     healthState,
+    universityState,
     performAction,
     moveToDistrict,
     moveToLocation,
@@ -3562,6 +3843,13 @@ export function useGameController() {
     boardIntercityTicket: boardIntercityTicketAction,
     bookTemporaryAccommodation: bookTemporaryAccommodationAction,
     driveIntercity: driveIntercityAction,
+    submitDegreeApplication,
+    attendDegreeEntranceExam,
+    enrollDegreeProgram,
+    attendDegreeClass,
+    completeDegreeAssignment,
+    takeDegreeSemesterExam,
+    skipGameTime,
     resetGame
   };
 }

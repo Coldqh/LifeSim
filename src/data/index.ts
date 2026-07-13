@@ -26,3 +26,4 @@ export * from './cities/yaroslavl';
 export * from './districts/yaroslavlDistricts';
 export * from './locations/yaroslavlLocations';
 export * from './intercity';
+export * from './education/universities';

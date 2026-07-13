@@ -21,7 +21,8 @@ import {
   RETAIL_SCHEDULE,
   SERVICE_SCHEDULE,
   SPORT_FACILITY_SCHEDULE,
-  WAREHOUSE_SCHEDULE
+  WAREHOUSE_SCHEDULE,
+  UNIVERSITY_SCHEDULE
 } from '../schedules/basicSchedules';
 
 function actionId(value: string): ActionId {
@@ -769,6 +770,27 @@ const baseMoscowLocations: Location[] = [
     description: 'Междугородние автобусные отправления.',
     availableActionIds: []
   }
+  ,{
+    id: locationId('msk_danilovsky_misis'),
+    cityId: moscow,
+    districtId: districtId('msk_danilovsky'),
+    name: 'Университет науки и технологий МИСИС',
+    address: 'Ленинский проспект, 4',
+    type: 'university',
+    description: 'Учебный корпус технологического университета.',
+    availableActionIds: []
+  },
+  {
+    id: locationId('msk_tverskoy_hse'),
+    cityId: moscow,
+    districtId: districtId('msk_tverskoy'),
+    name: 'НИУ ВШЭ — Покровский бульвар',
+    address: 'Покровский бульвар, 11',
+    type: 'university',
+    description: 'Московский кампус Высшей школы экономики.',
+    availableActionIds: []
+  }
+
 
 ];
 
@@ -794,6 +816,7 @@ const LOCATION_TYPE_SCHEDULES: Record<LocationType, WeeklySchedule> = {
   clothing_store: RETAIL_SCHEDULE,
   bank: BANK_SCHEDULE,
   education_center: EDUCATION_CENTER_SCHEDULE,
+  university: UNIVERSITY_SCHEDULE,
   sports_store: RETAIL_SCHEDULE,
   boxing_gym: SPORT_FACILITY_SCHEDULE,
   pool: SPORT_FACILITY_SCHEDULE,

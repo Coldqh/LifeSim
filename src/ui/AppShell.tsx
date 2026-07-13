@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useGameController } from '../state';
-import type { CityId, IntercityRouteId, IntercityTicketId, JobId, TemporaryAccommodationId, VehicleListingId, VehicleModelId } from '../types/ids';
+import type { CityId, IntercityRouteId, IntercityTicketId, JobId, TemporaryAccommodationId, VehicleListingId, VehicleModelId, DegreeProgramId, UniversitySubjectId } from '../types/ids';
 import type { PhoneAppId } from '../types/phone';
 import { Dashboard } from './dashboard';
 import { DiegeticNavigation } from './navigation';
@@ -22,6 +22,7 @@ export function AppShell() {
     phoneState,
     vehicleState,
     healthState,
+    universityState,
     performAction,
     moveToDistrict,
     moveToLocation,
@@ -73,6 +74,13 @@ export function AppShell() {
     boardIntercityTicket,
     bookTemporaryAccommodation,
     driveIntercity,
+    submitDegreeApplication,
+    attendDegreeEntranceExam,
+    enrollDegreeProgram,
+    attendDegreeClass,
+    completeDegreeAssignment,
+    takeDegreeSemesterExam,
+    skipGameTime,
     resetGame
   } = useGameController();
   const [phoneOpen, setPhoneOpen] = useState(false);
@@ -136,7 +144,7 @@ export function AppShell() {
         selectedJobId={selectedPhoneJobId}
         time={gameState.time}
         currentLocation={locationState.location}
-        state={{ ...phoneState, vehicles: vehicleState, health: healthState }}
+        state={{ ...phoneState, vehicles: vehicleState, health: healthState, university: universityState }}
         onClose={() => setPhoneOpen(false)}
         onOpen={() => openPhone('home')}
         onOpenApp={(app) => setPhoneApp(app)}
@@ -167,6 +175,13 @@ export function AppShell() {
         onBoardIntercityTicket={(ticketId: IntercityTicketId) => boardIntercityTicket(ticketId)}
         onBookTemporaryAccommodation={(id: TemporaryAccommodationId, nights: number) => bookTemporaryAccommodation(id, nights)}
         onDriveIntercity={(cityId: CityId) => driveIntercity(cityId)}
+        onSubmitDegreeApplication={(id: DegreeProgramId) => submitDegreeApplication(id)}
+        onAttendDegreeEntranceExam={(id: DegreeProgramId) => attendDegreeEntranceExam(id)}
+        onEnrollDegreeProgram={(id: DegreeProgramId) => enrollDegreeProgram(id)}
+        onAttendDegreeClass={(subjectId: UniversitySubjectId, startsAt: number) => attendDegreeClass(subjectId, startsAt)}
+        onCompleteDegreeAssignment={completeDegreeAssignment}
+        onTakeDegreeSemesterExam={takeDegreeSemesterExam}
+        onSkipTime={skipGameTime}
       />
     </>
   );

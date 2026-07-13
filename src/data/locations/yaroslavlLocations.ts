@@ -9,7 +9,8 @@ import {
   MALL_SCHEDULE,
   PHARMACY_SCHEDULE,
   RESTAURANT_SCHEDULE,
-  SPORT_FACILITY_SCHEDULE
+  SPORT_FACILITY_SCHEDULE,
+  UNIVERSITY_SCHEDULE
 } from '../schedules/basicSchedules';
 
 const actionId = (value: string) => value as ActionId;
@@ -99,6 +100,17 @@ const base: Location[] = [
     name: 'Квартира посуточно на Московском проспекте', address: 'Московский просп., 90', type: 'home',
     description: 'Посуточная квартира.', availableActionIds: [actionId('sleep_eight_hours'), actionId('rest_one_hour')]
   }
+  ,{
+    id: locationId('yar_kirovsky_demidov_university'), cityId: city, districtId: districtId('yar_kirovsky'),
+    name: 'ЯрГУ им. П. Г. Демидова', address: 'Советская ул., 14', type: 'university',
+    description: 'Главный корпус Демидовского университета.', availableActionIds: []
+  },
+  {
+    id: locationId('yar_frunzensky_ystu'), cityId: city, districtId: districtId('yar_frunzensky'),
+    name: 'Ярославский государственный технический университет', address: 'Московский просп., 88', type: 'university',
+    description: 'Главный учебный корпус ЯГТУ.', availableActionIds: []
+  }
+
 ];
 
 const schedules: Record<LocationType, WeeklySchedule> = {
@@ -108,7 +120,7 @@ const schedules: Record<LocationType, WeeklySchedule> = {
   coworking: CAFE_SCHEDULE, clinic: CLINIC_SCHEDULE, pharmacy: PHARMACY_SCHEDULE, restaurant: RESTAURANT_SCHEDULE,
   food_court: RESTAURANT_SCHEDULE, pickup_point: ALWAYS_OPEN_SCHEDULE, mall: MALL_SCHEDULE,
   electronics_store: MALL_SCHEDULE, clothing_store: MALL_SCHEDULE, bank: ALWAYS_OPEN_SCHEDULE,
-  education_center: ALWAYS_OPEN_SCHEDULE, sports_store: MALL_SCHEDULE, boxing_gym: SPORT_FACILITY_SCHEDULE,
+  education_center: ALWAYS_OPEN_SCHEDULE, university: UNIVERSITY_SCHEDULE, sports_store: MALL_SCHEDULE, boxing_gym: SPORT_FACILITY_SCHEDULE,
   pool: SPORT_FACILITY_SCHEDULE, car_dealer: MALL_SCHEDULE, gas_station: ALWAYS_OPEN_SCHEDULE,
   service_center: ALWAYS_OPEN_SCHEDULE, auto_market: MALL_SCHEDULE, train_station: ALWAYS_OPEN_SCHEDULE,
   bus_station: ALWAYS_OPEN_SCHEDULE, hotel: ALWAYS_OPEN_SCHEDULE, hostel: ALWAYS_OPEN_SCHEDULE, other: ALWAYS_OPEN_SCHEDULE

@@ -56,3 +56,10 @@ export function getTotalMinutes(time: GameTime): number {
 export function getElapsedMinutes(fromTime: GameTime, toTime: GameTime): number {
   return Math.max(0, getTotalMinutes(toTime) - getTotalMinutes(fromTime));
 }
+
+export function fromTotalMinutes(totalMinutes: number): GameTime {
+  const safe = Math.max(0, Math.floor(totalMinutes));
+  const day = Math.floor(safe / (24 * 60)) + 1;
+  const insideDay = safe % (24 * 60);
+  return { day, hour: Math.floor(insideDay / 60), minute: insideDay % 60, weekday: WEEKDAYS[(day - 1) % WEEKDAYS.length] };
+}

@@ -27,7 +27,8 @@ export const moscowDistricts: District[] = [
       locationId('msk_danilovsky_home_studio'),
       locationId('msk_danilovsky_home_flat'),
       locationId('msk_danilovsky_grocery'),
-      locationId('msk_danilovsky_metro_cafe')
+      locationId('msk_danilovsky_metro_cafe'),
+      locationId('msk_danilovsky_misis')
     ]
   },
   {
@@ -58,7 +59,8 @@ export const moscowDistricts: District[] = [
       locationId('msk_tverskoy_central_cafe'),
       locationId('msk_tverskoy_walking_zone'),
       locationId('msk_tverskoy_yaroslavsky_station'),
-      locationId('msk_tverskoy_central_bus_station')
+      locationId('msk_tverskoy_central_bus_station'),
+      locationId('msk_tverskoy_hse')
     ]
   },
   {

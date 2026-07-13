@@ -26,3 +26,5 @@ export * as vehicles from './vehicles';
 export * as healthcare from './healthcare';
 
 export * from './intercity';
+
+export * as university from './university';

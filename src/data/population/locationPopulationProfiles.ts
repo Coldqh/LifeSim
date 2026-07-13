@@ -104,6 +104,10 @@ const PROFILES: Record<LocationType, LocationPopulationProfile> = {
     staff: [{ roleId: NPC_ROLE_IDS.administrator, count: 1 }, { roleId: NPC_ROLE_IDS.teacher, count: 3 }],
     visitors: { quiet: [0, 2], normal: [3, 8], peak: [8, 14], peakWindows: [{ startMinute: 10 * 60, endMinute: 13 * 60 }, { startMinute: 17 * 60, endMinute: 20 * 60 }] }
   },
+  university: {
+    staff: [{ roleId: NPC_ROLE_IDS.administrator, count: 2 }, { roleId: NPC_ROLE_IDS.teacher, count: 8 }],
+    visitors: { quiet: [2, 8], normal: [12, 30], peak: [30, 55], peakWindows: [{ startMinute: 8 * 60, endMinute: 11 * 60 }, { startMinute: 13 * 60, endMinute: 17 * 60 }] }
+  },
   sports_store: {
     staff: [{ roleId: NPC_ROLE_IDS.manager, count: 1 }, { roleId: NPC_ROLE_IDS.seller, count: 2 }],
     visitors: { quiet: [0, 2], normal: [2, 5], peak: [5, 9], peakWindows: [{ startMinute: 17 * 60, endMinute: 21 * 60 }] }

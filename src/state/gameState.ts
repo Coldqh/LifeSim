@@ -10,6 +10,7 @@ import type { PersonalFinanceState } from '../types/finance';
 import type { VehicleWorldState } from '../types/vehicle';
 import type { MedicalState } from '../types/healthcare';
 import type { IntercityTravelState } from '../types/intercity';
+import type { UniversityState } from '../types/university';
 import { createInitialTime, formatGameTime, getTotalMinutes } from '../core/time';
 import { createInitialBoxingProfile } from '../core/sport';
 import type { BoxingProfile } from '../types/boxing';
@@ -27,11 +28,12 @@ import { createInitialFinanceState } from '../core/finance';
 import { createInitialVehicleWorld } from '../core/vehicles';
 import { createInitialMedicalState } from '../core/healthcare';
 import { createInitialIntercityState } from '../core/intercity';
+import { createInitialUniversityState } from '../core/university';
 import { businessPremises } from '../data/business/premises';
 import { usedVehicleListingTemplates } from '../data/vehicles/usedListingTemplates';
 
-export const GAME_STATE_STORAGE_KEY = 'lifesim.gameState.v21';
-const LEGACY_GAME_STATE_STORAGE_KEYS = ['lifesim.gameState.v20', 'lifesim.gameState.v19', 'lifesim.gameState.v18', 'lifesim.gameState.v17', 'lifesim.gameState.v16', 'lifesim.gameState.v15', 'lifesim.gameState.v14', 'lifesim.gameState.v13', 'lifesim.gameState.v12', 'lifesim.gameState.v11', 'lifesim.gameState.v10', 'lifesim.gameState.v9', 'lifesim.gameState.v8', 'lifesim.gameState.v7'];
+export const GAME_STATE_STORAGE_KEY = 'lifesim.gameState.v22';
+const LEGACY_GAME_STATE_STORAGE_KEYS = ['lifesim.gameState.v21', 'lifesim.gameState.v20', 'lifesim.gameState.v19', 'lifesim.gameState.v18', 'lifesim.gameState.v17', 'lifesim.gameState.v16', 'lifesim.gameState.v15', 'lifesim.gameState.v14', 'lifesim.gameState.v13', 'lifesim.gameState.v12', 'lifesim.gameState.v11', 'lifesim.gameState.v10', 'lifesim.gameState.v9', 'lifesim.gameState.v8', 'lifesim.gameState.v7'];
 const STARTER_INVENTORY_BACKFILL_KEYS = new Set(['lifesim.gameState.v9', 'lifesim.gameState.v8', 'lifesim.gameState.v7']);
 const REMOVED_PRODUCT_IDS = new Set(['hygiene_kit', 'toothpaste', 'laundry_powder']);
 
@@ -53,6 +55,7 @@ export type WorldState = {
   vehicles: VehicleWorldState;
   medical: MedicalState;
   intercity: IntercityTravelState;
+  university: UniversityState;
 };
 
 export type GameState = {
@@ -228,7 +231,8 @@ export function createInitialGameState(): GameState {
       finance: createInitialFinanceState(11000, time.day),
       vehicles: createInitialVehicleWorld(population.seed, time.day, usedVehicleListingTemplates),
       medical: createInitialMedicalState(getTotalMinutes(time)),
-      intercity: createInitialIntercityState(getTotalMinutes(time))
+      intercity: createInitialIntercityState(getTotalMinutes(time)),
+      university: createInitialUniversityState(getTotalMinutes(time))
     },
     lifeLog: [
       {
@@ -505,6 +509,35 @@ function normalizeIntercityState(value: unknown, time: GameTime): IntercityTrave
   };
 }
 
+
+function normalizeUniversityState(value: unknown, time: GameTime): UniversityState {
+  const initial = createInitialUniversityState(getTotalMinutes(time));
+  if (!value || typeof value !== 'object') return initial;
+  const candidate = value as Partial<UniversityState>;
+  const enrollment = candidate.enrollment && typeof candidate.enrollment === 'object'
+    ? {
+        ...candidate.enrollment,
+        semester: Math.max(1, Math.floor(candidate.enrollment.semester ?? 1)),
+        tuitionPaidThroughSemester: Math.max(1, Math.floor(candidate.enrollment.tuitionPaidThroughSemester ?? 1)),
+        studyLoad: Math.min(100, Math.max(0, Number(candidate.enrollment.studyLoad ?? 0))),
+        subjectProgress: candidate.enrollment.subjectProgress && typeof candidate.enrollment.subjectProgress === 'object' ? candidate.enrollment.subjectProgress : {},
+        assignments: Array.isArray(candidate.enrollment.assignments) ? candidate.enrollment.assignments.slice(0, 40) : [],
+        attendedSessionKeys: Array.isArray(candidate.enrollment.attendedSessionKeys) ? candidate.enrollment.attendedSessionKeys.slice(-200) : [],
+        missedSessionKeys: Array.isArray(candidate.enrollment.missedSessionKeys) ? candidate.enrollment.missedSessionKeys.slice(-200) : [],
+        examsPassed: Math.max(0, Math.floor(candidate.enrollment.examsPassed ?? 0)),
+        completed: Boolean(candidate.enrollment.completed)
+      }
+    : undefined;
+  return {
+    applications: Array.isArray(candidate.applications) ? candidate.applications.slice(-30) : [],
+    enrollment,
+    history: Array.isArray(candidate.history) ? candidate.history.slice(0, 40) : [],
+    lastProcessedTotalMinutes: typeof candidate.lastProcessedTotalMinutes === 'number'
+      ? Math.min(getTotalMinutes(time), Math.max(0, candidate.lastProcessedTotalMinutes))
+      : getTotalMinutes(time)
+  };
+}
+
 function normalizeFinanceState(value: unknown, bankBalance: number, time: GameTime): PersonalFinanceState {
   const initial = createInitialFinanceState(bankBalance, time.day);
   if (!value || typeof value !== 'object') return { ...initial, cash: 0, lastObservedBankBalance: bankBalance };
@@ -555,7 +588,8 @@ export function loadGameState(): GameState | undefined {
           finance: normalizeFinanceState(parsed.world?.finance, parsed.player.money ?? 0, parsed.time),
           vehicles: normalizeVehicleWorld(parsed.world?.vehicles, population.seed, parsed.time),
           medical: normalizeMedicalState(parsed.world?.medical, parsed.time),
-          intercity: normalizeIntercityState(parsed.world?.intercity, parsed.time)
+          intercity: normalizeIntercityState(parsed.world?.intercity, parsed.time),
+          university: normalizeUniversityState(parsed.world?.university, parsed.time)
         },
         player: {
           ...parsed.player,

@@ -58,4 +58,8 @@ export const EDUCATION_CENTER_SCHEDULE = scheduleForDays([
   { days: WORKDAYS, windows: [window(10, 20)] },
   { days: ['saturday'], windows: [window(10, 18)] }
 ]);
+export const UNIVERSITY_SCHEDULE = scheduleForDays([
+  { days: WORKDAYS, windows: [window(8, 21)] },
+  { days: ['saturday'], windows: [window(9, 18)] }
+]);
 export const NIGHT_SHIFT_SCHEDULE = everyDay(window(20, 6));

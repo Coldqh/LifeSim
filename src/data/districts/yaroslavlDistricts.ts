@@ -17,7 +17,8 @@ export const yaroslavlDistricts: District[] = [
       locationId('yar_kirovsky_kirova_walk'),
       locationId('yar_kirovsky_aura_mall'),
       locationId('yar_kirovsky_baget_cafe'),
-      locationId('yar_kirovsky_ibis_hotel')
+      locationId('yar_kirovsky_ibis_hotel'),
+      locationId('yar_kirovsky_demidov_university')
     ]
   },
   {
@@ -43,7 +44,8 @@ export const yaroslavlDistricts: District[] = [
       locationId('yar_frunzensky_arena_2000'),
       locationId('yar_frunzensky_canteen'),
       locationId('yar_frunzensky_clinic'),
-      locationId('yar_frunzensky_daily_apartment')
+      locationId('yar_frunzensky_daily_apartment'),
+      locationId('yar_frunzensky_ystu')
     ]
   }
 ];
