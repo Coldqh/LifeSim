@@ -125,10 +125,14 @@ function resolveDesiredTargets(population: PopulationState, locations: Location[
     demand: getVisitorDemand(location, time, population.seed, getProfile)
   }));
 
+  const cityByDistrict = new Map(locations.map((location) => [location.districtId, location.cityId]));
+
   function assignVisitors(location: Location, requestedCount: number): void {
     if (requestedCount <= 0 || remaining.size === 0) return;
     const candidates = available
-      .filter((npc) => remaining.has(npc.id) && npc.employment?.locationId !== location.id)
+      .filter((npc) => remaining.has(npc.id)
+        && npc.employment?.locationId !== location.id
+        && cityByDistrict.get(npc.homeDistrictId) === location.cityId)
       .sort((first, second) => rankCandidate(second, location, population.seed, time) - rankCandidate(first, location, population.seed, time));
 
     candidates.slice(0, requestedCount).forEach((npc) => {

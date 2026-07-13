@@ -21,3 +21,8 @@ export * from './business';
 export * from './vehicles';
 
 export * from './healthcare';
+
+export * from './cities/yaroslavl';
+export * from './districts/yaroslavlDistricts';
+export * from './locations/yaroslavlLocations';
+export * from './intercity';

@@ -1,6 +1,7 @@
 import type { Job, JobLevel } from '../../types/job';
 import type { JobId, LocationId } from '../../types/ids';
 import { SKILL_IDS } from '../skills/basicSkills';
+import { yaroslavlJobs } from './yaroslavlJobs';
 import {
   BANK_SCHEDULE,
   BUSINESS_CENTER_SCHEDULE,
@@ -713,14 +714,14 @@ const JOB_SKILL_REQUIREMENTS: Record<string, NonNullable<Job['requirements']>['s
   job_pool_attendant: [{ skillId: SKILL_IDS.fitness, minLevel: 1 }]
 };
 
-export const basicJobs: Job[] = baseJobs.map((job) => ({
+export const basicJobs: Job[] = [...baseJobs, ...yaroslavlJobs].map((job) => ({
   ...job,
   requirements: {
     ...job.requirements,
-    skills: JOB_SKILL_REQUIREMENTS[job.id] ?? []
+    skills: JOB_SKILL_REQUIREMENTS[job.id] ?? job.requirements?.skills ?? []
   },
-  skillRewards: JOB_SKILL_REWARDS[job.id] ?? [],
-  shiftSchedule: JOB_SHIFT_SCHEDULES[job.id]
+  skillRewards: JOB_SKILL_REWARDS[job.id] ?? job.skillRewards ?? [],
+  shiftSchedule: JOB_SHIFT_SCHEDULES[job.id] ?? job.shiftSchedule
 }));
 
 export function getJobById(jobId: JobId | undefined): Job | undefined {

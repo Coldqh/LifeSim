@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { Job } from '../../types/job';
-import type { District, Location } from '../../types/location';
+import type { City, District, Location } from '../../types/location';
 import type {
+  CityId,
   DistrictId,
   JobId,
   LocationId,
@@ -9,7 +10,10 @@ import type {
   PhoneMessageId,
   PhoneNotificationId,
   VehicleListingId,
-  VehicleModelId
+  VehicleModelId,
+  IntercityRouteId,
+  IntercityTicketId,
+  TemporaryAccommodationId
 } from '../../types/ids';
 import type {
   PhoneAppId,
@@ -23,6 +27,7 @@ import type { TravelModeId } from '../../types/transport';
 import type { VehicleListingView, VehicleModel, VehicleWorldState } from '../../types/vehicle';
 import type { ActiveMedicalCondition, MedicalAppointment, MedicalConditionDefinition, MedicalPrescription, MedicalService, MedicalState, SickLeave } from '../../types/healthcare';
 import type { Product } from '../../types/product';
+import type { IntercityCarQuote, IntercityDeparture, IntercityRoute, IntercityTicket, IntercityTravelState, TemporaryAccommodation, TemporaryStay } from '../../types/intercity';
 import type { ScheduleStatus } from '../../types/schedule';
 import { VEHICLE_DEFECT_LABELS } from '../../core/vehicles';
 import { formatGameTime } from '../../core/time';
@@ -76,6 +81,38 @@ export type HealthPanelState = {
   upcomingAppointment?: MedicalAppointment;
 };
 
+export type IntercityPanelState = {
+  state: IntercityTravelState;
+  routes: Array<{
+    route: IntercityRoute;
+    originTerminal?: Location;
+    destinationTerminal?: Location;
+    originCity?: City;
+    destinationCity?: City;
+    departures: IntercityDeparture[];
+  }>;
+  tickets: Array<{
+    ticket: IntercityTicket;
+    route?: IntercityRoute;
+    originTerminal?: Location;
+    destinationTerminal?: Location;
+    boardFailure?: string;
+  }>;
+  accommodations: Array<{
+    accommodation: TemporaryAccommodation;
+    location?: Location;
+    active: boolean;
+    canAffordNight: boolean;
+  }>;
+  activeStay?: TemporaryStay;
+  currentCity?: City;
+  destinationCity?: City;
+  destinationCityId: CityId;
+  destinationArrivalLocation?: Location;
+  carQuote: IntercityCarQuote;
+  ownedModel?: VehicleModel;
+};
+
 export type PhonePanelState = {
   phone: PhoneState;
   jobs: PhoneVacancyView[];
@@ -94,6 +131,7 @@ export type PhonePanelState = {
   };
   vehicles: VehiclePanelState;
   health: HealthPanelState;
+  intercity: IntercityPanelState;
 };
 
 type PhoneShellProps = {
@@ -129,6 +167,10 @@ type PhoneShellProps = {
   onRefuelVehicle: (liters: number) => void;
   onServiceVehicle: () => void;
   onSellVehicle: () => void;
+  onBuyIntercityTicket: (routeId: IntercityRouteId, departureTotalMinutes: number) => void;
+  onBoardIntercityTicket: (ticketId: IntercityTicketId) => void;
+  onBookTemporaryAccommodation: (accommodationId: TemporaryAccommodationId, nights: number) => void;
+  onDriveIntercity: (destinationCityId: CityId) => void;
 };
 
 const APPLICATION_LABELS: Record<PhoneJobApplication['status'], string> = {
@@ -145,6 +187,7 @@ const APP_META: Array<{ id: PhoneAppId; label: string; icon: IconName; tone: str
   { id: 'bank', label: 'Банк', icon: 'wallet', tone: 'cyan' },
   { id: 'auto', label: 'Авто', icon: 'car', tone: 'steel' },
   { id: 'health', label: 'Здоровье', icon: 'heart', tone: 'rose' },
+  { id: 'trips', label: 'Поездки', icon: 'bus', tone: 'amber' },
   { id: 'messages', label: 'Сообщения', icon: 'message', tone: 'green' },
   { id: 'calendar', label: 'Календарь', icon: 'calendar', tone: 'violet' },
   { id: 'notifications', label: 'Уведомления', icon: 'bell', tone: 'amber' }
@@ -179,14 +222,15 @@ function PhoneHome({ state, onOpenApp }: { state: PhonePanelState; onOpenApp: (a
     notifications: state.unreadNotifications,
     calendar: state.phone.calendarEvents.filter((event) => event.status === 'scheduled').length,
     jobs: state.phone.applications.filter((entry) => entry.status === 'invited').length,
-    health: state.health.conditions.length
+    health: state.health.conditions.length,
+    trips: state.intercity.tickets.filter((entry) => entry.ticket.status === 'booked').length
   };
 
   return (
     <div className="phone-home-screen phone-screen-enter">
       <section className="phone-home-hero">
         <span>LifeSim Mobile</span>
-        <strong>Москва в твоём кармане</strong>
+        <strong>{state.intercity.currentCity?.name ?? 'Город'} в твоём кармане</strong>
         <p>{state.phone.applications.filter((entry) => entry.status === 'submitted').length} откликов рассматриваются</p>
       </section>
       <div className="phone-app-grid">
@@ -308,9 +352,11 @@ function MapsApp(props: {
   const target = props.state.mapTarget;
   const route = props.state.mapRoute;
   const districtRoute = props.state.districtTravelOptions.find((entry) => entry.district.id === selectedDistrictId);
-  const currentDistrictSlug = String(props.currentLocation?.districtId ?? '').replace('msk_', '');
-  const selectedTitle = target?.name ?? districtRoute?.district.name ?? 'Москва';
-  const selectedAddress = target?.address ?? (districtRoute ? `Переезд в район: ${districtRoute.district.name}` : `Сейчас: ${props.currentLocation?.name ?? 'Москва'}`);
+  const currentDistrictSlug = String(props.currentLocation?.districtId ?? '').replace('msk_', '').replace('yar_', '');
+  const isYaroslavl = String(props.currentLocation?.cityId ?? '') === 'yaroslavl';
+  const cityName = isYaroslavl ? 'Ярославль' : 'Москва';
+  const selectedTitle = target?.name ?? districtRoute?.district.name ?? cityName;
+  const selectedAddress = target?.address ?? (districtRoute ? `Переезд в район: ${districtRoute.district.name}` : `Сейчас: ${props.currentLocation?.name ?? cityName}`);
 
   function selectDistrict(id: DistrictId): void {
     setSelectedDistrictId(id);
@@ -319,32 +365,49 @@ function MapsApp(props: {
 
   return (
     <div className="phone-app-page phone-screen-enter phone-maps-app">
-      <div className="moscow-map" role="img" aria-label="Карта Москвы с районами">
-        <svg viewBox="0 0 420 360" aria-hidden="true">
-          <defs>
-            <linearGradient id="mapBg" x1="0" y1="0" x2="1" y2="1"><stop stopColor="#1a3441"/><stop offset="1" stopColor="#0a1720"/></linearGradient>
-            <filter id="mapGlow"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
-          </defs>
-          <path className="moscow-map__mkad" d="M57 62C111 8 302 7 365 69c51 51 48 171 3 225-54 65-232 72-306 9C4 253 8 111 57 62Z" fill="url(#mapBg)"/>
-          <path className="moscow-map__river" d="M4 202c64-30 90-5 128-20 41-17 54-70 102-69 39 1 53 39 91 45 37 6 64-15 95-44"/>
-          <path className="moscow-map__road" d="M80 80 340 287M342 75 82 292M205 28v310M40 178h345"/>
-          <circle className="moscow-map__ring" cx="212" cy="176" r="82"/>
-          <g className="moscow-map__districts">
-            <path data-id="msk_presnya" d="M104 94 188 78 201 142 165 184 94 159Z"/>
-            <path data-id="msk_tverskoy" d="M190 70 264 83 280 147 218 166 201 142Z"/>
-            <path data-id="msk_khamovniki" d="M109 171 166 184 216 168 224 236 151 260 92 225Z"/>
-            <path data-id="msk_danilovsky" d="M218 168 282 151 321 213 284 276 224 236Z"/>
-          </g>
-          <text x="119" y="125">Пресня</text><text x="218" y="113">Тверской</text><text x="119" y="221">Хамовники</text><text x="248" y="222">Даниловский</text>
-        </svg>
-        <div className="moscow-map__hitboxes">
-          {props.state.districtTravelOptions.map((option) => {
-            const slug = String(option.district.id).replace('msk_', '');
-            return <button className={`map-hitbox map-hitbox--${slug} ${selectedDistrictId === option.district.id ? 'is-active' : ''}`} key={option.district.id} type="button" aria-label={option.district.name} onClick={() => selectDistrict(option.district.id)}/>;
-          })}
+      {isYaroslavl ? (
+        <div className="yaroslavl-map" role="img" aria-label="Карта Ярославля с районами">
+          <svg viewBox="0 0 420 360" aria-hidden="true">
+            <defs><linearGradient id="yarMapBg" x1="0" y1="0" x2="1" y2="1"><stop stopColor="#253f4d"/><stop offset="1" stopColor="#0b1821"/></linearGradient></defs>
+            <path className="yaroslavl-map__outline" d="M55 42C127 10 284 15 354 67c54 40 61 140 22 207-40 68-168 83-255 58C41 309 11 227 28 139 37 94 49 58 55 42Z" fill="url(#yarMapBg)"/>
+            <path className="yaroslavl-map__river" d="M18 98c75 29 107 52 139 98 30 44 74 82 127 91 48 8 88-4 132-32"/>
+            <g className="yaroslavl-map__districts">
+              <path className={`${selectedDistrictId === ('yar_kirovsky' as DistrictId) ? 'is-selected ' : ''}${currentDistrictSlug === 'kirovsky' ? 'is-current' : ''}`} d="M116 52 248 48 285 130 230 190 137 164 82 105Z" onClick={() => selectDistrict('yar_kirovsky' as DistrictId)}/>
+              <path className={`${selectedDistrictId === ('yar_leninsky' as DistrictId) ? 'is-selected ' : ''}${currentDistrictSlug === 'leninsky' ? 'is-current' : ''}`} d="M68 112 137 164 230 190 202 300 94 313 38 230Z" onClick={() => selectDistrict('yar_leninsky' as DistrictId)}/>
+              <path className={`${selectedDistrictId === ('yar_frunzensky' as DistrictId) ? 'is-selected ' : ''}${currentDistrictSlug === 'frunzensky' ? 'is-current' : ''}`} d="M285 130 374 98 397 225 326 314 202 300 230 190Z" onClick={() => selectDistrict('yar_frunzensky' as DistrictId)}/>
+            </g>
+            <text x="137" y="108">Кировский</text><text x="86" y="245">Ленинский</text><text x="280" y="232">Фрунзенский</text>
+          </svg>
+          <span className="yaroslavl-map__caption">Схема районов Ярославля</span>
         </div>
-        <span className={`moscow-map__current moscow-map__current--${currentDistrictSlug}`}><i/>Ты здесь</span>
-      </div>
+      ) : (
+        <div className="moscow-map" role="img" aria-label="Карта Москвы с районами">
+          <svg viewBox="0 0 420 360" aria-hidden="true">
+            <defs>
+              <linearGradient id="mapBg" x1="0" y1="0" x2="1" y2="1"><stop stopColor="#1a3441"/><stop offset="1" stopColor="#0a1720"/></linearGradient>
+              <filter id="mapGlow"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+            </defs>
+            <path className="moscow-map__mkad" d="M57 62C111 8 302 7 365 69c51 51 48 171 3 225-54 65-232 72-306 9C4 253 8 111 57 62Z" fill="url(#mapBg)"/>
+            <path className="moscow-map__river" d="M4 202c64-30 90-5 128-20 41-17 54-70 102-69 39 1 53 39 91 45 37 6 64-15 95-44"/>
+            <path className="moscow-map__road" d="M80 80 340 287M342 75 82 292M205 28v310M40 178h345"/>
+            <circle className="moscow-map__ring" cx="212" cy="176" r="82"/>
+            <g className="moscow-map__districts">
+              <path data-id="msk_presnya" d="M104 94 188 78 201 142 165 184 94 159Z"/>
+              <path data-id="msk_tverskoy" d="M190 70 264 83 280 147 218 166 201 142Z"/>
+              <path data-id="msk_khamovniki" d="M109 171 166 184 216 168 224 236 151 260 92 225Z"/>
+              <path data-id="msk_danilovsky" d="M218 168 282 151 321 213 284 276 224 236Z"/>
+            </g>
+            <text x="119" y="125">Пресня</text><text x="218" y="113">Тверской</text><text x="119" y="221">Хамовники</text><text x="248" y="222">Даниловский</text>
+          </svg>
+          <div className="moscow-map__hitboxes">
+            {props.state.districtTravelOptions.map((option) => {
+              const slug = String(option.district.id).replace('msk_', '');
+              return <button className={`map-hitbox map-hitbox--${slug} ${selectedDistrictId === option.district.id ? 'is-active' : ''}`} key={option.district.id} type="button" aria-label={option.district.name} onClick={() => selectDistrict(option.district.id)}/>;
+            })}
+          </div>
+          <span className={`moscow-map__current moscow-map__current--${currentDistrictSlug}`}><i/>Ты здесь</span>
+        </div>
+      )}
       <section className="phone-map-sheet">
         <span className="phone-kicker">Маршрут</span>
         <h2>{selectedTitle}</h2>
@@ -650,11 +713,129 @@ function MessagesApp({ state, onRead }: { state: PhonePanelState; onRead: (id: P
   );
 }
 
+function TripsApp(props: {
+  state: PhonePanelState;
+  onRoute: (locationId: LocationId) => void;
+  onBuyTicket: (routeId: IntercityRouteId, departureTotalMinutes: number) => void;
+  onBoard: (ticketId: IntercityTicketId) => void;
+  onBookStay: (accommodationId: TemporaryAccommodationId, nights: number) => void;
+  onDrive: (destinationCityId: CityId) => void;
+}) {
+  const travel = props.state.intercity;
+  const activeTickets = travel.tickets.filter((entry) => entry.ticket.status === 'booked');
+
+  return (
+    <div className="phone-app-page phone-screen-enter phone-trips-app">
+      <div className="phone-app-banner phone-app-banner--trips">
+        <Icon name="bus" size={25}/>
+        <div><strong>Поездки</strong><small>{travel.currentCity?.name ?? 'Текущий город'} · междугородние маршруты</small></div>
+      </div>
+
+      {activeTickets.length ? (
+        <section className="phone-subsection">
+          <div className="phone-section-title"><span>Мои билеты</span><em>{activeTickets.length}</em></div>
+          <div className="phone-trip-ticket-list">
+            {activeTickets.map(({ ticket, route, originTerminal, destinationTerminal, boardFailure }) => (
+              <article className="phone-trip-ticket" key={ticket.id}>
+                <div className="phone-trip-ticket__route">
+                  <span>{route?.mode === 'train' ? 'Поезд' : 'Автобус'}</span>
+                  <strong>{route?.title ?? 'Междугородняя поездка'}</strong>
+                  <small>{formatTotalMinutes(ticket.departureTotalMinutes)} · прибытие {formatTotalMinutes(ticket.arrivalTotalMinutes)}</small>
+                </div>
+                <div className="phone-address-block">
+                  <Icon name="pin" size={17}/>
+                  <div><strong>{originTerminal?.name ?? 'Вокзал'}</strong><span>{originTerminal?.address}</span></div>
+                </div>
+                <div className="phone-inline-actions">
+                  {originTerminal ? <button type="button" onClick={() => props.onRoute(originTerminal.id)}>Маршрут</button> : null}
+                  <button type="button" disabled={Boolean(boardFailure)} onClick={() => props.onBoard(ticket.id)}>Сесть</button>
+                </div>
+                {boardFailure ? <small className="phone-inline-error">{boardFailure}</small> : <small className="positive">Посадка доступна</small>}
+                <p>{destinationTerminal?.name}</p>
+              </article>
+            ))}
+          </div>
+        </section>
+      ) : null}
+
+      <section className="phone-subsection">
+        <div className="phone-section-title"><span>Билеты</span><em>{travel.routes.length} маршрута</em></div>
+        <div className="phone-trip-route-list">
+          {travel.routes.map(({ route, destinationCity, originTerminal, departures }) => (
+            <article className="phone-trip-route" key={route.id}>
+              <div className="phone-trip-route__head">
+                <span className={`phone-trip-mode phone-trip-mode--${route.mode}`}>{route.mode === 'train' ? 'РЖД' : 'BUS'}</span>
+                <div><strong>{destinationCity?.name ?? route.title}</strong><small>{route.operatorName} · {Math.floor(route.durationMinutes / 60)} ч {route.durationMinutes % 60} мин</small></div>
+              </div>
+              <p>{originTerminal?.name} → {route.title.split(' — ')[1]}</p>
+              <div className="phone-departure-list">
+                {departures.map((departure) => (
+                  <button key={departure.departureTotalMinutes} type="button" onClick={() => props.onBuyTicket(route.id, departure.departureTotalMinutes)}>
+                    <span>{formatTotalMinutes(departure.departureTotalMinutes)}</span>
+                    <strong>{formatRubles(departure.fare)}</strong>
+                  </button>
+                ))}
+              </div>
+            </article>
+          ))}
+          {travel.routes.length === 0 ? <div className="phone-empty-state">Из этого города пока нет рейсов</div> : null}
+        </div>
+      </section>
+
+      <section className="phone-subsection phone-car-intercity-card">
+        <div className="phone-section-title"><span>На своей машине</span><em>{travel.destinationCity?.name}</em></div>
+        <div className="phone-detail-grid">
+          <div><span>Дорога</span><strong>{Math.floor(travel.carQuote.durationMinutes / 60)} ч {travel.carQuote.durationMinutes % 60} мин</strong></div>
+          <div><span>Расстояние</span><strong>{travel.carQuote.distanceKm} км</strong></div>
+          <div><span>Топливо</span><strong>{travel.carQuote.fuelLiters.toFixed(1)} л</strong></div>
+          <div><span>Дорожные расходы</span><strong>{formatRubles(travel.carQuote.roadCost)}</strong></div>
+        </div>
+        <button className="phone-primary-action" type="button" disabled={!travel.carQuote.available} onClick={() => props.onDrive(travel.destinationCityId)}>
+          Ехать в {travel.destinationCity?.name ?? 'другой город'}
+        </button>
+        {!travel.carQuote.available ? <p className="phone-inline-error">{travel.carQuote.unavailableReason}</p> : null}
+      </section>
+
+      {travel.accommodations.length ? (
+        <section className="phone-subsection">
+          <div className="phone-section-title"><span>Где остановиться</span>{travel.activeStay ? <em>Бронь активна</em> : null}</div>
+          <div className="phone-stay-list">
+            {travel.accommodations.map(({ accommodation, location, active, canAffordNight }) => (
+              <article className={`phone-stay-card ${active ? 'is-active' : ''}`} key={accommodation.id}>
+                <div><span>{accommodation.type === 'hostel' ? 'Хостел' : accommodation.type === 'hotel' ? 'Отель' : 'Квартира'}</span><strong>{accommodation.name}</strong><small>{accommodation.address}</small></div>
+                <div className="phone-stay-card__price"><strong>{formatRubles(accommodation.nightlyPrice)}</strong><span>за ночь</span></div>
+                <div className="phone-inline-actions">
+                  {location ? <button type="button" onClick={() => props.onRoute(location.id)}>Маршрут</button> : null}
+                  <button type="button" disabled={!canAffordNight} onClick={() => props.onBookStay(accommodation.id, 1)}>1 ночь</button>
+                  <button type="button" disabled={!canAffordNight} onClick={() => props.onBookStay(accommodation.id, 3)}>3 ночи</button>
+                </div>
+                {active ? <small className="positive">Забронировано до дня {travel.activeStay?.checkoutDay}</small> : null}
+              </article>
+            ))}
+          </div>
+        </section>
+      ) : null}
+
+      {travel.state.history.length ? (
+        <section className="phone-subsection">
+          <div className="phone-section-title"><span>История</span></div>
+          <div className="phone-history-list">
+            {travel.state.history.slice(0, 6).map((entry, index) => (
+              <div key={`${entry.departedAtTotalMinutes}_${index}`}><span>{entry.mode === 'car' ? 'Автомобиль' : entry.mode === 'train' ? 'Поезд' : 'Автобус'}</span><strong>{formatTotalMinutes(entry.arrivedAtTotalMinutes)}</strong></div>
+            ))}
+          </div>
+        </section>
+      ) : null}
+    </div>
+  );
+}
+
 function CalendarApp(props: {
   state: PhonePanelState;
   onRoute: (locationId: LocationId) => void;
   onAttend: (jobId: JobId) => void;
   onAttendMedical: (serviceId: MedicalServiceId) => void;
+  onBoardIntercity: (ticketId: IntercityTicketId) => void;
 }) {
   const events = [...props.state.phone.calendarEvents].sort((a, b) => a.startsAtTotalMinutes - b.startsAtTotalMinutes);
   return (
@@ -666,8 +847,11 @@ function CalendarApp(props: {
           const medicalService = event.medicalServiceId
             ? props.state.health.services.find((entry) => entry.service.id === event.medicalServiceId)
             : undefined;
-          const location = vacancy?.location ?? medicalService?.clinic;
-          const failure = vacancy?.interviewFailure ?? medicalService?.attendFailure;
+          const tripTicket = event.intercityTicketId
+            ? props.state.intercity.tickets.find((entry) => entry.ticket.id === event.intercityTicketId)
+            : undefined;
+          const location = vacancy?.location ?? medicalService?.clinic ?? tripTicket?.originTerminal;
+          const failure = vacancy?.interviewFailure ?? medicalService?.attendFailure ?? tripTicket?.boardFailure;
           return (
             <article className={`phone-calendar-event phone-calendar-event--${event.status}`} key={event.id}>
               <time><strong>{formatTotalMinutes(event.startsAtTotalMinutes).split(' · ')[0]}</strong><span>{formatTotalMinutes(event.startsAtTotalMinutes).split(' · ')[1]}</span></time>
@@ -676,6 +860,7 @@ function CalendarApp(props: {
                   <button type="button" onClick={() => props.onRoute(event.locationId)}>Маршрут</button>
                   {event.type === 'job_interview' && event.jobId ? <button disabled={Boolean(failure)} type="button" onClick={() => props.onAttend(event.jobId!)}>Собеседование</button> : null}
                   {event.type === 'medical_appointment' && event.medicalServiceId ? <button disabled={Boolean(failure)} type="button" onClick={() => props.onAttendMedical(event.medicalServiceId!)}>Приём</button> : null}
+                  {event.type === 'intercity_departure' && event.intercityTicketId ? <button disabled={Boolean(failure)} type="button" onClick={() => props.onBoardIntercity(event.intercityTicketId!)}>Посадка</button> : null}
                 </div> : null}
                 {event.status === 'scheduled' && failure ? <small>{failure}</small> : null}
               </div>
@@ -694,7 +879,7 @@ function NotificationsApp({ state, onRead }: { state: PhonePanelState; onRead: (
       <div className="phone-notification-list">
         {state.phone.notifications.length ? state.phone.notifications.map((notification) => (
           <button className={`phone-notification-row ${notification.read ? '' : 'is-unread'}`} key={notification.id} type="button" onClick={() => onRead(notification.id)}>
-            <span><Icon name={notification.appId === 'jobs' ? 'briefcase' : notification.appId === 'calendar' ? 'calendar' : notification.appId === 'health' ? 'heart' : 'bell'} size={18}/></span>
+            <span><Icon name={notification.appId === 'jobs' ? 'briefcase' : notification.appId === 'calendar' ? 'calendar' : notification.appId === 'health' ? 'heart' : notification.appId === 'trips' ? 'bus' : 'bell'} size={18}/></span>
             <div><strong>{notification.title}</strong><p>{notification.body}</p><small>{formatTotalMinutes(notification.createdAtTotalMinutes)}</small></div>
           </button>
         )) : <div className="phone-empty-state">Уведомлений нет</div>}
@@ -757,8 +942,9 @@ export function PhoneShell(props: PhoneShellProps) {
               {props.activeApp === 'bank' ? <BankApp state={props.state} onTransfer={props.onTransferFunds} onSetAutoSave={props.onSetAutoSave} onCreateGoal={props.onCreateSavingsGoal} onFundGoal={props.onFundSavingsGoal}/> : null}
               {props.activeApp === 'auto' ? <VehiclesApp state={props.state} onRoute={(locationId) => { props.onSetMapTarget(locationId); props.onOpenApp('maps'); }} onScheduleInspection={props.onScheduleVehicleInspection} onInspect={props.onInspectVehicle} onBuyUsed={props.onBuyUsedVehicle} onBuyNew={props.onBuyNewVehicle} onRefuel={props.onRefuelVehicle} onService={props.onServiceVehicle} onSell={props.onSellVehicle}/> : null}
               {props.activeApp === 'health' ? <HealthApp state={props.state} onRoute={(locationId) => { props.onSetMapTarget(locationId); props.onOpenApp('maps'); }} onSchedule={props.onScheduleMedicalVisit} onAttend={props.onAttendMedicalVisit} onSickLeave={props.onRequestSickLeave}/> : null}
+              {props.activeApp === 'trips' ? <TripsApp state={props.state} onRoute={(locationId) => { props.onSetMapTarget(locationId); props.onOpenApp('maps'); }} onBuyTicket={props.onBuyIntercityTicket} onBoard={props.onBoardIntercityTicket} onBookStay={props.onBookTemporaryAccommodation} onDrive={props.onDriveIntercity}/> : null}
               {props.activeApp === 'messages' ? <MessagesApp state={props.state} onRead={props.onReadMessage}/> : null}
-              {props.activeApp === 'calendar' ? <CalendarApp state={props.state} onRoute={(locationId) => { props.onSetMapTarget(locationId); props.onOpenApp('maps'); }} onAttend={props.onAttendInterview} onAttendMedical={props.onAttendMedicalVisit}/> : null}
+              {props.activeApp === 'calendar' ? <CalendarApp state={props.state} onRoute={(locationId) => { props.onSetMapTarget(locationId); props.onOpenApp('maps'); }} onAttend={props.onAttendInterview} onAttendMedical={props.onAttendMedicalVisit} onBoardIntercity={props.onBoardIntercityTicket}/> : null}
               {props.activeApp === 'notifications' ? <NotificationsApp state={props.state} onRead={props.onReadNotification}/> : null}
             </div>
             <button className="phone-home-indicator" type="button" aria-label="На главный экран" onClick={() => { props.onSelectJob(undefined); props.onOpenApp('home'); }}/>

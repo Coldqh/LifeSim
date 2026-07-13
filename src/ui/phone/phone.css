@@ -502,3 +502,64 @@
     min-height: 54px;
   }
 }
+
+/* Intercity travel */
+.phone-app-icon--amber { background: linear-gradient(145deg, #ffb548, #d87122); color: #fff; }
+.phone-app-banner--trips { background: linear-gradient(135deg, rgba(232,139,46,.28), rgba(42,83,112,.34)); border-color: rgba(255,177,80,.28); }
+.phone-trips-app { padding-bottom: 110px; }
+.phone-trip-ticket-list,
+.phone-trip-route-list,
+.phone-stay-list { display: grid; gap: 10px; }
+.phone-trip-ticket,
+.phone-trip-route,
+.phone-stay-card,
+.phone-car-intercity-card { border: 1px solid var(--phone-border, rgba(255,255,255,.11)); background: rgba(255,255,255,.045); padding: 14px; }
+.phone-trip-ticket__route,
+.phone-stay-card > div:first-child { display: grid; gap: 4px; }
+.phone-trip-ticket__route > span,
+.phone-stay-card > div:first-child > span { color: var(--phone-muted, #91a0ad); font-size: 11px; text-transform: uppercase; letter-spacing: .08em; }
+.phone-trip-ticket__route > strong,
+.phone-trip-route__head strong,
+.phone-stay-card strong { font-size: 14px; }
+.phone-trip-ticket__route > small,
+.phone-trip-route__head small,
+.phone-stay-card small { color: var(--phone-muted, #91a0ad); }
+.phone-trip-ticket > p { margin: 8px 0 0; color: var(--phone-muted, #91a0ad); font-size: 12px; }
+.phone-trip-route__head { display: flex; align-items: center; gap: 10px; }
+.phone-trip-route__head > div { display: grid; gap: 3px; }
+.phone-trip-mode { display: grid; place-items: center; min-width: 46px; height: 38px; font-size: 11px; font-weight: 900; letter-spacing: .08em; }
+.phone-trip-mode--train { background: #d93535; color: #fff; }
+.phone-trip-mode--bus { background: #276ea8; color: #fff; }
+.phone-trip-route > p { margin: 10px 0; color: var(--phone-muted, #91a0ad); font-size: 12px; }
+.phone-departure-list { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 7px; }
+.phone-departure-list button { border: 1px solid rgba(255,255,255,.12); background: rgba(5,12,18,.34); color: inherit; padding: 9px; text-align: left; display: grid; gap: 3px; }
+.phone-departure-list button span { font-size: 11px; color: var(--phone-muted, #91a0ad); }
+.phone-departure-list button strong { font-size: 12px; }
+.phone-car-intercity-card .phone-primary-action { width: 100%; margin-top: 12px; }
+.phone-stay-card { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 10px; align-items: start; }
+.phone-stay-card.is-active { border-color: rgba(67,205,134,.5); box-shadow: inset 3px 0 rgba(67,205,134,.8); }
+.phone-stay-card__price { text-align: right; display: grid; gap: 2px; }
+.phone-stay-card__price span { color: var(--phone-muted, #91a0ad); font-size: 10px; }
+.phone-stay-card .phone-inline-actions,
+.phone-stay-card > small { grid-column: 1 / -1; }
+.phone-history-list { display: grid; gap: 7px; }
+.phone-history-list > div { display: flex; justify-content: space-between; gap: 12px; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,.08); font-size: 12px; }
+@media (max-width: 520px) {
+  .phone-departure-list { grid-template-columns: 1fr; }
+  .phone-stay-card { grid-template-columns: 1fr; }
+  .phone-stay-card__price { text-align: left; }
+}
+
+.yaroslavl-map { position: relative; min-height: 300px; background: #0a151d; overflow: hidden; }
+.yaroslavl-map svg { width: 100%; display: block; }
+.yaroslavl-map__outline { stroke: rgba(255,255,255,.16); stroke-width: 2; }
+.yaroslavl-map__river { fill: none; stroke: rgba(79,181,226,.72); stroke-width: 8; stroke-linecap: round; }
+.yaroslavl-map__districts path { cursor: pointer; stroke: rgba(255,255,255,.5); stroke-width: 2; transition: opacity .2s ease, filter .2s ease, transform .2s ease; transform-origin: center; }
+.yaroslavl-map__districts path:nth-child(1) { fill: rgba(239,149,53,.5); }
+.yaroslavl-map__districts path:nth-child(2) { fill: rgba(65,150,217,.5); }
+.yaroslavl-map__districts path:nth-child(3) { fill: rgba(67,190,126,.5); }
+.yaroslavl-map__districts path:hover,
+.yaroslavl-map__districts path.is-selected { filter: brightness(1.35); stroke: #fff; }
+.yaroslavl-map__districts path.is-current { stroke: #ffe08a; stroke-width: 4; }
+.yaroslavl-map text { fill: #fff; font-size: 13px; font-weight: 800; pointer-events: none; }
+.yaroslavl-map__caption { position: absolute; left: 12px; bottom: 10px; font-size: 10px; color: rgba(255,255,255,.58); text-transform: uppercase; letter-spacing: .08em; }

@@ -34,3 +34,5 @@ export * from './finance';
 export * from './vehicle';
 
 export * from './healthcare';
+
+export * from './intercity';

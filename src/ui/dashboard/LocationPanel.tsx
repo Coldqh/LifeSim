@@ -61,7 +61,7 @@ const LOCATION_TYPE_LABELS: Record<LocationType, string> = {
   sport_ground: 'Спортплощадка', service: 'Услуги', warehouse: 'Склад', fitness: 'Фитнес', coworking: 'Коворкинг',
   clinic: 'Клиника', pharmacy: 'Аптека', restaurant: 'Ресторан', food_court: 'Фудкорт', pickup_point: 'Пункт выдачи',
   mall: 'ТЦ', electronics_store: 'Техника', clothing_store: 'Одежда', bank: 'Банк', education_center: 'Обучение',
-  sports_store: 'Спорттовары', boxing_gym: 'Бокс', pool: 'Бассейн', car_dealer: 'Автосалон', gas_station: 'АЗС', service_center: 'Автосервис', auto_market: 'Авто с пробегом', other: 'Другое'
+  sports_store: 'Спорттовары', boxing_gym: 'Бокс', pool: 'Бассейн', car_dealer: 'Автосалон', gas_station: 'АЗС', service_center: 'Автосервис', auto_market: 'Авто с пробегом', train_station: 'Ж/д вокзал', bus_station: 'Автовокзал', hotel: 'Гостиница', hostel: 'Хостел', other: 'Другое'
 };
 
 const LOCATION_ICONS: Partial<Record<LocationType, IconName>> = {
@@ -69,13 +69,13 @@ const LOCATION_ICONS: Partial<Record<LocationType, IconName>> = {
   sport_ground: 'gym', service: 'package', warehouse: 'package', fitness: 'gym', coworking: 'building', clinic: 'heart',
   pharmacy: 'medicine', restaurant: 'food', food_court: 'food', pickup_point: 'package', mall: 'shop',
   electronics_store: 'sparkle', clothing_store: 'bag', bank: 'wallet', education_center: 'star', sports_store: 'gym',
-  boxing_gym: 'gym', pool: 'water', car_dealer: 'car', gas_station: 'fuel', service_center: 'wrench', auto_market: 'car', other: 'pin'
+  boxing_gym: 'gym', pool: 'water', car_dealer: 'car', gas_station: 'fuel', service_center: 'wrench', auto_market: 'car', train_station: 'metro', bus_station: 'bus', hotel: 'home', hostel: 'home', other: 'pin'
 };
 
 const FOOD_TYPES: LocationType[] = ['cafe', 'restaurant', 'food_court'];
 const HEALTH_TYPES: LocationType[] = ['pharmacy', 'clinic'];
 const SPORT_TYPES: LocationType[] = ['fitness', 'sport_ground', 'sports_store', 'boxing_gym', 'pool'];
-const SERVICE_TYPES: LocationType[] = ['service', 'coworking', 'bank', 'pickup_point', 'mall', 'electronics_store', 'clothing_store', 'education_center', 'warehouse', 'business_center', 'car_dealer', 'gas_station', 'service_center', 'auto_market'];
+const SERVICE_TYPES: LocationType[] = ['service', 'coworking', 'bank', 'pickup_point', 'mall', 'electronics_store', 'clothing_store', 'education_center', 'warehouse', 'business_center', 'car_dealer', 'gas_station', 'service_center', 'auto_market', 'train_station', 'bus_station', 'hotel', 'hostel'];
 
 function formatDuration(minutes: number): string {
   const hours = Math.floor(minutes / 60);

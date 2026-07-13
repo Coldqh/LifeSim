@@ -264,7 +264,9 @@ export function Dashboard({
   const [activeTab, setActiveTab] = useState<DashboardTab>('character');
   const { theme, toggleTheme } = useUiTheme();
   const activeHourDecayItems = createNeedsEffectItems(getNeedsDecayDelta(60, 'active'));
-  const page = PAGE_TITLES[activeTab];
+  const page = activeTab === 'city'
+    ? { title: 'Город', eyebrow: locationState.city?.name ?? 'Город' }
+    : PAGE_TITLES[activeTab];
 
   function handleResetClick(): void {
     if (window.confirm('Сбросить сохранение LifeSim? Это действие нельзя отменить.')) onReset();

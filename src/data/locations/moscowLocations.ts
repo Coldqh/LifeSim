@@ -749,6 +749,27 @@ const baseMoscowLocations: Location[] = [
     availableActionIds: []
   }
 
+  ,{
+    id: locationId('msk_tverskoy_yaroslavsky_station'),
+    cityId: moscow,
+    districtId: districtId('msk_tverskoy'),
+    name: 'Ярославский вокзал',
+    address: 'Комсомольская пл., 5',
+    type: 'train_station',
+    description: 'Железнодорожные отправления в Ярославль и другие города.',
+    availableActionIds: []
+  },
+  {
+    id: locationId('msk_tverskoy_central_bus_station'),
+    cityId: moscow,
+    districtId: districtId('msk_tverskoy'),
+    name: 'Центральный автовокзал',
+    address: 'Щёлковское ш., 75',
+    type: 'bus_station',
+    description: 'Междугородние автобусные отправления.',
+    availableActionIds: []
+  }
+
 ];
 
 const LOCATION_TYPE_SCHEDULES: Record<LocationType, WeeklySchedule> = {
@@ -780,6 +801,10 @@ const LOCATION_TYPE_SCHEDULES: Record<LocationType, WeeklySchedule> = {
   gas_station: ALWAYS_OPEN_SCHEDULE,
   service_center: SERVICE_SCHEDULE,
   auto_market: RETAIL_SCHEDULE,
+  train_station: ALWAYS_OPEN_SCHEDULE,
+  bus_station: ALWAYS_OPEN_SCHEDULE,
+  hotel: ALWAYS_OPEN_SCHEDULE,
+  hostel: ALWAYS_OPEN_SCHEDULE,
   other: ALWAYS_OPEN_SCHEDULE
 };
 

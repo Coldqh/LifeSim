@@ -46,6 +46,10 @@ export type LocationType =
   | 'gas_station'
   | 'service_center'
   | 'auto_market'
+  | 'train_station'
+  | 'bus_station'
+  | 'hotel'
+  | 'hostel'
   | 'other';
 
 export type Location = {

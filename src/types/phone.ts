@@ -6,10 +6,12 @@ import type {
   PhoneMessageId,
   PhoneNotificationId,
   MedicalServiceId,
-  MedicalAppointmentId
+  MedicalAppointmentId,
+  IntercityRouteId,
+  IntercityTicketId
 } from './ids';
 
-export type PhoneAppId = 'home' | 'jobs' | 'maps' | 'bank' | 'auto' | 'health' | 'messages' | 'calendar' | 'notifications';
+export type PhoneAppId = 'home' | 'jobs' | 'maps' | 'bank' | 'auto' | 'health' | 'trips' | 'messages' | 'calendar' | 'notifications';
 
 export type JobApplicationStatus = 'submitted' | 'invited' | 'rejected' | 'accepted' | 'missed';
 
@@ -35,6 +37,8 @@ export type PhoneNotification = {
   locationId?: LocationId;
   medicalServiceId?: MedicalServiceId;
   medicalAppointmentId?: MedicalAppointmentId;
+  intercityRouteId?: IntercityRouteId;
+  intercityTicketId?: IntercityTicketId;
 };
 
 export type PhoneMessage = {
@@ -52,7 +56,7 @@ export type PhoneCalendarEventStatus = 'scheduled' | 'completed' | 'missed';
 
 export type PhoneCalendarEvent = {
   id: PhoneCalendarEventId;
-  type: 'job_interview' | 'medical_appointment';
+  type: 'job_interview' | 'medical_appointment' | 'intercity_departure';
   title: string;
   locationId: LocationId;
   startsAtTotalMinutes: number;
@@ -61,6 +65,8 @@ export type PhoneCalendarEvent = {
   jobId?: JobId;
   medicalServiceId?: MedicalServiceId;
   medicalAppointmentId?: MedicalAppointmentId;
+  intercityRouteId?: IntercityRouteId;
+  intercityTicketId?: IntercityTicketId;
 };
 
 export type PhoneState = {

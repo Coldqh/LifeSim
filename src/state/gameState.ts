@@ -1,5 +1,5 @@
 import type { ActionResult } from '../types/actions';
-import type { CityId, DistrictId, LocationId, PlayerId, ProductId, SkillId } from '../types/ids';
+import type { CityId, DistrictId, LocationId, NpcId, PlayerId, ProductId, SkillId } from '../types/ids';
 import type { Player } from '../types/player';
 import type { PlayerSkills } from '../types/skill';
 import type { HousingId, HousingMarketState, RentalContract } from '../types/housing';
@@ -9,6 +9,7 @@ import type { PhoneState } from '../types/phone';
 import type { PersonalFinanceState } from '../types/finance';
 import type { VehicleWorldState } from '../types/vehicle';
 import type { MedicalState } from '../types/healthcare';
+import type { IntercityTravelState } from '../types/intercity';
 import { createInitialTime, formatGameTime, getTotalMinutes } from '../core/time';
 import { createInitialBoxingProfile } from '../core/sport';
 import type { BoxingProfile } from '../types/boxing';
@@ -16,7 +17,7 @@ import type { PopulationState } from '../types/population';
 import { createPopulationSeed, generatePopulation, simulatePopulation } from '../core/population';
 import { createInitialSocialState, createNpcPersonality } from '../core/relationships';
 import type { SocialState } from '../types/socialEvent';
-import { moscowLocations } from '../data/locations/moscowLocations';
+import { allLocations } from '../data/locations';
 import { populationDataSource } from '../data/population/config';
 import { basicHousing } from '../data/housing/basicHousing';
 import { createHousingMarket } from '../core/housing';
@@ -25,11 +26,12 @@ import { createInitialPhoneState } from '../core/phone';
 import { createInitialFinanceState } from '../core/finance';
 import { createInitialVehicleWorld } from '../core/vehicles';
 import { createInitialMedicalState } from '../core/healthcare';
+import { createInitialIntercityState } from '../core/intercity';
 import { businessPremises } from '../data/business/premises';
 import { usedVehicleListingTemplates } from '../data/vehicles/usedListingTemplates';
 
-export const GAME_STATE_STORAGE_KEY = 'lifesim.gameState.v20';
-const LEGACY_GAME_STATE_STORAGE_KEYS = ['lifesim.gameState.v19', 'lifesim.gameState.v18', 'lifesim.gameState.v17', 'lifesim.gameState.v16', 'lifesim.gameState.v15', 'lifesim.gameState.v14', 'lifesim.gameState.v13', 'lifesim.gameState.v12', 'lifesim.gameState.v11', 'lifesim.gameState.v10', 'lifesim.gameState.v9', 'lifesim.gameState.v8', 'lifesim.gameState.v7'];
+export const GAME_STATE_STORAGE_KEY = 'lifesim.gameState.v21';
+const LEGACY_GAME_STATE_STORAGE_KEYS = ['lifesim.gameState.v20', 'lifesim.gameState.v19', 'lifesim.gameState.v18', 'lifesim.gameState.v17', 'lifesim.gameState.v16', 'lifesim.gameState.v15', 'lifesim.gameState.v14', 'lifesim.gameState.v13', 'lifesim.gameState.v12', 'lifesim.gameState.v11', 'lifesim.gameState.v10', 'lifesim.gameState.v9', 'lifesim.gameState.v8', 'lifesim.gameState.v7'];
 const STARTER_INVENTORY_BACKFILL_KEYS = new Set(['lifesim.gameState.v9', 'lifesim.gameState.v8', 'lifesim.gameState.v7']);
 const REMOVED_PRODUCT_IDS = new Set(['hygiene_kit', 'toothpaste', 'laundry_powder']);
 
@@ -50,6 +52,7 @@ export type WorldState = {
   finance: PersonalFinanceState;
   vehicles: VehicleWorldState;
   medical: MedicalState;
+  intercity: IntercityTravelState;
 };
 
 export type GameState = {
@@ -196,7 +199,7 @@ export function createInitialGameState(): GameState {
   const time = createInitialTime();
   const generatedPopulation = generatePopulation({
     seed: createPopulationSeed(),
-    locations: moscowLocations,
+    locations: allLocations,
     time,
     dataSource: populationDataSource
   });
@@ -204,7 +207,7 @@ export function createInitialGameState(): GameState {
     population: generatedPopulation,
     fromTime: time,
     toTime: time,
-    locations: moscowLocations,
+    locations: allLocations,
     getLocationProfile: populationDataSource.getLocationProfile
   });
 
@@ -224,7 +227,8 @@ export function createInitialGameState(): GameState {
       phone: createInitialPhoneState(getTotalMinutes(time)),
       finance: createInitialFinanceState(11000, time.day),
       vehicles: createInitialVehicleWorld(population.seed, time.day, usedVehicleListingTemplates),
-      medical: createInitialMedicalState(getTotalMinutes(time))
+      medical: createInitialMedicalState(getTotalMinutes(time)),
+      intercity: createInitialIntercityState(getTotalMinutes(time))
     },
     lifeLog: [
       {
@@ -251,7 +255,7 @@ export function createLifeLogEntry(state: Pick<GameState, 'time'>, title: string
 function createPopulationForTime(time: GameTime): PopulationState {
   const generated = generatePopulation({
     seed: createPopulationSeed(),
-    locations: moscowLocations,
+    locations: allLocations,
     time,
     dataSource: populationDataSource
   });
@@ -259,7 +263,7 @@ function createPopulationForTime(time: GameTime): PopulationState {
     population: generated,
     fromTime: time,
     toTime: time,
-    locations: moscowLocations,
+    locations: allLocations,
     getLocationProfile: populationDataSource.getLocationProfile
   });
 }
@@ -268,16 +272,43 @@ function normalizePopulation(value: unknown, time: GameTime): PopulationState {
   if (!value || typeof value !== 'object') return createPopulationForTime(time);
   const candidate = value as Partial<PopulationState>;
   if (!Array.isArray(candidate.npcs) || typeof candidate.seed !== 'number') return createPopulationForTime(time);
+
+  const normalizedNpcs = candidate.npcs.map((npc) => ({
+    ...npc,
+    personality: npc.personality ?? createNpcPersonality(String(npc.id), npc.activityProfile)
+  }));
+  const hasYaroslavlResidents = normalizedNpcs.some((npc) => (
+    String(npc.homeDistrictId).startsWith('yar_')
+    || String(npc.employment?.locationId ?? '').startsWith('yar_')
+  ));
+
+  if (!hasYaroslavlResidents) {
+    const generated = generatePopulation({
+      seed: candidate.seed,
+      locations: allLocations,
+      time,
+      dataSource: populationDataSource
+    });
+    const yaroslavlNpcs = generated.npcs
+      .filter((npc) => (
+        String(npc.homeDistrictId).startsWith('yar_')
+        || String(npc.employment?.locationId ?? '').startsWith('yar_')
+      ))
+      .map((npc, index) => ({
+        ...npc,
+        id: (`npc_yar_${String(index + 1).padStart(4, '0')}`) as NpcId,
+        personality: createNpcPersonality(`npc_yar_${String(index + 1).padStart(4, '0')}`, npc.activityProfile)
+      }));
+    normalizedNpcs.push(...yaroslavlNpcs);
+  }
+
   return {
     seed: candidate.seed,
     generatedAtDay: typeof candidate.generatedAtDay === 'number' ? candidate.generatedAtDay : time.day,
     lastSimulatedTotalMinutes: typeof candidate.lastSimulatedTotalMinutes === 'number'
       ? candidate.lastSimulatedTotalMinutes
       : 0,
-    npcs: candidate.npcs.map((npc) => ({
-      ...npc,
-      personality: npc.personality ?? createNpcPersonality(String(npc.id), npc.activityProfile)
-    }))
+    npcs: normalizedNpcs
   };
 }
 
@@ -460,6 +491,20 @@ function normalizeMedicalState(value: unknown, time: GameTime): MedicalState {
   };
 }
 
+function normalizeIntercityState(value: unknown, time: GameTime): IntercityTravelState {
+  const initial = createInitialIntercityState(getTotalMinutes(time));
+  if (!value || typeof value !== 'object') return initial;
+  const candidate = value as Partial<IntercityTravelState>;
+  return {
+    tickets: Array.isArray(candidate.tickets) ? candidate.tickets.slice(0, 30) : [],
+    activeStay: candidate.activeStay && typeof candidate.activeStay === 'object' ? candidate.activeStay : undefined,
+    history: Array.isArray(candidate.history) ? candidate.history.slice(0, 30) : [],
+    lastProcessedTotalMinutes: typeof candidate.lastProcessedTotalMinutes === 'number'
+      ? Math.min(getTotalMinutes(time), Math.max(0, candidate.lastProcessedTotalMinutes))
+      : getTotalMinutes(time)
+  };
+}
+
 function normalizeFinanceState(value: unknown, bankBalance: number, time: GameTime): PersonalFinanceState {
   const initial = createInitialFinanceState(bankBalance, time.day);
   if (!value || typeof value !== 'object') return { ...initial, cash: 0, lastObservedBankBalance: bankBalance };
@@ -509,7 +554,8 @@ export function loadGameState(): GameState | undefined {
           phone: normalizePhoneState(parsed.world?.phone, parsed.time),
           finance: normalizeFinanceState(parsed.world?.finance, parsed.player.money ?? 0, parsed.time),
           vehicles: normalizeVehicleWorld(parsed.world?.vehicles, population.seed, parsed.time),
-          medical: normalizeMedicalState(parsed.world?.medical, parsed.time)
+          medical: normalizeMedicalState(parsed.world?.medical, parsed.time),
+          intercity: normalizeIntercityState(parsed.world?.intercity, parsed.time)
         },
         player: {
           ...parsed.player,

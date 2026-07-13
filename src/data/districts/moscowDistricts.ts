@@ -56,7 +56,9 @@ export const moscowDistricts: District[] = [
       locationId('msk_tverskoy_home_flat'),
       locationId('msk_tverskoy_home_premium'),
       locationId('msk_tverskoy_central_cafe'),
-      locationId('msk_tverskoy_walking_zone')
+      locationId('msk_tverskoy_walking_zone'),
+      locationId('msk_tverskoy_yaroslavsky_station'),
+      locationId('msk_tverskoy_central_bus_station')
     ]
   },
   {

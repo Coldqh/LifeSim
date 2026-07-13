@@ -24,3 +24,5 @@ export * as finance from './finance';
 export * as vehicles from './vehicles';
 
 export * as healthcare from './healthcare';
+
+export * from './intercity';

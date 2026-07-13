@@ -61,6 +61,17 @@ import {
   processMedicalTime,
   scheduleMedicalAppointment
 } from '../core/healthcare';
+import {
+  applyIntercityCarTravel,
+  bookIntercityTicket,
+  bookTemporaryAccommodation,
+  getIntercityCarQuote,
+  getTicketBoardFailure,
+  getTemporaryStayFailure,
+  getUpcomingDepartures,
+  processIntercityTime,
+  useIntercityTicket
+} from '../core/intercity';
 import { applySkillExperience, getMissingSkillRequirements, getSkillProgress } from '../core/progression';
 import {
   getActionsForLocation,
@@ -149,7 +160,7 @@ import {
   getTravelDurationMinutes
 } from '../core/travel';
 import { getLifeAction } from '../data';
-import { moscowLocations } from '../data/locations/moscowLocations';
+import { allLocations } from '../data/locations';
 import { populationDataSource } from '../data/population/config';
 import { getNpcRoleById, NPC_ROLE_IDS } from '../data/population/npcRoles';
 import { getNpcInteractionById, npcInteractionTemplates } from '../data/social/interactionTemplates';
@@ -174,6 +185,7 @@ import { boxingOpponents, getBoxingOpponentById } from '../data/sports/boxingOpp
 import { boxingTournaments, getBoxingTournamentById } from '../data/sports/boxingTournaments';
 import { getVehicleModelById, newDealerVehicleModels } from '../data/vehicles/vehicleModels';
 import { usedVehicleListingTemplates } from '../data/vehicles/usedListingTemplates';
+import { intercityRoutes, temporaryAccommodations, getIntercityRouteById, getTemporaryAccommodationById } from '../data/intercity/routes';
 import type {
   ActionId,
   BusinessEquipmentId,
@@ -186,6 +198,7 @@ import type {
   BoxingTournamentId,
   BoxingTrainerId,
   BoxingTrainingId,
+  CityId,
   DistrictId,
   EducationProgramId,
   JobId,
@@ -199,7 +212,10 @@ import type {
   NpcInteractionId,
   SocialEventChoiceId,
   VehicleListingId,
-  VehicleModelId
+  VehicleModelId,
+  IntercityRouteId,
+  IntercityTicketId,
+  TemporaryAccommodationId
 } from '../types/ids';
 import type { HousingId, HousingMarketState } from '../types/housing';
 import type { BusinessEmployeeRole, BusinessWorldState } from '../types/business';
@@ -213,6 +229,7 @@ import type { SocialContext, SocialNpcView } from '../types/relationship';
 import type { SocialState } from '../types/socialEvent';
 import type { VehicleModel, VehicleOperationResult, VehicleWorldState } from '../types/vehicle';
 import type { MedicalState } from '../types/healthcare';
+import type { IntercityDeparture, IntercityRoute } from '../types/intercity';
 import type { DistrictTravelOption, LocationTravelOption, TransportOption, TravelResult } from '../types/travel';
 import {
   clearSavedGameState,
@@ -330,7 +347,7 @@ function applyElapsedTimeConsequences(
     population: currentState.world.population,
     fromTime: currentState.time,
     toTime: nextTime,
-    locations: moscowLocations,
+    locations: allLocations,
     getLocationProfile: populationDataSource.getLocationProfile
   });
   const ownedBusiness = businessOverride.ownedBusiness;
@@ -689,6 +706,90 @@ export function useGameController() {
   useEffect(() => {
     setGameState((currentState) => {
       const now = getTotalMinutes(currentState.time);
+      const previous = currentState.world.intercity;
+      let intercity = processIntercityTime(previous, now);
+      let phone = currentState.world.phone;
+      let changed = intercity !== previous;
+
+      const reminderIds = intercity.tickets
+        .filter((ticket) => (
+          ticket.status === 'booked'
+          && !ticket.reminderSent
+          && now >= ticket.departureTotalMinutes - 90
+          && now < ticket.departureTotalMinutes
+        ))
+        .map((ticket) => ticket.id);
+
+      if (reminderIds.length > 0) {
+        intercity = {
+          ...intercity,
+          tickets: intercity.tickets.map((ticket) => reminderIds.includes(ticket.id)
+            ? { ...ticket, reminderSent: true }
+            : ticket)
+        };
+        reminderIds.forEach((id) => {
+          const ticket = intercity.tickets.find((entry) => entry.id === id);
+          const route = getIntercityRouteById(ticket?.routeId);
+          const notificationId = (`notification_trip_reminder_${String(id)}`) as PhoneNotificationId;
+          if (!phone.notifications.some((entry) => entry.id === notificationId)) {
+            phone = {
+              ...phone,
+              notifications: [{
+                id: notificationId,
+                appId: 'trips' as const,
+                title: 'Скоро отправление',
+                body: `${route?.title ?? 'Междугородняя поездка'} · через ${Math.max(1, Math.ceil(((ticket?.departureTotalMinutes ?? now) - now) / 60))} ч.`,
+                createdAtTotalMinutes: now,
+                read: false,
+                locationId: route?.originTerminalLocationId,
+                intercityRouteId: route?.id,
+                intercityTicketId: id
+              }, ...phone.notifications].slice(0, 80)
+            };
+          }
+        });
+        changed = true;
+      }
+
+      const missedIds = intercity.tickets
+        .filter((ticket) => ticket.status === 'missed' && previous.tickets.find((old) => old.id === ticket.id)?.status === 'booked')
+        .map((ticket) => ticket.id);
+      missedIds.forEach((id) => {
+        const ticket = intercity.tickets.find((entry) => entry.id === id);
+        const route = getIntercityRouteById(ticket?.routeId);
+        const notificationId = (`notification_trip_missed_${String(id)}`) as PhoneNotificationId;
+        if (!phone.notifications.some((entry) => entry.id === notificationId)) {
+          phone = {
+            ...phone,
+            notifications: [{
+              id: notificationId,
+              appId: 'trips' as const,
+              title: 'Отправление пропущено',
+              body: route?.title ?? 'Междугородняя поездка',
+              createdAtTotalMinutes: now,
+              read: false,
+              locationId: route?.originTerminalLocationId,
+              intercityRouteId: route?.id,
+              intercityTicketId: id
+            }, ...phone.notifications].slice(0, 80),
+            calendarEvents: phone.calendarEvents.map((event) => event.intercityTicketId === id && event.status === 'scheduled'
+              ? { ...event, status: 'missed' as const }
+              : event)
+          };
+        }
+        changed = true;
+      });
+
+      return changed
+        ? { ...currentState, world: { ...currentState.world, intercity, phone } }
+        : currentState;
+    });
+  }, [gameState.time.day, gameState.time.hour, gameState.time.minute]);
+
+
+  useEffect(() => {
+    setGameState((currentState) => {
+      const now = getTotalMinutes(currentState.time);
       let changed = false;
       let phone = currentState.world.phone;
       const appointmentsById = new Map(currentState.world.medical.appointments.map((entry) => [String(entry.id), entry]));
@@ -791,7 +892,11 @@ export function useGameController() {
     const locationScheduleStatuses = Object.fromEntries(
       locations.map((candidateLocation) => [candidateLocation.id, getScheduleStatus(candidateLocation.openingHours, gameState.time)])
     );
-    const actionScheduleFailure = getScheduleActivityFailure(location?.openingHours, gameState.time, 0, 'Действие');
+    const accommodation = temporaryAccommodations.find((entry) => entry.locationId === location?.id);
+    const lodgingFailure = accommodation
+      ? getTemporaryStayFailure({ state: gameState.world.intercity, locationId: location?.id, day: gameState.time.day })
+      : undefined;
+    const actionScheduleFailure = getScheduleActivityFailure(location?.openingHours, gameState.time, 0, 'Действие') ?? lodgingFailure;
     const shopScheduleFailure = shop
       ? getScheduleActivityFailure(location?.openingHours, gameState.time, 0, 'Магазин')
       : undefined;
@@ -833,7 +938,7 @@ export function useGameController() {
       locationTravelOptions,
       districtTravelOptions
     };
-  }, [gameState.player.cityId, gameState.player.districtId, gameState.player.locationId, gameState.player.money, gameState.player.needs, gameState.time, gameState.world.vehicles]);
+  }, [gameState.player.cityId, gameState.player.districtId, gameState.player.locationId, gameState.player.money, gameState.player.needs, gameState.time, gameState.world.vehicles, gameState.world.intercity]);
 
   const jobState = useMemo(() => {
     const currentJob = getJobById(gameState.player.currentJobId);
@@ -977,6 +1082,66 @@ export function useGameController() {
     };
   }, [gameState.player.locationId, gameState.player.money, gameState.world.vehicles]);
 
+  const intercityState = useMemo(() => {
+    const now = getTotalMinutes(gameState.time);
+    const routes = intercityRoutes
+      .filter((route) => route.originCityId === gameState.player.cityId)
+      .map((route) => ({
+        route,
+        originTerminal: getLocationById(route.originTerminalLocationId),
+        destinationTerminal: getLocationById(route.destinationTerminalLocationId),
+        originCity: getCityById(route.originCityId),
+        destinationCity: getCityById(route.destinationCityId),
+        departures: getUpcomingDepartures({ route, currentTotalMinutes: now, days: 3 })
+      }));
+    const tickets = gameState.world.intercity.tickets.map((ticket) => {
+      const route = getIntercityRouteById(ticket.routeId);
+      return {
+        ticket,
+        route,
+        originTerminal: getLocationById(route?.originTerminalLocationId),
+        destinationTerminal: getLocationById(route?.destinationTerminalLocationId),
+        boardFailure: getTicketBoardFailure({
+          ticket,
+          route,
+          currentLocationId: gameState.player.locationId,
+          currentTotalMinutes: now
+        })
+      };
+    });
+    const accommodations = temporaryAccommodations
+      .filter((entry) => entry.cityId === gameState.player.cityId)
+      .map((entry) => ({
+        accommodation: entry,
+        location: getLocationById(entry.locationId),
+        active: gameState.world.intercity.activeStay?.accommodationId === entry.id,
+        canAffordNight: gameState.player.money >= entry.nightlyPrice
+      }));
+    const destinationCityId = (gameState.player.cityId === ('moscow' as CityId) ? 'yaroslavl' : 'moscow') as CityId;
+    const destinationArrivalLocation = getLocationById(destinationCityId === ('yaroslavl' as CityId)
+      ? ('yar_leninsky_main_station' as LocationId)
+      : ('msk_tverskoy_yaroslavsky_station' as LocationId));
+    const ownedModel = getVehicleModelById(gameState.world.vehicles.ownedVehicle?.modelId);
+    const carQuote = getIntercityCarQuote({
+      world: gameState.world.vehicles,
+      model: ownedModel,
+      currentLocationId: gameState.player.locationId
+    });
+    return {
+      state: gameState.world.intercity,
+      routes,
+      tickets,
+      accommodations,
+      activeStay: gameState.world.intercity.activeStay,
+      currentCity: getCityById(gameState.player.cityId),
+      destinationCity: getCityById(destinationCityId),
+      destinationCityId,
+      destinationArrivalLocation,
+      carQuote,
+      ownedModel
+    };
+  }, [gameState.player.cityId, gameState.player.locationId, gameState.player.money, gameState.time, gameState.world.intercity, gameState.world.vehicles]);
+
   const phoneState = useMemo(() => {
     const phone = gameState.world.phone;
     const currentLocation = getLocationById(gameState.player.locationId);
@@ -1009,7 +1174,7 @@ export function useGameController() {
       };
     });
     const mapTarget = getLocationById(phone.mapTargetLocationId);
-    const mapRoute = mapTarget
+    const mapRoute = mapTarget && mapTarget.cityId === currentLocation?.cityId
       ? addPersonalCarToLocationOptions(
           createLocationTravelOptions(currentLocation, [mapTarget], travelContext),
           currentLocation,
@@ -1027,9 +1192,10 @@ export function useGameController() {
       mapRoute,
       finance: financeState,
       vehicles: vehicleState,
+      intercity: intercityState,
       districtTravelOptions: locationState.districtTravelOptions
     };
-  }, [gameState.player, gameState.time, gameState.world.phone, gameState.world.vehicles, financeState, vehicleState, locationState.districtTravelOptions]);
+  }, [gameState.player, gameState.time, gameState.world.phone, gameState.world.vehicles, financeState, vehicleState, intercityState, locationState.districtTravelOptions]);
 
   const educationState = useMemo(() => {
     const skills = basicSkills.map((skill) => ({
@@ -1412,6 +1578,18 @@ export function useGameController() {
       }
 
       const currentLocation = getLocationById(currentState.player.locationId);
+      const accommodation = temporaryAccommodations.find((entry) => entry.locationId === currentLocation?.id);
+      const lodgingFailure = accommodation && (action.category === 'sleep' || action.category === 'rest')
+        ? getTemporaryStayFailure({ state: currentState.world.intercity, locationId: currentLocation?.id, day: currentState.time.day })
+        : undefined;
+      if (lodgingFailure) {
+        const logEntry = createLifeLogEntry(currentState, 'Проживание недоступно', lodgingFailure);
+        return {
+          ...currentState,
+          lastResult: { ok: false, actionId, actionName: action.name, timeDeltaMinutes: 0, messages: [lodgingFailure] },
+          lifeLog: mergeLifeLog([logEntry], currentState.lifeLog)
+        };
+      }
       const scheduleFailure = getScheduleActivityFailure(
         currentLocation?.openingHours,
         currentState.time,
@@ -1474,6 +1652,12 @@ export function useGameController() {
     if (!district || !defaultLocation) return;
 
     setGameState((currentState) => {
+      if (district.cityId !== currentState.player.cityId) {
+        return {
+          ...currentState,
+          lastResult: { ok: false, timeDeltaMinutes: 0, messages: ['Между городами нужно ехать через приложение «Поездки».'] }
+        };
+      }
       const currentLocation = getLocationById(currentState.player.locationId);
       const travel = modeId === 'car'
         ? calculatePersonalCarTravel({
@@ -1560,6 +1744,12 @@ export function useGameController() {
     if (!location) return;
 
     setGameState((currentState) => {
+      if (location.cityId !== currentState.player.cityId) {
+        return {
+          ...currentState,
+          lastResult: { ok: false, timeDeltaMinutes: 0, messages: ['Между городами нужно ехать через приложение «Поездки».'] }
+        };
+      }
       const currentLocation = getLocationById(currentState.player.locationId);
       const travel = modeId === 'car'
         ? calculatePersonalCarTravel({
@@ -2980,6 +3170,269 @@ export function useGameController() {
     });
   }
 
+  function buyIntercityTicketAction(routeId: IntercityRouteId, departureTotalMinutes: number): void {
+    setGameState((currentState) => {
+      const route = getIntercityRouteById(routeId);
+      if (!route) return currentState;
+      const applied = bookIntercityTicket({
+        state: currentState.world.intercity,
+        route,
+        departureTotalMinutes,
+        currentTotalMinutes: getTotalMinutes(currentState.time),
+        bankBalance: currentState.player.money
+      });
+      if (!applied.result.ok || !applied.ticket) {
+        return {
+          ...currentState,
+          lastResult: { ok: false, actionName: applied.result.title, timeDeltaMinutes: 0, messages: [applied.result.message] }
+        };
+      }
+
+      const nextPlayer = { ...currentState.player, money: applyMoneyDelta(currentState.player.money, applied.result.moneyDelta ?? 0) };
+      const finance = reconcileExternalBankBalance({
+        state: currentState.world.finance,
+        bankBalance: nextPlayer.money,
+        totalMinutes: getTotalMinutes(currentState.time),
+        actionTitle: `Билет: ${route.title}`
+      });
+      const calendarId = (`calendar_trip_${String(applied.ticket.id)}`) as PhoneCalendarEventId;
+      const notificationId = (`notification_trip_${String(applied.ticket.id)}`) as PhoneNotificationId;
+      const phone = {
+        ...currentState.world.phone,
+        calendarEvents: [{
+          id: calendarId,
+          type: 'intercity_departure' as const,
+          title: `${route.mode === 'train' ? 'Поезд' : 'Автобус'}: ${route.title}`,
+          locationId: route.originTerminalLocationId,
+          startsAtTotalMinutes: applied.ticket.departureTotalMinutes,
+          durationMinutes: route.durationMinutes,
+          status: 'scheduled' as const,
+          intercityRouteId: route.id,
+          intercityTicketId: applied.ticket.id
+        }, ...currentState.world.phone.calendarEvents].slice(0, 60),
+        notifications: [{
+          id: notificationId,
+          appId: 'trips' as const,
+          title: 'Билет куплен',
+          body: route.title,
+          createdAtTotalMinutes: getTotalMinutes(currentState.time),
+          read: false,
+          locationId: route.originTerminalLocationId,
+          intercityRouteId: route.id,
+          intercityTicketId: applied.ticket.id
+        }, ...currentState.world.phone.notifications].slice(0, 80)
+      };
+      const logEntry = createLifeLogEntry(currentState, applied.result.title, applied.result.message);
+      return {
+        ...currentState,
+        player: nextPlayer,
+        world: { ...currentState.world, intercity: applied.state, phone, finance },
+        lastResult: { ok: true, actionName: applied.result.title, timeDeltaMinutes: 0, moneyDelta: applied.result.moneyDelta, messages: [applied.result.message] },
+        lifeLog: mergeLifeLog([logEntry], currentState.lifeLog)
+      };
+    });
+  }
+
+  function boardIntercityTicketAction(ticketId: IntercityTicketId): void {
+    setGameState((currentState) => {
+      const ticket = currentState.world.intercity.tickets.find((entry) => entry.id === ticketId);
+      const route = getIntercityRouteById(ticket?.routeId);
+      const applied = useIntercityTicket({
+        state: currentState.world.intercity,
+        ticket,
+        route,
+        currentLocationId: currentState.player.locationId,
+        currentTotalMinutes: getTotalMinutes(currentState.time)
+      });
+      if (!applied.result.ok || !route) {
+        return { ...currentState, lastResult: { ok: false, actionName: applied.result.title, timeDeltaMinutes: 0, messages: [applied.result.message] } };
+      }
+      const destination = getLocationById(route.destinationTerminalLocationId);
+      if (!destination) return currentState;
+      const nextTime = addMinutes(currentState.time, applied.result.timeDeltaMinutes);
+      const movedPlayer = {
+        ...currentState.player,
+        cityId: destination.cityId,
+        districtId: destination.districtId,
+        locationId: destination.id,
+        needs: applyNeedsDelta(currentState.player.needs, applied.result.needsDelta)
+      };
+      const elapsedApplied = applyElapsedTimeConsequences(currentState, movedPlayer, nextTime, 'resting');
+      const notificationId = (`notification_trip_arrived_${String(ticketId)}`) as PhoneNotificationId;
+      const phone = {
+        ...currentState.world.phone,
+        calendarEvents: currentState.world.phone.calendarEvents.map((event) => event.intercityTicketId === ticketId
+          ? { ...event, status: 'completed' as const }
+          : event),
+        notifications: [{
+          id: notificationId,
+          appId: 'trips' as const,
+          title: 'Прибытие',
+          body: `${getCityById(destination.cityId)?.name ?? 'Другой город'} · ${destination.name}`,
+          createdAtTotalMinutes: getTotalMinutes(nextTime),
+          read: false,
+          locationId: destination.id,
+          intercityRouteId: route.id,
+          intercityTicketId: ticketId
+        }, ...currentState.world.phone.notifications].slice(0, 80)
+      };
+      const messages = [applied.result.message, ...elapsedApplied.messages];
+      return {
+        ...currentState,
+        time: nextTime,
+        player: elapsedApplied.player,
+        world: {
+          ...currentState.world,
+          population: elapsedApplied.population,
+          social: elapsedApplied.social,
+          housingMarket: elapsedApplied.housingMarket,
+          business: elapsedApplied.business,
+          medical: elapsedApplied.medical,
+          intercity: applied.state,
+          phone
+        },
+        lastResult: {
+          ok: true,
+          actionName: applied.result.title,
+          timeDeltaMinutes: applied.result.timeDeltaMinutes,
+          needsDelta: mergeNeedsDelta(applied.result.needsDelta, elapsedApplied.needsDelta),
+          locationDelta: destination.id,
+          messages
+        },
+        lifeLog: mergeLifeLog([createLifeLogEntry({ time: nextTime }, applied.result.title, messages.join(' ')), ...elapsedApplied.lifeLogEntries], currentState.lifeLog)
+      };
+    });
+  }
+
+  function bookTemporaryAccommodationAction(accommodationId: TemporaryAccommodationId, nights: number): void {
+    setGameState((currentState) => {
+      const accommodation = getTemporaryAccommodationById(accommodationId);
+      if (!accommodation) return currentState;
+      const applied = bookTemporaryAccommodation({
+        state: currentState.world.intercity,
+        accommodation,
+        currentCityId: currentState.player.cityId,
+        currentDay: currentState.time.day,
+        nights,
+        bankBalance: currentState.player.money
+      });
+      if (!applied.result.ok) {
+        return { ...currentState, lastResult: { ok: false, actionName: applied.result.title, timeDeltaMinutes: 0, messages: [applied.result.message] } };
+      }
+      const player = { ...currentState.player, money: applyMoneyDelta(currentState.player.money, applied.result.moneyDelta ?? 0) };
+      const finance = reconcileExternalBankBalance({
+        state: currentState.world.finance,
+        bankBalance: player.money,
+        totalMinutes: getTotalMinutes(currentState.time),
+        actionTitle: `Гостиница: ${accommodation.name}`
+      });
+      const notificationId = (`notification_stay_${String(accommodation.id)}_${currentState.time.day}`) as PhoneNotificationId;
+      const phone = {
+        ...currentState.world.phone,
+        notifications: [{
+          id: notificationId,
+          appId: 'trips' as const,
+          title: 'Проживание подтверждено',
+          body: `${accommodation.name} · до дня ${applied.state.activeStay?.checkoutDay ?? currentState.time.day + nights}`,
+          createdAtTotalMinutes: getTotalMinutes(currentState.time),
+          read: false,
+          locationId: accommodation.locationId
+        }, ...currentState.world.phone.notifications].slice(0, 80)
+      };
+      return {
+        ...currentState,
+        player,
+        world: { ...currentState.world, intercity: applied.state, finance, phone },
+        lastResult: { ok: true, actionName: applied.result.title, timeDeltaMinutes: 0, moneyDelta: applied.result.moneyDelta, messages: [applied.result.message] },
+        lifeLog: mergeLifeLog([createLifeLogEntry(currentState, applied.result.title, applied.result.message)], currentState.lifeLog)
+      };
+    });
+  }
+
+  function driveIntercityAction(destinationCityId: CityId): void {
+    setGameState((currentState) => {
+      if (destinationCityId === currentState.player.cityId) return currentState;
+      const model = getVehicleModelById(currentState.world.vehicles.ownedVehicle?.modelId);
+      const quote = getIntercityCarQuote({
+        world: currentState.world.vehicles,
+        model,
+        currentLocationId: currentState.player.locationId
+      });
+      if (currentState.player.money < quote.roadCost) {
+        return { ...currentState, lastResult: { ok: false, actionName: 'Междугородняя поездка', timeDeltaMinutes: 0, messages: ['Не хватает денег на дорожные расходы.'] } };
+      }
+      const applied = applyIntercityCarTravel({
+        state: currentState.world.intercity,
+        originCityId: currentState.player.cityId,
+        destinationCityId,
+        currentTotalMinutes: getTotalMinutes(currentState.time),
+        quote
+      });
+      if (!applied.result.ok || !currentState.world.vehicles.ownedVehicle) {
+        return { ...currentState, lastResult: { ok: false, actionName: applied.result.title, timeDeltaMinutes: 0, messages: [applied.result.message] } };
+      }
+      const destination = getLocationById(destinationCityId === ('yaroslavl' as CityId)
+        ? ('yar_leninsky_main_station' as LocationId)
+        : ('msk_tverskoy_yaroslavsky_station' as LocationId));
+      if (!destination) return currentState;
+      const nextTime = addMinutes(currentState.time, quote.durationMinutes);
+      const chargedPlayer = {
+        ...currentState.player,
+        money: applyMoneyDelta(currentState.player.money, -quote.roadCost),
+        cityId: destination.cityId,
+        districtId: destination.districtId,
+        locationId: destination.id,
+        needs: applyNeedsDelta(currentState.player.needs, applied.result.needsDelta)
+      };
+      const elapsedApplied = applyElapsedTimeConsequences(currentState, chargedPlayer, nextTime, 'active');
+      const owned = currentState.world.vehicles.ownedVehicle;
+      const vehicles: VehicleWorldState = {
+        ...currentState.world.vehicles,
+        ownedVehicle: {
+          ...owned,
+          fuelLiters: Math.max(0, owned.fuelLiters - quote.fuelLiters),
+          odometerKm: owned.odometerKm + quote.distanceKm,
+          conditionPercent: Math.max(0, owned.conditionPercent - 2),
+          reliabilityPercent: Math.max(0, owned.reliabilityPercent - (owned.odometerKm + quote.distanceKm >= owned.nextServiceOdometerKm ? 2 : 1)),
+          parkedLocationId: destination.id
+        }
+      };
+      const finance = reconcileExternalBankBalance({
+        state: currentState.world.finance,
+        bankBalance: elapsedApplied.player.money,
+        totalMinutes: getTotalMinutes(nextTime),
+        actionTitle: 'Междугородняя поездка на автомобиле'
+      });
+      const messages = [applied.result.message, ...elapsedApplied.messages];
+      return {
+        ...currentState,
+        time: nextTime,
+        player: elapsedApplied.player,
+        world: {
+          ...currentState.world,
+          population: elapsedApplied.population,
+          social: elapsedApplied.social,
+          housingMarket: elapsedApplied.housingMarket,
+          business: elapsedApplied.business,
+          medical: elapsedApplied.medical,
+          intercity: applied.state,
+          vehicles,
+          finance
+        },
+        lastResult: {
+          ok: true,
+          actionName: applied.result.title,
+          timeDeltaMinutes: quote.durationMinutes,
+          moneyDelta: -quote.roadCost,
+          needsDelta: mergeNeedsDelta(applied.result.needsDelta, elapsedApplied.needsDelta),
+          locationDelta: destination.id,
+          messages
+        },
+        lifeLog: mergeLifeLog([createLifeLogEntry({ time: nextTime }, applied.result.title, messages.join(' ')), ...elapsedApplied.lifeLogEntries], currentState.lifeLog)
+      };
+    });
+  }
+
   function transferPersonalFunds(direction: 'bank_to_cash' | 'cash_to_bank' | 'bank_to_savings' | 'savings_to_bank', amount: number): void {
     setGameState((currentState) => {
       const applied = transferFinanceFunds({
@@ -3105,6 +3558,10 @@ export function useGameController() {
     refuelVehicle: refuelOwnedVehicle,
     serviceVehicle: serviceOwnedVehicle,
     sellVehicle: sellOwnedVehicleAction,
+    buyIntercityTicket: buyIntercityTicketAction,
+    boardIntercityTicket: boardIntercityTicketAction,
+    bookTemporaryAccommodation: bookTemporaryAccommodationAction,
+    driveIntercity: driveIntercityAction,
     resetGame
   };
 }

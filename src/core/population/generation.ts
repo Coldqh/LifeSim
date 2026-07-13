@@ -95,11 +95,12 @@ function createNpc(input: {
   activityProfile: NpcActivityProfile;
   activationDay: number;
   preferredHomeDistrictId?: DistrictId;
+  preferredHomeDistrictIds?: DistrictId[];
   knownIdentity?: KnownNpcIdentity;
   firstNames: readonly string[];
   lastNames: readonly string[];
 }): Npc {
-  const { index, random, districts, employment, activityProfile, activationDay, preferredHomeDistrictId, knownIdentity, firstNames, lastNames } = input;
+  const { index, random, districts, employment, activityProfile, activationDay, preferredHomeDistrictId, preferredHomeDistrictIds, knownIdentity, firstNames, lastNames } = input;
   const firstName = knownIdentity?.firstName ?? pick(firstNames, random);
   const rawLastName = knownIdentity?.lastName ?? pick(lastNames, random);
   const isLikelyFemale = firstNames.indexOf(firstName) >= Math.floor(firstNames.length * 0.6);
@@ -108,9 +109,10 @@ function createNpc(input: {
     : isLikelyFemale && rawLastName.endsWith('ев')
       ? `${rawLastName}а`
       : rawLastName;
-  const homeDistrictId = employment && preferredHomeDistrictId && random() < 0.62
+  const localDistricts = preferredHomeDistrictIds?.length ? preferredHomeDistrictIds : districts;
+  const homeDistrictId = employment && preferredHomeDistrictId && random() < 0.88
     ? preferredHomeDistrictId
-    : pick(districts, random);
+    : pick(localDistricts, random);
   const initialState: NpcWorldState = { kind: 'home', sinceTotalMinutes: 0 };
 
   const id = npcId(`npc_${String(index + 1).padStart(4, '0')}`);
@@ -154,6 +156,7 @@ export function generatePopulation(input: {
       for (let count = 0; count < requirement.count; count += 1) {
         const employment = createEmployment(location, requirement.roleId, staffIndex);
         const knownIdentity = dataSource.getKnownIdentity(location.id, requirement.roleId, count);
+        const cityDistricts = [...new Set(locations.filter((candidate) => candidate.cityId === location.cityId).map((candidate) => candidate.districtId))];
         npcs.push(createNpc({
           index,
           random,
@@ -162,6 +165,7 @@ export function generatePopulation(input: {
           activityProfile: 'worker',
           activationDay: 1,
           preferredHomeDistrictId: location.districtId,
+          preferredHomeDistrictIds: cityDistricts,
           knownIdentity,
           firstNames: dataSource.firstNames,
           lastNames: dataSource.lastNames

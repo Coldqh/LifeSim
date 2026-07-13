@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useGameController } from '../state';
-import type { JobId, VehicleListingId, VehicleModelId } from '../types/ids';
+import type { CityId, IntercityRouteId, IntercityTicketId, JobId, TemporaryAccommodationId, VehicleListingId, VehicleModelId } from '../types/ids';
 import type { PhoneAppId } from '../types/phone';
 import { Dashboard } from './dashboard';
 import { DiegeticNavigation } from './navigation';
@@ -69,6 +69,10 @@ export function AppShell() {
     refuelVehicle,
     serviceVehicle,
     sellVehicle,
+    buyIntercityTicket,
+    boardIntercityTicket,
+    bookTemporaryAccommodation,
+    driveIntercity,
     resetGame
   } = useGameController();
   const [phoneOpen, setPhoneOpen] = useState(false);
@@ -159,6 +163,10 @@ export function AppShell() {
         onRefuelVehicle={refuelVehicle}
         onServiceVehicle={serviceVehicle}
         onSellVehicle={sellVehicle}
+        onBuyIntercityTicket={(routeId: IntercityRouteId, departureTotalMinutes: number) => buyIntercityTicket(routeId, departureTotalMinutes)}
+        onBoardIntercityTicket={(ticketId: IntercityTicketId) => boardIntercityTicket(ticketId)}
+        onBookTemporaryAccommodation={(id: TemporaryAccommodationId, nights: number) => bookTemporaryAccommodation(id, nights)}
+        onDriveIntercity={(cityId: CityId) => driveIntercity(cityId)}
       />
     </>
   );
