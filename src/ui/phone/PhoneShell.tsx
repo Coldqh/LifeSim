@@ -43,7 +43,7 @@ export function PhoneShell(props: PhoneShellProps) {
         <button className="phone-overlay__backdrop" type="button" aria-label="Закрыть телефон" onClick={props.onClose}/>
         <aside className="diegetic-phone" aria-label="Смартфон персонажа">
           <div className="diegetic-phone__hardware"><i/><i/><i/></div>
-          <div className="diegetic-phone__screen">
+          <div className={`diegetic-phone__screen ${props.activeApp === 'home' ? 'is-home' : 'has-app-header'}`}>
             <header className="phone-status-bar">
               <strong>{formatGameTime(props.time)}</strong>
               <span>{APP_VERSION_LABEL} · 5G <i className="phone-signal"/> 87%</span>

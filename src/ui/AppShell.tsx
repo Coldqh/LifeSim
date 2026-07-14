@@ -142,6 +142,8 @@ export function AppShell() {
         onBuyBusinessEquipment={purchaseBusinessEquipment}
         onBuyBusinessUpgrade={purchaseBusinessUpgrade}
         onWorkBusinessOwnerShift={workBusinessOwnerShift}
+        onOpenPhone={() => openPhone('home')}
+        phoneUnreadCount={phoneState.unreadCount}
       />
       <PhoneShell
         open={phoneOpen}

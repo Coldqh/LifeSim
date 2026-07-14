@@ -118,17 +118,24 @@ function LaunchView({ state, playerMoney, onOpenBusiness }: Pick<BusinessPanelPr
                 <p>{view.premises.address}</p>
               </div>
             </div>
-            <div className="business-premises-card__metrics">
-              <div><span>Площадь</span><strong>{view.premises.areaSqm} м²</strong></div>
-              <div><span>Поток</span><strong>{view.premises.footTraffic}/5</strong></div>
-              <div><span>Аренда</span><strong>{formatRubles(view.premises.rentPerWeek)}/нед.</strong></div>
+            <div className="business-premises-card__summary">
+              <div><span>Аренда</span><strong>{formatRubles(view.premises.rentPerWeek)}<small>/нед.</small></strong></div>
               <div><span>Старт</span><strong>{formatRubles(view.startup.total)}</strong></div>
             </div>
-            <div className="business-premises-card__breakdown">
-              <span>Залог {formatRubles(view.premises.deposit)}</span>
-              <span>Оборудование {formatRubles(view.startup.equipmentCost)}</span>
-              <span>Запас {formatRubles(view.startup.starterInventoryCost)}</span>
-            </div>
+            <details className="business-premises-card__details">
+              <summary>Характеристики и расходы <Icon name="chevron" size={15} /></summary>
+              <div className="business-premises-card__metrics">
+                <div><span>Площадь</span><strong>{view.premises.areaSqm} м²</strong></div>
+                <div><span>Поток</span><strong>{view.premises.footTraffic}/5</strong></div>
+                <div><span>Аренда</span><strong>{formatRubles(view.premises.rentPerWeek)}/нед.</strong></div>
+                <div><span>Старт</span><strong>{formatRubles(view.startup.total)}</strong></div>
+              </div>
+              <div className="business-premises-card__breakdown">
+                <span>Залог {formatRubles(view.premises.deposit)}</span>
+                <span>Оборудование {formatRubles(view.startup.equipmentCost)}</span>
+                <span>Запас {formatRubles(view.startup.starterInventoryCost)}</span>
+              </div>
+            </details>
             <button
               className="primary-action-button"
               disabled={!view.canLaunch}

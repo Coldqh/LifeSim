@@ -182,6 +182,8 @@ type DashboardProps = {
   onBuyBusinessEquipment: (equipmentId: BusinessEquipmentId) => void;
   onBuyBusinessUpgrade: (upgradeId: BusinessUpgradeId) => void;
   onWorkBusinessOwnerShift: () => void;
+  onOpenPhone: () => void;
+  phoneUnreadCount: number;
   onReset: () => void;
 };
 
@@ -199,7 +201,7 @@ const NAVIGATION: NavigationItem[] = [
   { id: 'log', label: 'Журнал', icon: 'log' }
 ];
 
-const MOBILE_PRIMARY_NAVIGATION = NAVIGATION.filter((item) => ['character', 'city', 'jobs', 'sport'].includes(item.id));
+const MOBILE_PRIMARY_NAVIGATION = NAVIGATION.filter((item) => ['character', 'city', 'jobs'].includes(item.id));
 const MOBILE_MORE_NAVIGATION = NAVIGATION.filter((item) => !MOBILE_PRIMARY_NAVIGATION.includes(item));
 
 const PAGE_TITLES: Record<DashboardTab, { title: string; eyebrow: string }> = {
@@ -264,6 +266,8 @@ export function Dashboard({
   onBuyBusinessEquipment,
   onBuyBusinessUpgrade,
   onWorkBusinessOwnerShift,
+  onOpenPhone,
+  phoneUnreadCount,
   onReset
 }: DashboardProps) {
   const { player, time, lastResult } = gameState;
@@ -508,6 +512,10 @@ export function Dashboard({
             <Icon name={item.icon} size={21} /><span>{item.label}</span>
           </button>
         ))}
+        <button className="mobile-navigation__item mobile-navigation__phone" type="button" onClick={() => { setMobileMoreOpen(false); onOpenPhone(); }}>
+          <span className="mobile-navigation__phone-icon"><Icon name="phone" size={21} />{phoneUnreadCount > 0 ? <i>{phoneUnreadCount > 99 ? '99+' : phoneUnreadCount}</i> : null}</span>
+          <span>Телефон</span>
+        </button>
         <button
           aria-expanded={mobileMoreOpen}
           className={`mobile-navigation__item mobile-navigation__more ${MOBILE_MORE_NAVIGATION.some((item) => item.id === activeTab) ? 'mobile-navigation__item--active' : ''}`}
