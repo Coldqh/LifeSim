@@ -955,18 +955,103 @@
   .phone-map-canvas,
   .moscow-map,
   .yaroslavl-map {
-    min-height: clamp(210px, 38dvh, 330px);
+    min-height: clamp(180px, 32dvh, 280px);
   }
+
+  .phone-status-bar { height: calc(38px + env(safe-area-inset-top)) !important; padding-inline: 12px !important; }
+  .phone-app-header { height: 40px; padding-inline: 9px; }
+  .phone-app-header strong { font-size: 13px; }
+  .phone-app-content,
+  .phone-app-header + .phone-app-content { padding-bottom: calc(14px + env(safe-area-inset-bottom)); }
+
+  .phone-home-screen { padding: 12px 10px calc(18px + env(safe-area-inset-bottom)); }
+  .phone-home-hero { min-height: 94px; padding: 12px; border-radius: 16px; }
+  .phone-home-hero span,
+  .phone-home-hero p { display: none; }
+  .phone-home-hero strong { margin: 0; font-size: 17px; }
+  .phone-app-grid { margin-top: 12px; gap: 12px 8px; }
+  .phone-app-tile { gap: 4px; }
+  .phone-app-icon { width: 46px; height: 46px; border-radius: 14px; }
+  .phone-app-tile strong { font-size: 9px; }
+  .phone-home-widget { margin-top: 14px; padding: 10px 11px; border-radius: 13px; }
+  .phone-home-widget span { display: none; }
+  .phone-home-widget strong { font-size: 11px; }
+
+  .phone-app-page { padding: 9px 9px calc(18px + env(safe-area-inset-bottom)); }
+  .phone-app-banner { min-height: 60px; padding: 10px; gap: 9px; border-radius: 14px; }
+  .phone-app-banner > span { width: 38px; height: 38px; border-radius: 12px; }
+  .phone-app-banner strong { font-size: 14px; }
+  .phone-app-banner small { display: none; }
+  .phone-search { height: 36px; margin-top: 8px; padding-inline: 9px; border-radius: 11px; }
+  .phone-filter-row { gap: 5px; margin: 7px 0; }
+  .phone-filter-row button { padding: 6px 9px; border-radius: 9px; font-size: 10px; }
+  .phone-subsection { margin-top: 10px; }
+  .phone-section-title { gap: 7px; }
+  .phone-section-title > span { font-size: 12px; }
+
+  .phone-job-card,
+  .phone-bank-card,
+  .phone-study-row,
+  .phone-university-card,
+  .phone-health-condition,
+  .phone-health-service,
+  .phone-trip-ticket,
+  .phone-trip-route,
+  .phone-stay-card,
+  .phone-car-intercity-card,
+  .vehicle-listing-card,
+  .vehicle-dealer-card,
+  .phone-contact-profile,
+  .phone-social-active-card,
+  .phone-social-invitations article,
+  .phone-social-schedule article { padding: 9px; }
+
+  .phone-job-list,
+  .phone-study-list,
+  .phone-health-condition-list,
+  .phone-health-service-list,
+  .phone-health-prescriptions,
+  .phone-trip-ticket-list,
+  .phone-trip-route-list,
+  .phone-stay-list,
+  .vehicle-list,
+  .phone-social-invitations,
+  .phone-social-schedule { gap: 6px; }
+
+  .phone-contact-list > button { gap: 8px; padding: 8px; }
+  .phone-contact-profile__avatar { width: 42px; height: 42px; }
+  .phone-social-quick-grid { gap: 5px; }
+  .phone-social-quick-grid button { min-height: 36px; padding: 6px; }
+  .phone-field-label { gap: 4px; margin-bottom: 6px; }
+  .phone-field-label select { min-height: 34px; }
+
+  .phone-health-summary { grid-template-columns: repeat(3,minmax(0,1fr)); gap: 5px; margin: 7px 0 9px; }
+  .phone-health-summary > div { min-height: 48px; padding: 7px; }
+  .phone-health-summary span { font-size: 8px; }
+  .phone-health-summary strong { font-size: 14px; }
+  .phone-health-condition p,
+  .phone-health-service p,
+  .vehicle-listing-card small,
+  .vehicle-dealer-card > small { display: none; }
+
+  .vehicle-listing-card { grid-template-columns: 42px minmax(0,1fr); gap: 8px; }
+  .vehicle-listing-card__mark { width: 40px; height: 40px; }
+  .vehicle-listing-card strong { font-size: 13px; }
+  .vehicle-listing-card b { font-size: 14px; }
+  .vehicle-metric-grid > div { padding: 8px; }
+  .vehicle-detail-card__hero { padding: 11px; }
+  .vehicle-brand-mark { min-width: 48px; height: 48px; }
+
 }
 
 @media (max-width: 900px) and (max-height: 520px) {
   .phone-status-bar {
-    height: calc(36px + env(safe-area-inset-top)) !important;
+    height: calc(34px + env(safe-area-inset-top)) !important;
     padding-inline: 12px !important;
   }
 
   .phone-app-header {
-    height: 40px;
+    height: 36px;
   }
 
   .phone-map-canvas,
