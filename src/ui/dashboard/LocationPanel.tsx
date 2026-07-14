@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { formatRubles } from '../../core/economy';
 import type { Job } from '../../types/job';
 import type { DistrictId, JobId, LocationId } from '../../types/ids';
@@ -138,6 +139,7 @@ export function LocationPanel({
   const [isDistrictPickerOpen, setIsDistrictPickerOpen] = useState(false);
   const [isLocationPickerOpen, setIsLocationPickerOpen] = useState(false);
   const [selectedDistrictId, setSelectedDistrictId] = useState<DistrictId | undefined>();
+  const [districtPickerStep, setDistrictPickerStep] = useState<'district' | 'transport'>('district');
   const [selectedLocationId, setSelectedLocationId] = useState<LocationId | undefined>();
   const [locationFilter, setLocationFilter] = useState<LocationCategoryFilter>('all');
   const [locationSearch, setLocationSearch] = useState('');
@@ -157,11 +159,27 @@ export function LocationPanel({
     setIsLocationPickerOpen(true);
   }
 
+  function openDistrictPicker(): void {
+    setSelectedDistrictId(undefined);
+    setDistrictPickerStep('district');
+    setIsDistrictPickerOpen(true);
+  }
+
+  function closeDistrictPicker(): void {
+    setIsDistrictPickerOpen(false);
+    setSelectedDistrictId(undefined);
+    setDistrictPickerStep('district');
+  }
+
+  function selectDistrict(districtId: DistrictId): void {
+    setSelectedDistrictId(districtId);
+    setDistrictPickerStep('transport');
+  }
+
   function handleDistrictTravel(modeId: TravelModeId): void {
     if (!selectedDistrictOption || selectedDistrictOption.isCurrent || !selectedDistrictOption.defaultLocation) return;
     onMoveDistrict(selectedDistrictOption.district.id, modeId);
-    setIsDistrictPickerOpen(false);
-    setSelectedDistrictId(undefined);
+    closeDistrictPicker();
   }
 
   return (
@@ -176,17 +194,19 @@ export function LocationPanel({
         <header className="city-command-header">
           <div className="city-command-header__identity">
             <div className="city-command-header__icon"><Icon name="pin" size={22} /></div>
-            <div>
+            <div className="city-command-header__copy">
               <span className="section-kicker">Текущий район</span>
-              <h2>{district?.name ?? 'Район не найден'}</h2>
+              <div className="city-command-header__headline">
+                <h2>{district?.name ?? 'Район не найден'}</h2>
+                <span className={`schedule-badge ${currentScheduleStatus.isOpen ? 'schedule-badge--open' : 'schedule-badge--closed'}`}>
+                  {currentScheduleStatus.label}
+                </span>
+              </div>
               <p>{location?.address ?? `${city?.name ?? 'Город'} · ${location ? LOCATION_TYPE_LABELS[location.type] : '—'}`}</p>
-              <span className={`schedule-badge ${currentScheduleStatus.isOpen ? 'schedule-badge--open' : 'schedule-badge--closed'}`}>
-                {currentScheduleStatus.label}
-              </span>
             </div>
           </div>
           <div className="city-command-header__actions">
-            <button className="secondary-command-button" type="button" onClick={() => setIsDistrictPickerOpen(true)}>
+            <button className="secondary-command-button" type="button" onClick={openDistrictPicker}>
               <Icon name="city" size={18} /><span>Район</span>
             </button>
             <button className="primary-command-button primary-command-button--inline premium-cta" type="button" onClick={() => openLocationPicker()}>
@@ -215,7 +235,7 @@ export function LocationPanel({
         </div>
 
         <div className="location-directory" role="table" aria-label="Локации района">
-          <div className="location-directory__head" role="row"><span>Место</span><span>Категория</span><span>Возможности</span><span>Маршрут</span></div>
+          <div className="location-directory__head" role="row"><span>Место</span><span>Статус и маршрут</span><span /></div>
           <div className="location-directory__body">
             {filteredLocationOptions.length > 0 ? filteredLocationOptions.map((option) => {
               const markers = getLocationMarkers(option.location);
@@ -233,16 +253,17 @@ export function LocationPanel({
                     <i><Icon name={LOCATION_ICONS[option.location.type] ?? 'pin'} size={17}/></i>
                     <span className="location-directory__title"><strong>{option.location.name}</strong><small>{option.location.address}</small></span>
                   </span>
-                  <span role="cell">{LOCATION_TYPE_LABELS[option.location.type]}</span>
-                  <span className="location-directory__markers" role="cell">
-                    <span>{markers.join(' · ') || '—'}</span>
+                  <span className="location-directory__meta-line" role="cell">
+                    <span>{LOCATION_TYPE_LABELS[option.location.type]}</span>
+                    {markers.length > 0 ? <span className="location-directory__features">{markers.join(' · ')}</span> : null}
                     {scheduleStatus ? (
                       <small className={scheduleStatus.isOpen ? 'schedule-inline schedule-inline--open' : 'schedule-inline schedule-inline--closed'}>
                         {scheduleStatus.label}
                       </small>
                     ) : null}
+                    <span className="location-directory__travel">{getMinTravelTimeLabel(option)}</span>
                   </span>
-                  <span className="location-directory__travel" role="cell">{getMinTravelTimeLabel(option)}{!option.isCurrent ? <Icon name="chevron" size={16} /> : null}</span>
+                  <span className="location-directory__chevron" aria-hidden="true">{!option.isCurrent ? <Icon name="chevron" size={15} /> : null}</span>
                 </button>
               );
             }) : <div className="location-directory__empty">Ничего не найдено</div>}
@@ -289,46 +310,49 @@ export function LocationPanel({
         ) : null}
       </div>
 
-      {isDistrictPickerOpen ? (
-        <div className="modal-backdrop" role="presentation" onMouseDown={() => setIsDistrictPickerOpen(false)}>
-          <div className="travel-dialog" role="dialog" aria-modal="true" aria-label="Смена района" onMouseDown={(event) => event.stopPropagation()}>
-            <header className="dialog-header">
-              <div><span className="section-kicker">Москва</span><h3>Выбор района</h3></div>
-              <button className="icon-button" aria-label="Закрыть" type="button" onClick={() => setIsDistrictPickerOpen(false)}><Icon name="close" size={20} /></button>
+      {isDistrictPickerOpen ? createPortal(
+        <div className="modal-backdrop modal-backdrop--app" role="presentation" onMouseDown={closeDistrictPicker}>
+          <div className="travel-dialog travel-dialog--step" role="dialog" aria-modal="true" aria-label={districtPickerStep === 'district' ? 'Выбор района' : 'Выбор маршрута'} onMouseDown={(event) => event.stopPropagation()}>
+            <header className="dialog-header dialog-header--compact">
+              <div className="dialog-header__leading">
+                {districtPickerStep === 'transport' ? (
+                  <button className="icon-button" aria-label="Назад к выбору района" type="button" onClick={() => setDistrictPickerStep('district')}><Icon name="arrow" size={17} /></button>
+                ) : null}
+                <div><span className="section-kicker">{city?.name ?? 'Город'}</span><h3>{districtPickerStep === 'district' ? 'Выбор района' : 'Как добраться'}</h3></div>
+              </div>
+              <button className="icon-button" aria-label="Закрыть" type="button" onClick={closeDistrictPicker}><Icon name="close" size={18} /></button>
             </header>
-            <div className="travel-dialog__body">
-              <section className="destination-column">
-                <div className="destination-list">
+            {districtPickerStep === 'district' ? (
+              <section className="destination-column travel-step-panel">
+                <div className="destination-list destination-list--modal">
                   {districtTravelOptions.map((option) => (
                     <button
-                      className={option.district.id === selectedDistrictId ? 'destination-row destination-row--selected' : 'destination-row'}
+                      className={option.district.id === selectedDistrictId ? 'destination-row destination-row--compact destination-row--selected' : 'destination-row destination-row--compact'}
                       disabled={option.isCurrent || !option.defaultLocation}
                       key={option.district.id}
                       type="button"
-                      onClick={() => setSelectedDistrictId(option.district.id)}
+                      onClick={() => selectDistrict(option.district.id)}
                     >
-                      <span>{option.district.name}</span>
-                      <small>{option.isCurrent ? 'Текущий район' : `от ${option.durationMinutes} мин`}</small>
-                      <Icon name="chevron" size={17} />
+                      <div className="destination-row__identity"><span>{option.district.name}</span><small>{option.isCurrent ? 'Текущий район' : `от ${option.durationMinutes} мин`}</small></div>
+                      <Icon name="chevron" size={15} />
                     </button>
                   ))}
                 </div>
               </section>
-              <section className="transport-column">
-                {selectedDistrictOption && !selectedDistrictOption.isCurrent ? (
-                  <>
-                    <div className="transport-column__heading"><span className="section-kicker">Маршрут</span><h4>{selectedDistrictOption.district.name}</h4></div>
-                    <div className="transport-options">
-                      {selectedDistrictOption.transportOptions.map((option) => <TransportOptionCard key={option.modeId} option={option} onSelect={handleDistrictTravel} />)}
-                    </div>
-                  </>
-                ) : (
-                  <div className="dialog-empty-state"><Icon name="city" size={28} /><strong>Выберите район</strong><span>Варианты маршрута появятся здесь.</span></div>
-                )}
+            ) : selectedDistrictOption && !selectedDistrictOption.isCurrent ? (
+              <section className="transport-column travel-step-panel">
+                <div className="travel-route-summary">
+                  <div className="travel-route-summary__icon"><Icon name="city" size={18} /></div>
+                  <div><strong>{selectedDistrictOption.district.name}</strong><span>{selectedDistrictOption.defaultLocation?.name ?? 'Точка прибытия'}</span></div>
+                </div>
+                <div className="transport-options transport-options--modal">
+                  {selectedDistrictOption.transportOptions.map((option) => <TransportOptionCard key={option.modeId} option={option} onSelect={handleDistrictTravel} />)}
+                </div>
               </section>
-            </div>
+            ) : null}
           </div>
-        </div>
+        </div>,
+        document.body
       ) : null}
 
       {isLocationPickerOpen ? (
