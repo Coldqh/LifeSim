@@ -1,0 +1,189 @@
+diff --git a/src/main.tsx b/src/main.tsx
+index 71b8dbf..853aae5 100644
+--- a/src/main.tsx
++++ b/src/main.tsx
+@@ -3,36 +3,6 @@ import ReactDOM from 'react-dom/client';
+ import { App } from './App';
+ import './styles.css';
+ 
+-type StandaloneNavigator = Navigator & { standalone?: boolean };
+-
+-function syncStandaloneViewport(): void {
+-  const standalone = window.matchMedia('(display-mode: standalone)').matches
+-    || Boolean((window.navigator as StandaloneNavigator).standalone);
+-
+-  document.documentElement.classList.toggle('standalone-webapp', standalone);
+-
+-  if (!standalone) {
+-    document.documentElement.style.removeProperty('--app-viewport-height');
+-    return;
+-  }
+-
+-  const portrait = window.matchMedia('(orientation: portrait)').matches;
+-  const screenHeight = portrait
+-    ? Math.max(window.screen.width, window.screen.height)
+-    : Math.min(window.screen.width, window.screen.height);
+-  const hiddenSystemArea = screenHeight - window.innerHeight;
+-  const viewportHeight = hiddenSystemArea > 0 && hiddenSystemArea <= 120
+-    ? screenHeight
+-    : window.innerHeight;
+-
+-  document.documentElement.style.setProperty('--app-viewport-height', `${Math.round(viewportHeight)}px`);
+-}
+-
+-syncStandaloneViewport();
+-window.addEventListener('resize', syncStandaloneViewport);
+-window.addEventListener('orientationchange', syncStandaloneViewport);
+-window.visualViewport?.addEventListener('resize', syncStandaloneViewport);
+-
+ ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
+   <React.StrictMode>
+     <App />
+diff --git a/src/styles.css b/src/styles.css
+index 55d7e12..479ba8b 100644
+--- a/src/styles.css
++++ b/src/styles.css
+@@ -8415,70 +8415,106 @@ body {
+ }
+ 
+ /* ==========================================================================
+-   Installed iPhone web app — full-screen viewport and native bottom dock
++   Mobile web-app dock — fixed to the viewport, independent from page height
+    ========================================================================== */
+ @media (max-width: 900px) {
+   :root {
+-    --app-viewport-height: 100dvh;
++    --mobile-dock-row-height: 54px;
++    --mobile-dock-safe-bottom: env(safe-area-inset-bottom, 0px);
++    --mobile-dock-total-height: calc(var(--mobile-dock-row-height) + var(--mobile-dock-safe-bottom));
+   }
+ 
++  html,
++  body,
+   #root {
+-    inset: 0 0 auto;
+-    height: var(--app-viewport-height);
+-  }
+-
+-  .app-frame {
+-    inset: 0 0 auto;
++    width: 100%;
+     height: 100%;
++    min-height: 0;
++    overflow: hidden;
+   }
+-}
+ 
+-@media (max-width: 900px) {
+-  html.standalone-webapp {
+-    --mobile-dock-height: 54px;
+-    --mobile-bottom-guard: env(safe-area-inset-bottom);
+-    background: var(--navigation);
++  #root {
++    position: fixed;
++    inset: 0;
+   }
+ 
+-  html.standalone-webapp body,
+-  html.standalone-webapp #root,
+-  html.standalone-webapp .app-frame {
+-    background: var(--navigation);
++  .app-frame {
++    position: absolute;
++    inset: 0;
++    grid-template-rows: minmax(0, 1fr) !important;
++    width: auto;
++    height: auto;
+   }
+ 
+-  html.standalone-webapp .app-frame {
+-    grid-template-rows: minmax(0, 1fr) calc(var(--mobile-dock-height) + var(--mobile-bottom-guard));
++  .app-workspace {
++    grid-row: 1;
++    width: 100%;
++    height: 100%;
++    min-height: 0;
+   }
+ 
+-  html.standalone-webapp .app-workspace {
+-    background: var(--bg);
++  .workspace-content {
++    padding-bottom: calc(var(--mobile-dock-total-height) + 8px) !important;
++    scroll-padding-bottom: calc(var(--mobile-dock-total-height) + 8px);
+   }
+ 
+-  html.standalone-webapp .mobile-navigation {
+-    min-height: calc(var(--mobile-dock-height) + var(--mobile-bottom-guard));
+-    padding: 0 4px var(--mobile-bottom-guard);
++  .mobile-navigation {
++    position: fixed !important;
++    inset: auto 0 0 !important;
++    z-index: 700;
++    grid-row: auto !important;
++    width: 100%;
++    height: var(--mobile-dock-total-height);
++    min-height: 0 !important;
++    padding: 0 4px var(--mobile-dock-safe-bottom) !important;
++    align-items: start;
++    overflow: hidden;
++    border-top: 1px solid var(--line);
++    border-radius: 20px 20px 0 0 !important;
+     background: color-mix(in srgb, var(--navigation) 99%, transparent);
++    box-shadow: 0 -10px 30px rgba(0, 0, 0, .28);
++    backdrop-filter: blur(24px) saturate(140%);
++    -webkit-backdrop-filter: blur(24px) saturate(140%);
+   }
+ 
+-  html.standalone-webapp .mobile-navigation__item {
+-    min-height: var(--mobile-dock-height);
++  .mobile-navigation__item {
++    align-self: start;
++    width: 100%;
++    height: var(--mobile-dock-row-height);
++    min-height: var(--mobile-dock-row-height) !important;
++    max-height: var(--mobile-dock-row-height);
+     gap: 2px;
+     padding: 5px 1px 4px;
+-    border-radius: 11px !important;
++    place-content: center;
+   }
+ 
+-  html.standalone-webapp .mobile-navigation__item svg,
+-  html.standalone-webapp .mobile-navigation__phone-icon,
+-  html.standalone-webapp .mobile-navigation__dots {
+-    width: 20px;
+-    height: 20px;
++  .mobile-navigation__item svg,
++  .mobile-navigation__phone-icon,
++  .mobile-navigation__dots {
++    width: 19px;
++    height: 19px;
+   }
+ 
+-  html.standalone-webapp .mobile-navigation__item > span:last-child {
+-    font-size: 8px;
++  .mobile-navigation__item > span:last-child {
++    display: block;
++    font-size: 7.5px;
+   }
+ 
+-  html.standalone-webapp .mobile-more-sheet {
+-    bottom: calc(var(--mobile-dock-height) + var(--mobile-bottom-guard) + 5px);
++  .mobile-more-sheet {
++    bottom: calc(var(--mobile-dock-total-height) + 6px) !important;
++  }
++}
++
++@media (max-width: 900px) and (orientation: landscape) {
++  :root {
++    --mobile-dock-row-height: 46px;
++  }
++
++  .mobile-navigation {
++    border-radius: 16px 16px 0 0 !important;
++  }
++
++  .mobile-navigation__item {
++    padding-block: 2px;
+   }
+ }
