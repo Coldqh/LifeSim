@@ -8420,7 +8420,9 @@ body {
 @media (max-width: 900px) {
   :root {
     --mobile-dock-row-height: 54px;
-    --mobile-dock-safe-bottom: env(safe-area-inset-bottom, 0px);
+    /* Keep the controls close to the iPhone home indicator instead of
+       reserving the whole 34px safe area as an empty black strip. */
+    --mobile-dock-safe-bottom: clamp(8px, calc(env(safe-area-inset-bottom, 0px) - 22px), 12px);
     --mobile-dock-total-height: calc(var(--mobile-dock-row-height) + var(--mobile-dock-safe-bottom));
   }
 
