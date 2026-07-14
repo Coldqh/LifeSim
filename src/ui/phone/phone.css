@@ -1060,3 +1060,81 @@
     min-height: 150px;
   }
 }
+
+/* Mobile phone density v2 */
+@media (max-width: 900px) {
+  .phone-status-bar { height: calc(32px + env(safe-area-inset-top)) !important; padding-inline: 9px !important; }
+  .phone-app-header { height: 34px; padding-inline: 7px; }
+  .phone-app-header strong { font-size: 11px; }
+
+  .phone-home-screen { padding: 7px 7px calc(12px + env(safe-area-inset-bottom)); }
+  .phone-home-hero { min-height: 68px; padding: 8px; border-radius: 12px; }
+  .phone-home-hero strong { font-size: 14px; }
+  .phone-app-grid { margin-top: 8px; gap: 8px 6px; }
+  .phone-app-tile { gap: 2px; }
+  .phone-app-icon { width: 40px; height: 40px; border-radius: 12px; }
+  .phone-app-tile strong { font-size: 8px; }
+  .phone-home-widget { margin-top: 9px; padding: 7px 8px; border-radius: 10px; }
+  .phone-home-widget strong { font-size: 10px; }
+
+  .phone-app-page { padding: 6px 6px calc(12px + env(safe-area-inset-bottom)); }
+  .phone-app-banner { min-height: 46px; padding: 7px; gap: 6px; border-radius: 11px; }
+  .phone-app-banner > span { width: 30px; height: 30px; border-radius: 9px; }
+  .phone-app-banner strong { font-size: 12px; }
+  .phone-search { height: 31px; margin-top: 5px; padding-inline: 7px; border-radius: 9px; }
+  .phone-filter-row { gap: 3px; margin: 5px 0; }
+  .phone-filter-row button { padding: 4px 7px; border-radius: 7px; font-size: 9px; }
+  .phone-subsection { margin-top: 7px; }
+  .phone-section-title > span { font-size: 10px; }
+
+  .phone-job-card,
+  .phone-bank-card,
+  .phone-study-row,
+  .phone-university-card,
+  .phone-health-condition,
+  .phone-health-service,
+  .phone-trip-ticket,
+  .phone-trip-route,
+  .phone-stay-card,
+  .phone-car-intercity-card,
+  .vehicle-listing-card,
+  .vehicle-dealer-card,
+  .phone-contact-profile,
+  .phone-social-active-card,
+  .phone-social-invitations article,
+  .phone-social-schedule article { padding: 6px; }
+
+  .phone-job-list,
+  .phone-study-list,
+  .phone-health-condition-list,
+  .phone-health-service-list,
+  .phone-health-prescriptions,
+  .phone-trip-ticket-list,
+  .phone-trip-route-list,
+  .phone-stay-list,
+  .vehicle-list,
+  .phone-social-invitations,
+  .phone-social-schedule { gap: 4px; }
+
+  .phone-contact-list > button { gap: 6px; padding: 6px; }
+  .phone-contact-profile__avatar { width: 34px; height: 34px; }
+  .phone-social-quick-grid { gap: 3px; }
+  .phone-social-quick-grid button { min-height: 31px; padding: 4px; font-size: 9px; }
+  .phone-field-label { margin-bottom: 4px; }
+  .phone-field-label select { min-height: 30px; }
+
+  .phone-health-summary { gap: 3px; margin: 5px 0 6px; }
+  .phone-health-summary > div { min-height: 40px; padding: 5px; }
+  .phone-health-summary span { font-size: 7px; }
+  .phone-health-summary strong { font-size: 12px; }
+
+  .vehicle-listing-card { grid-template-columns: 34px minmax(0, 1fr); gap: 6px; }
+  .vehicle-listing-card__mark { width: 32px; height: 32px; }
+  .vehicle-listing-card strong { font-size: 11px; }
+  .vehicle-listing-card b { font-size: 12px; }
+  .vehicle-metric-grid > div { padding: 6px; }
+
+  .phone-map-canvas,
+  .moscow-map,
+  .yaroslavl-map { min-height: clamp(140px, 25dvh, 210px); }
+}
