@@ -8413,3 +8413,72 @@ body {
   .boxing-tournament-panel--compact h2 { font-size: 11px; }
   .boxing-tournament-panel--compact button { min-height: 28px; padding-inline: 9px; font-size: 8px; }
 }
+
+/* ==========================================================================
+   Installed iPhone web app — full-screen viewport and native bottom dock
+   ========================================================================== */
+@media (max-width: 900px) {
+  :root {
+    --app-viewport-height: 100dvh;
+  }
+
+  #root {
+    inset: 0 0 auto;
+    height: var(--app-viewport-height);
+  }
+
+  .app-frame {
+    inset: 0 0 auto;
+    height: 100%;
+  }
+}
+
+@media (max-width: 900px) {
+  html.standalone-webapp {
+    --mobile-dock-height: 54px;
+    --mobile-bottom-guard: env(safe-area-inset-bottom);
+    background: var(--navigation);
+  }
+
+  html.standalone-webapp body,
+  html.standalone-webapp #root,
+  html.standalone-webapp .app-frame {
+    background: var(--navigation);
+  }
+
+  html.standalone-webapp .app-frame {
+    grid-template-rows: minmax(0, 1fr) calc(var(--mobile-dock-height) + var(--mobile-bottom-guard));
+  }
+
+  html.standalone-webapp .app-workspace {
+    background: var(--bg);
+  }
+
+  html.standalone-webapp .mobile-navigation {
+    min-height: calc(var(--mobile-dock-height) + var(--mobile-bottom-guard));
+    padding: 0 4px var(--mobile-bottom-guard);
+    background: color-mix(in srgb, var(--navigation) 99%, transparent);
+  }
+
+  html.standalone-webapp .mobile-navigation__item {
+    min-height: var(--mobile-dock-height);
+    gap: 2px;
+    padding: 5px 1px 4px;
+    border-radius: 11px !important;
+  }
+
+  html.standalone-webapp .mobile-navigation__item svg,
+  html.standalone-webapp .mobile-navigation__phone-icon,
+  html.standalone-webapp .mobile-navigation__dots {
+    width: 20px;
+    height: 20px;
+  }
+
+  html.standalone-webapp .mobile-navigation__item > span:last-child {
+    font-size: 8px;
+  }
+
+  html.standalone-webapp .mobile-more-sheet {
+    bottom: calc(var(--mobile-dock-height) + var(--mobile-bottom-guard) + 5px);
+  }
+}
