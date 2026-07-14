@@ -7,6 +7,7 @@ import { adjustActivityNeedsDelta, getNeedSeverity, getNeedsDecayDelta } from '.
 import { getHousingById } from '../../data/housing/basicHousing';
 import { formatGameTime, formatWeekday } from '../../core/time';
 import type { GameState } from '../../state';
+import type { ScheduledWaitState } from '../../state/selectors/scheduledWaitState';
 import type { LifeAction } from '../../types/actions';
 import type {
   DistrictId,
@@ -67,6 +68,7 @@ import { PeoplePanel } from './PeoplePanel';
 import { SocialEventModal } from './SocialEventModal';
 
 type DashboardTab = 'character' | 'city' | 'housing' | 'business' | 'jobs' | 'development' | 'sport' | 'people' | 'log';
+type CitySubtab = 'actions' | 'people' | 'travel';
 
 type JobView = {
   job: Job;
@@ -153,6 +155,7 @@ type DashboardProps = {
   };
   housingState: HousingMarketPanelState;
   businessState: BusinessPanelState;
+  scheduledWaitState?: ScheduledWaitState;
   onPerformAction: (actionId: ActionId) => void;
   onMoveDistrict: (districtId: DistrictId, modeId: TravelModeId) => void;
   onMoveLocation: (locationId: LocationId, modeId: TravelModeId) => void;
@@ -183,6 +186,7 @@ type DashboardProps = {
   onBuyBusinessUpgrade: (upgradeId: BusinessUpgradeId) => void;
   onWorkBusinessOwnerShift: () => void;
   onOpenPhone: () => void;
+  onWaitForScheduledEvent: (minutes: number) => void;
   phoneUnreadCount: number;
   onReset: () => void;
 };
@@ -216,6 +220,23 @@ const PAGE_TITLES: Record<DashboardTab, { title: string; eyebrow: string }> = {
   log: { title: 'Журнал', eyebrow: 'Хронология' }
 };
 
+
+function formatWaitDuration(minutes: number): string {
+  const hours = Math.floor(minutes / 60);
+  const rest = minutes % 60;
+  if (hours > 0 && rest > 0) return `${hours} ч ${rest} мин`;
+  if (hours > 0) return `${hours} ч`;
+  return `${rest} мин`;
+}
+
+function formatShiftDuration(minutes: number): string {
+  const hours = Math.floor(minutes / 60);
+  const rest = minutes % 60;
+  if (hours > 0 && rest > 0) return `${hours} ч ${rest} мин`;
+  if (hours > 0) return `${hours} ч`;
+  return `${rest} мин`;
+}
+
 function needTone(value: number): 'default' | 'good' | 'warning' | 'critical' {
   const severity = getNeedSeverity(value);
   if (severity === 'critical' || severity === 'emergency') return 'critical';
@@ -237,6 +258,7 @@ export function Dashboard({
   socialState,
   housingState,
   businessState,
+  scheduledWaitState,
   onPerformAction,
   onMoveDistrict,
   onMoveLocation,
@@ -267,6 +289,7 @@ export function Dashboard({
   onBuyBusinessUpgrade,
   onWorkBusinessOwnerShift,
   onOpenPhone,
+  onWaitForScheduledEvent,
   phoneUnreadCount,
   onReset
 }: DashboardProps) {
@@ -274,6 +297,7 @@ export function Dashboard({
   const housing = getHousingById(player.housingId);
   const [activeTab, setActiveTab] = useState<DashboardTab>('character');
   const [mobileMoreOpen, setMobileMoreOpen] = useState(false);
+  const [citySubtab, setCitySubtab] = useState<CitySubtab>('actions');
   const { theme, toggleTheme } = useUiTheme();
   const activeHourDecayItems = createNeedsEffectItems(getNeedsDecayDelta(60, 'active'));
   const page = activeTab === 'city'
@@ -408,54 +432,88 @@ export function Dashboard({
           ) : null}
 
           {activeTab === 'city' ? (
-            <section className="screen screen-enter city-screen">
-              <div className="city-main-column">
+            <section className="screen screen-enter city-workspace-screen">
+              <nav className="city-subtabs" aria-label="Разделы города">
+                <button className={citySubtab === 'actions' ? 'is-active' : ''} type="button" onClick={() => setCitySubtab('actions')}><Icon name="sparkle" size={16} />Действия</button>
+                <button className={citySubtab === 'people' ? 'is-active' : ''} type="button" onClick={() => setCitySubtab('people')}><Icon name="users" size={16} />Люди</button>
+                <button className={citySubtab === 'travel' ? 'is-active' : ''} type="button" onClick={() => setCitySubtab('travel')}><Icon name="pin" size={16} />Переход</button>
+              </nav>
+
+              {citySubtab !== 'travel' ? (
+                <section className="panel city-current-location-strip">
+                  <span className="city-current-location-strip__icon"><Icon name="pin" size={18} /></span>
+                  <div><strong>{locationState.location?.name ?? 'Место не найдено'}</strong><small>{locationState.location?.address ?? locationState.district?.name ?? 'Адрес не указан'}</small></div>
+                  <span className={locationState.locationScheduleStatus.isOpen ? 'schedule-inline schedule-inline--open' : 'schedule-inline schedule-inline--closed'}>{locationState.locationScheduleStatus.shortLabel}</span>
+                </section>
+              ) : null}
+
+              {citySubtab === 'actions' ? (
+                <div className="city-tab-stack">
+                  {scheduledWaitState ? (
+                    <section className="panel scheduled-wait-card">
+                      <span className="scheduled-wait-card__icon"><Icon name="clock" size={19} /></span>
+                      <div><strong>{scheduledWaitState.title}</strong><small>{scheduledWaitState.description} · через {formatWaitDuration(scheduledWaitState.minutes)}</small></div>
+                      <button type="button" onClick={() => onWaitForScheduledEvent(scheduledWaitState.minutes)}>Ждать</button>
+                    </section>
+                  ) : null}
+
+                  {locationState.shop ? <ShopPanel locationAddress={locationState.location?.address} locationName={locationState.location?.name} shop={locationState.shop} products={locationState.shopProducts} scheduleStatus={locationState.locationScheduleStatus} scheduleFailure={locationState.shopScheduleFailure} onBuyProduct={onBuyProduct} /> : null}
+
+                  <section className="panel actions-panel visual-panel">
+                    <div className="actions-panel__beam" aria-hidden="true" />
+                    <div className="section-heading section-heading--compact">
+                      <div><span className="section-kicker">Текущее место</span><h2>Действия</h2></div>
+                      <span className="section-counter">{actions.length}</span>
+                    </div>
+                    {actions.length > 0 ? (
+                      <div className="actions-list">{actions.map((action) => (
+                        <ActionCard
+                          action={action}
+                          failure={locationState.actionScheduleFailure ?? getLifeActionFailure(player, action)}
+                          effectiveNeedsDelta={adjustActivityNeedsDelta(player.needs, action.needsDelta, {
+                            scaleEnergyCost: true,
+                            scaleEnergyRecovery: action.category === 'sleep' || action.category === 'rest'
+                          })}
+                          key={action.id}
+                          onPerform={onPerformAction}
+                        />
+                      ))}</div>
+                    ) : <div className="empty-state compact-empty-state">Нет доступных действий</div>}
+                  </section>
+
+                  {jobState.currentLocationJobs.length > 0 ? (
+                    <section className="panel city-vacancies-panel">
+                      <div className="section-heading section-heading--compact"><div><span className="section-kicker">Текущее место</span><h2>Вакансии</h2></div><span className="section-counter">{jobState.currentLocationJobs.length}</span></div>
+                      <div className="city-vacancies-list">
+                        {jobState.currentLocationJobs.map((view) => (
+                          <article key={view.job.id}>
+                            <div><strong>{view.job.title}</strong><small>{formatRubles(view.job.wagePerShift)} / смена · {formatShiftDuration(view.job.shiftDurationMinutes)}</small></div>
+                            <button disabled={view.isCurrentJob || !view.canApply} type="button" onClick={() => onApplyForJob(view.job.id)}>{view.isCurrentJob ? 'Текущая' : 'Открыть'}</button>
+                          </article>
+                        ))}
+                      </div>
+                    </section>
+                  ) : null}
+                </div>
+              ) : null}
+
+              {citySubtab === 'people' ? <LocationPeoplePanel presence={populationState.presence} summary={populationState.summary} /> : null}
+
+              {citySubtab === 'travel' ? (
                 <LocationPanel
                   city={locationState.city}
                   district={locationState.district}
                   location={locationState.location}
                   districtTravelOptions={locationState.districtTravelOptions}
                   locationTravelOptions={locationState.locationTravelOptions}
-                  locationJobs={jobState.currentLocationJobs}
+                  locationJobs={[]}
                   currentScheduleStatus={locationState.locationScheduleStatus}
                   locationScheduleStatuses={locationState.locationScheduleStatuses}
                   onMoveDistrict={onMoveDistrict}
                   onMoveLocation={onMoveLocation}
                   onApplyForJob={onApplyForJob}
                 />
-              </div>
-
-              <aside className="context-column">
-                <LocationPeoplePanel presence={populationState.presence} summary={populationState.summary} />
-                <ShopPanel locationAddress={locationState.location?.address} locationName={locationState.location?.name} shop={locationState.shop} products={locationState.shopProducts} scheduleStatus={locationState.locationScheduleStatus} scheduleFailure={locationState.shopScheduleFailure} onBuyProduct={onBuyProduct} />
-                <section className="panel actions-panel visual-panel">
-                  <div className="actions-panel__beam" aria-hidden="true" />
-                  <div className="section-heading section-heading--compact">
-                    <div><span className="section-kicker">Текущее место</span><h2>Действия</h2></div>
-                    <span className="section-counter">{actions.length}</span>
-                  </div>
-                  {actions.length > 0 ? (
-                    <div className="actions-list">{actions.map((action) => (
-                      <ActionCard
-                        action={action}
-                        failure={locationState.actionScheduleFailure ?? getLifeActionFailure(player, action)}
-                        effectiveNeedsDelta={adjustActivityNeedsDelta(
-                          player.needs,
-                          action.needsDelta,
-                          {
-                            scaleEnergyCost: true,
-                            scaleEnergyRecovery: action.category === 'sleep' || action.category === 'rest'
-                          }
-                        )}
-                        key={action.id}
-                        onPerform={onPerformAction}
-                      />
-                    ))}</div>
-                  ) : (
-                    <div className="empty-state compact-empty-state">Нет доступных действий</div>
-                  )}
-                </section>
-              </aside>
+              ) : null}
             </section>
           ) : null}
 
@@ -492,7 +550,7 @@ export function Dashboard({
 
           {activeTab === 'jobs' ? <section className="screen screen-enter narrow-screen"><JobPanel currentJobView={jobState.currentJobView} colleagues={socialState.colleagues} onInteract={onInteractWithNpc} onPromoteJob={onPromoteJob} onWorkShift={onWorkShift} /></section> : null}
           {activeTab === 'development' ? <section className="screen screen-enter narrow-screen"><DevelopmentPanel skills={educationState.skills} programs={educationState.programs} onStudyProgram={onStudyProgram} /></section> : null}
-          {activeTab === 'sport' ? <section className="screen screen-enter sport-screen"><SportPanel state={boxingState} currentDay={time.day} onBuyMembership={onBuyBoxingMembership} onChooseTrainer={onChooseBoxingTrainer} onTraining={onBoxingTraining} onSparring={onBoxingSparring} onTournament={onBoxingTournament} /></section> : null}
+          {activeTab === 'sport' ? <section className="screen screen-enter sport-screen"><SportPanel state={boxingState} currentDay={time.day} onOpenCity={() => { setActiveTab('city'); setCitySubtab('travel'); }} onBuyMembership={onBuyBoxingMembership} onChooseTrainer={onChooseBoxingTrainer} onTraining={onBoxingTraining} onSparring={onBoxingSparring} onTournament={onBoxingTournament} /></section> : null}
           {activeTab === 'people' ? <section className="screen screen-enter people-screen"><PeoplePanel currentPeople={socialState.currentPeople} knownPeople={socialState.knownPeople} scheduledCount={socialState.scheduledCount} history={socialState.history} onInteract={onInteractWithNpc} onExchangeContact={onExchangeNpcContact} /></section> : null}
           {activeTab === 'log' ? <section className="screen screen-enter narrow-screen"><LifeLog entries={gameState.lifeLog} /></section> : null}
         </div>

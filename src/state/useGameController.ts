@@ -206,7 +206,7 @@ import { getProductById } from '../data/products/basicProducts';
 import { getMedicalServiceById, medicalServices } from '../data/healthcare/services';
 import { getMedicalConditionDefinition } from '../data/healthcare/conditions';
 import { basicSkills, getSkillById } from '../data/skills/basicSkills';
-import { boxingGyms, getBoxingGymById } from '../data/sports/boxingGyms';
+import { boxingGyms, getBoxingGymById, getBoxingGymByLocationId } from '../data/sports/boxingGyms';
 import { boxingTrainers, getBoxingTrainerById } from '../data/sports/boxingTrainers';
 import { boxingTrainings, getBoxingTrainingById } from '../data/sports/boxingTrainings';
 import { boxingOpponents, getBoxingOpponentById } from '../data/sports/boxingOpponents';
@@ -280,6 +280,7 @@ import {
   type LifeLogEntry
 } from './gameState';
 import { selectIntercityState } from './selectors/intercityState';
+import { selectScheduledWaitState } from './selectors/scheduledWaitState';
 
 
 function mergeNeedsDelta(first: Partial<NeedsState> = {}, second: Partial<NeedsState> = {}): Partial<NeedsState> | undefined {
@@ -1230,6 +1231,14 @@ export function useGameController() {
     };
   }, [gameState.player, gameState.time, gameState.world.population, gameState.world.university]);
 
+  const scheduledWaitState = useMemo(() => selectScheduledWaitState({
+    currentTotalMinutes: getTotalMinutes(gameState.time),
+    currentLocationId: gameState.player.locationId,
+    calendarEvents: gameState.world.phone.calendarEvents,
+    universityClasses: universityState.classes,
+    universityLocationId: universityState.activeUniversity?.locationId
+  }), [gameState.player.locationId, gameState.time, gameState.world.phone.calendarEvents, universityState.activeUniversity?.locationId, universityState.classes]);
+
   const phoneState = useMemo(() => {
     const phone = gameState.world.phone;
     const currentLocation = getLocationById(gameState.player.locationId);
@@ -1395,7 +1404,25 @@ export function useGameController() {
   }, [gameState.player, gameState.time]);
 
   const boxingState = useMemo(() => {
-    const gym = boxingGyms[0];
+    const gymViews = boxingGyms.map((entry) => {
+      const location = getLocationById(entry.locationId);
+      const membershipActive = hasActiveBoxingMembership(gameState.player.boxing, entry, gameState.time.day);
+      const membershipFailure = getBoxingMembershipFailure(gameState.player, gameState.time, entry, location?.openingHours);
+      return {
+        gym: entry,
+        location,
+        district: getDistrictById(location?.districtId ?? gameState.player.districtId),
+        scheduleStatus: getScheduleStatus(location?.openingHours, gameState.time),
+        isAtGym: gameState.player.locationId === entry.locationId,
+        membershipActive,
+        membershipFailure
+      };
+    });
+    const cityGyms = gymViews.filter((entry) => entry.location?.cityId === gameState.player.cityId);
+    const districtGyms = cityGyms.filter((entry) => entry.location?.districtId === gameState.player.districtId);
+    const availableGyms = districtGyms.length > 0 ? districtGyms : cityGyms;
+    const membershipGym = getBoxingGymById(gameState.player.boxing.membership?.gymId);
+    const gym = membershipGym ?? getBoxingGymByLocationId(gameState.player.locationId) ?? availableGyms[0]?.gym;
     const gymLocation = getLocationById(gym?.locationId);
     const selectedTrainer = getBoxingTrainerById(gameState.player.boxing.selectedTrainerId);
     const membershipActive = gym ? hasActiveBoxingMembership(gameState.player.boxing, gym, gameState.time.day) : false;
@@ -1452,6 +1479,8 @@ export function useGameController() {
 
     return {
       profile: gameState.player.boxing,
+      hasStartedBoxing: Boolean(gameState.player.boxing.membership || gameState.player.boxing.experience > 0 || gameState.player.boxing.fightHistory.length > 0),
+      availableGyms,
       levelProgress: getBoxingLevelProgress(gameState.player.boxing),
       fatigueLabel: getBoxingFatigueLabel(gameState.player.boxing.fatigue),
       gym,
@@ -4020,8 +4049,8 @@ export function useGameController() {
     });
   }
 
-  function skipGameTime(minutes: number): void {
-    const safeMinutes = Math.max(1, Math.min(24 * 60, Math.floor(minutes)));
+  function skipGameTime(minutes: number, maxMinutes = 24 * 60): void {
+    const safeMinutes = Math.max(1, Math.min(maxMinutes, Math.floor(minutes)));
     setGameState((currentState) => {
       const nextTime = addMinutes(currentState.time, safeMinutes);
       const elapsedApplied = applyElapsedTimeConsequences(currentState, currentState.player, nextTime, 'resting');
@@ -4059,6 +4088,7 @@ export function useGameController() {
     vehicleState,
     healthState,
     universityState,
+    scheduledWaitState,
     performAction,
     moveToDistrict,
     moveToLocation,
