@@ -6382,18 +6382,10 @@ body {
    not fixed overlays that need guessed padding compensation. */
 @media (max-width: 900px) {
   html,
-  body {
+  body,
+  #root {
     width: 100%;
     height: 100%;
-    min-height: 0;
-    overflow: hidden;
-  }
-
-  #root {
-    position: fixed;
-    inset: 0;
-    width: auto;
-    height: auto;
     min-height: 0;
     overflow: hidden;
   }
@@ -6405,13 +6397,12 @@ body {
   }
 
   .app-frame {
-    position: absolute;
-    inset: 0;
+    position: relative;
     display: grid !important;
     grid-template-columns: minmax(0, 1fr) !important;
     grid-template-rows: minmax(0, 1fr) auto;
-    width: auto;
-    height: auto;
+    width: 100%;
+    height: 100dvh;
     min-height: 0 !important;
     overflow: hidden;
   }
@@ -7634,7 +7625,7 @@ body {
   .mobile-navigation__item > span:last-child { font-size: 7px; }
 
   .mobile-more-sheet {
-    bottom: calc(var(--mobile-dock-height) + var(--mobile-bottom-guard, env(safe-area-inset-bottom)) + 4px);
+    bottom: calc(var(--mobile-dock-height) + env(safe-area-inset-bottom) + 4px);
     padding: 8px;
     border-radius: 13px !important;
   }
@@ -7962,13 +7953,10 @@ body {
   :root {
     --mobile-header-height: 38px;
     --mobile-dock-height: 40px;
-    --mobile-safe-top: max(0px, calc(env(safe-area-inset-top) - 4px));
-    --mobile-bottom-guard: clamp(4px, env(safe-area-inset-bottom), 12px);
   }
 
   .top-status-bar {
-    min-height: calc(var(--mobile-header-height) + var(--mobile-safe-top));
-    padding-top: var(--mobile-safe-top);
+    min-height: calc(var(--mobile-header-height) + env(safe-area-inset-top));
     padding-right: 4px;
     padding-left: 4px;
   }
@@ -7980,8 +7968,8 @@ body {
   .global-status__item strong { font-size: 8.5px; }
 
   .mobile-navigation {
-    min-height: calc(var(--mobile-dock-height) + var(--mobile-bottom-guard));
-    padding-bottom: var(--mobile-bottom-guard);
+    min-height: calc(var(--mobile-dock-height) + env(safe-area-inset-bottom));
+    padding-bottom: env(safe-area-inset-bottom);
   }
 
   .mobile-navigation__item {
@@ -8412,121 +8400,4 @@ body {
   .boxing-tournament-panel--compact { padding: 8px; }
   .boxing-tournament-panel--compact h2 { font-size: 11px; }
   .boxing-tournament-panel--compact button { min-height: 28px; padding-inline: 9px; font-size: 8px; }
-}
-
-/* ==========================================================================
-   Mobile PWA shell — single source of truth for viewport and bottom dock
-   ========================================================================== */
-@media (max-width: 900px) {
-  :root {
-    --mobile-dock-row-height: 48px;
-    --mobile-dock-safe-bottom: env(safe-area-inset-bottom, 0px);
-    --mobile-dock-total-height: calc(var(--mobile-dock-row-height) + var(--mobile-dock-safe-bottom));
-  }
-
-  html,
-  body {
-    width: 100%;
-    height: 100%;
-    min-height: 100%;
-    overflow: hidden;
-  }
-
-  #root {
-    position: static !important;
-    inset: auto !important;
-    width: 100%;
-    height: 100vh;
-    height: 100dvh;
-    min-height: 100vh;
-    min-height: 100dvh;
-    overflow: hidden;
-  }
-
-  .app-frame {
-    position: relative !important;
-    inset: auto !important;
-    display: grid !important;
-    grid-template-columns: minmax(0, 1fr) !important;
-    grid-template-rows: minmax(0, 1fr) var(--mobile-dock-total-height) !important;
-    width: 100%;
-    height: 100%;
-    min-height: 0 !important;
-    overflow: hidden;
-  }
-
-  .app-workspace {
-    grid-row: 1 !important;
-    width: 100%;
-    height: auto;
-    min-height: 0 !important;
-    overflow: hidden !important;
-  }
-
-  .workspace-content {
-    padding-bottom: 0 !important;
-    scroll-padding-bottom: 0;
-  }
-
-  .mobile-navigation {
-    position: relative !important;
-    inset: auto !important;
-    z-index: 700;
-    display: grid !important;
-    grid-row: 2 !important;
-    grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
-    width: 100% !important;
-    height: var(--mobile-dock-total-height) !important;
-    min-height: var(--mobile-dock-total-height) !important;
-    max-height: var(--mobile-dock-total-height) !important;
-    gap: 0;
-    align-items: stretch;
-    padding: 0 4px !important;
-    overflow: hidden;
-    border: 0;
-    border-top: 1px solid var(--line);
-    border-radius: 0 !important;
-    background: color-mix(in srgb, var(--navigation) 99%, transparent);
-    box-shadow: 0 -8px 24px rgba(0, 0, 0, .24);
-    backdrop-filter: blur(22px) saturate(135%);
-    -webkit-backdrop-filter: blur(22px) saturate(135%);
-  }
-
-  .mobile-navigation__item {
-    align-self: stretch;
-    width: 100%;
-    height: var(--mobile-dock-total-height);
-    min-height: var(--mobile-dock-total-height) !important;
-    max-height: var(--mobile-dock-total-height);
-    gap: 2px;
-    padding: 0 1px var(--mobile-dock-safe-bottom) !important;
-    place-content: center;
-    border-radius: 8px !important;
-  }
-
-  .mobile-navigation__item svg,
-  .mobile-navigation__phone-icon,
-  .mobile-navigation__dots {
-    width: 18px;
-    height: 18px;
-  }
-
-  .mobile-navigation__item > span:last-child {
-    display: block;
-    font-size: 7px;
-  }
-
-  .mobile-more-sheet {
-    bottom: calc(var(--mobile-dock-total-height) + 4px) !important;
-  }
-}
-
-@media (max-width: 900px) and (orientation: landscape) {
-  :root {
-    --mobile-dock-row-height: 42px;
-  }
-
-  .mobile-navigation__item {
-    padding-block: 1px !important;
-  }
 }
