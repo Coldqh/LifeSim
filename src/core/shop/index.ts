@@ -1,5 +1,5 @@
 import { getProductById } from '../../data/products/basicProducts';
-import { getShopById } from '../../data/shops/basicShops';
+import { getShopById } from '../../data/cities/contentSelectors';
 import type { Product, Shop } from '../../types/product';
 import type { Location } from '../../types/location';
 import type { ProductId, ShopId } from '../../types/ids';

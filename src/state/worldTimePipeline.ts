@@ -19,21 +19,25 @@ import { processUniversityTime } from '../core/university';
 import { refreshVehicleMarket } from '../core/vehicles';
 import { getRegionalCityIds, processWorldAtlasTime, simulateActiveCityPopulation } from '../core/world-atlas';
 import { businessEquipment } from '../data/business/equipment';
+import {
+  getAllHousing,
+  getAllJobs,
+  getAllUniversitySubjects,
+  getBusinessPremisesById,
+  getDegreeProgramById,
+  getHousingById,
+  getMedicalServiceById
+} from '../data/cities/contentSelectors';
 import { businessMenuItems } from '../data/business/menu';
-import { getBusinessPremisesById } from '../data/business/premises';
 import { businessSupplies } from '../data/business/supplies';
 import { getBusinessTypeById } from '../data/business/businessTypes';
 import { businessUpgrades } from '../data/business/upgrades';
-import { getDegreeProgramById, universitySubjects } from '../data/education/universities';
-import { basicHousing, getHousingById } from '../data/housing/basicHousing';
 import { getIntercityRouteById, intercityNetwork } from '../data/intercity/routes';
-import { basicJobs } from '../data/jobs/basicJobs';
 import { allLocations } from '../data/locations';
 import { cityRegistry } from '../data/cities';
 import { populationDataSource } from '../data/population/config';
 import { socialMeetingTypes } from '../data/social/meetingTypes';
 import { socialEventTemplates } from '../data/social/socialEventTemplates';
-import { getMedicalServiceById } from '../data/healthcare/services';
 import { usedVehicleListingTemplates } from '../data/vehicles/usedListingTemplates';
 import type { PhoneNotificationId } from '../types/ids';
 import type { NeedsState } from '../types/needs';
@@ -41,6 +45,10 @@ import type { Player } from '../types/player';
 import type { GameTime } from '../types/time';
 import type { GameState, LifeLogEntry, WorldState } from './gameState';
 import { createLifeLogEntry } from './gameState';
+
+const housingCatalogue = getAllHousing();
+const jobsCatalogue = getAllJobs();
+const universitySubjectCatalogue = getAllUniversitySubjects();
 
 export type AdvanceWorldTimeInput = {
   state: GameState;
@@ -259,7 +267,7 @@ export function advanceWorldTime(input: AdvanceWorldTimeInput): AdvanceWorldTime
       market: housingMarket,
       day: nextTime.day,
       currentHousingId: nextPlayer.housingId,
-      catalogue: basicHousing
+      catalogue: housingCatalogue
     });
   }
 
@@ -373,7 +381,7 @@ export function advanceWorldTime(input: AdvanceWorldTimeInput): AdvanceWorldTime
   let phone = processPhoneTime({
     state: sourceWorld.phone,
     currentTotalMinutes,
-    jobs: basicJobs,
+    jobs: jobsCatalogue,
     getEmployerName: (job) => getLocationById(job.locationId)?.name ?? 'Работодатель'
   });
 
@@ -397,7 +405,7 @@ export function advanceWorldTime(input: AdvanceWorldTimeInput): AdvanceWorldTime
     fromTime: fromTotalMinutes(previousUniversity.lastProcessedTotalMinutes),
     toTime: nextTime,
     program: getDegreeProgramById(previousUniversity.enrollment?.programId),
-    subjects: universitySubjects
+    subjects: universitySubjectCatalogue
   });
   lifeLogEntries.push(...universityApplied.messages.map((message) => (
     createLifeLogEntry({ time: nextTime }, 'Учёба', message)

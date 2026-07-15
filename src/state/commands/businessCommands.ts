@@ -6,7 +6,7 @@ import { getScheduleActivityFailure } from '../../core/schedule';
 import { addMinutes, getTotalMinutes } from '../../core/time';
 import { NPC_ROLE_IDS } from '../../data/population/npcRoles';
 import { businessTypes, getBusinessTypeById } from '../../data/business/businessTypes';
-import { getBusinessPremisesById } from '../../data/business/premises';
+import { getBusinessPremisesById } from '../../data/cities/contentSelectors';
 import { businessEquipment, getBusinessEquipmentById } from '../../data/business/equipment';
 import { businessSupplies, getBusinessSupplyById } from '../../data/business/supplies';
 import { businessMenuItems, getBusinessMenuItemById } from '../../data/business/menu';

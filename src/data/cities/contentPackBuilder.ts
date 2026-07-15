@@ -7,7 +7,7 @@ import type { Housing } from '../../types/housing';
 import type { Job } from '../../types/job';
 import type { District, Location } from '../../types/location';
 import type { Shop } from '../../types/product';
-import type { DegreeProgramDefinition, UniversityDefinition } from '../../types/university';
+import type { DegreeProgramDefinition, UniversityDefinition, UniversitySubjectDefinition } from '../../types/university';
 import type { CityContent } from './registry';
 
 const SPORT_LOCATION_TYPES = new Set<Location['type']>(['boxing_gym', 'fitness', 'pool', 'sport_ground']);
@@ -37,6 +37,7 @@ export type BuildCityContentInput = {
   educationPrograms: readonly EducationProgram[];
   universities: readonly UniversityDefinition[];
   degreePrograms: readonly DegreeProgramDefinition[];
+  universitySubjects: readonly UniversitySubjectDefinition[];
   medicalServices: readonly MedicalService[];
   boxingGyms: readonly BoxingGym[];
   businessPremises: readonly BusinessPremises[];
@@ -62,6 +63,8 @@ export function buildCityContent(input: BuildCityContentInput): CityContent {
 
   const cityUniversities = input.universities.filter((university) => university.cityId === input.cityId);
   const universityIds = new Set(cityUniversities.map((university) => String(university.id)));
+  const cityDegreePrograms = input.degreePrograms.filter((program) => universityIds.has(String(program.universityId)));
+  const referencedSubjectIds = new Set(cityDegreePrograms.flatMap((program) => program.subjectIds.map(String)));
   const referencedShopIds = uniqueByString(
     input.locations.flatMap((location) => location.shopId ? [location.shopId] : [])
   );
@@ -71,12 +74,11 @@ export function buildCityContent(input: BuildCityContentInput): CityContent {
     housing: input.housing.filter((entry) => (
       locationIds.has(String(entry.locationId)) && districtIds.has(String(entry.districtId))
     )),
-    shops: referencedShopIds
-      .map((shopId) => knownShopById.get(String(shopId)))
-      .filter((shop): shop is Shop => Boolean(shop)),
+    shops: input.shops.filter((shop) => referencedShopIds.includes(shop.id)),
     educationPrograms: input.educationPrograms.filter((program) => locationIds.has(String(program.locationId))),
     universities: cityUniversities,
-    degreePrograms: input.degreePrograms.filter((program) => universityIds.has(String(program.universityId))),
+    degreePrograms: cityDegreePrograms,
+    universitySubjects: input.universitySubjects.filter((subject) => referencedSubjectIds.has(String(subject.id))),
     medicalServices: input.medicalServices.filter((service) => locationIds.has(String(service.clinicLocationId))),
     sportFacilityLocationIds: input.locations
       .filter((location) => SPORT_LOCATION_TYPES.has(location.type))

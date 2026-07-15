@@ -1,6 +1,6 @@
 import { applyEducationProgram } from '../../core/education';
 import { getLocationById } from '../../core/location';
-import { getEducationProgramById } from '../../data/education/basicPrograms';
+import { getEducationProgramById } from '../../data/cities/contentSelectors';
 import { getSkillById } from '../../data/skills/basicSkills';
 import type { EducationProgramId } from '../../types/ids';
 import { createLifeLogEntry } from '../gameState';

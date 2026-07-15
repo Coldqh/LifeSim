@@ -1,6 +1,6 @@
 import { attendMedicalAppointment, issueSickLeave, scheduleMedicalAppointment } from '../../core/healthcare';
 import { getTotalMinutes } from '../../core/time';
-import { getMedicalServiceById } from '../../data/healthcare/services';
+import { getMedicalServiceById } from '../../data/cities/contentSelectors';
 import type { MedicalServiceId, PhoneNotificationId, PhoneCalendarEventId } from '../../types/ids';
 import { createLifeLogEntry } from '../gameState';
 import { mergeNeedsDelta } from '../worldTimePipeline';

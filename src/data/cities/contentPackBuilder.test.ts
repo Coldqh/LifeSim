@@ -15,13 +15,14 @@ import type {
   LocationId,
   MedicalServiceId,
   ShopId,
-  UniversityId
+  UniversityId,
+  UniversitySubjectId
 } from '../../types/ids';
 import type { Housing, HousingId } from '../../types/housing';
 import type { Job } from '../../types/job';
 import type { City, District, Location } from '../../types/location';
 import type { Shop } from '../../types/product';
-import type { DegreeProgramDefinition, UniversityDefinition } from '../../types/university';
+import type { DegreeProgramDefinition, UniversityDefinition, UniversitySubjectDefinition } from '../../types/university';
 import { buildCityContent } from './contentPackBuilder';
 import { createCityRegistry, defineCityContentPack } from './registry';
 
@@ -63,6 +64,7 @@ function createSyntheticCity() {
 
   const universityId = asId<UniversityId>('synthetic_university_definition');
   const degreeProgramId = asId<DegreeProgramId>('synthetic_degree');
+  const subjectId = asId<UniversitySubjectId>('synthetic_subject');
   const content = buildCityContent({
     cityId,
     districts: [district],
@@ -72,7 +74,8 @@ function createSyntheticCity() {
     shops: [{ id: shopId, name: 'Shop', description: '', productIds: [] } as Shop],
     educationPrograms: [{ id: asId<EducationProgramId>('synthetic_course'), locationId: universityLocationId } as EducationProgram],
     universities: [{ id: universityId, cityId, locationId: universityLocationId, programIds: [degreeProgramId] } as UniversityDefinition],
-    degreePrograms: [{ id: degreeProgramId, universityId } as DegreeProgramDefinition],
+    degreePrograms: [{ id: degreeProgramId, universityId, subjectIds: [subjectId] } as DegreeProgramDefinition],
+    universitySubjects: [{ id: subjectId } as UniversitySubjectDefinition],
     medicalServices: [{ id: asId<MedicalServiceId>('synthetic_medical'), clinicLocationId: clinicId } as MedicalService],
     boxingGyms: [{ id: asId<BoxingGymId>('synthetic_gym'), locationId: gymLocationId } as BoxingGym],
     businessPremises: [{ id: asId<BusinessPremisesId>('synthetic_premises'), locationId: workplaceId, districtId } as BusinessPremises]
@@ -100,6 +103,7 @@ describe('buildCityContent', () => {
     expect(synthetic.content.educationPrograms.map((entry) => entry.id)).toEqual(['synthetic_course']);
     expect(synthetic.content.universities.map((entry) => entry.id)).toEqual(['synthetic_university_definition']);
     expect(synthetic.content.degreePrograms.map((entry) => entry.id)).toEqual(['synthetic_degree']);
+    expect(synthetic.content.universitySubjects.map((entry) => entry.id)).toEqual(['synthetic_subject']);
     expect(synthetic.content.medicalServices.map((entry) => entry.id)).toEqual(['synthetic_medical']);
     expect(synthetic.content.boxingGyms.map((entry) => entry.id)).toEqual(['synthetic_gym']);
     expect(synthetic.content.businessPremises.map((entry) => entry.id)).toEqual(['synthetic_premises']);

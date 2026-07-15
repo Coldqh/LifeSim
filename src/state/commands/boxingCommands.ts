@@ -1,7 +1,7 @@
 import { getMedicalActivityFailure } from '../../core/healthcare';
 import { getLocationById } from '../../core/location';
 import { applyBoxingMembership, applyBoxingSparring, applyBoxingTournament, applyBoxingTraining, selectBoxingTrainer } from '../../core/sport';
-import { boxingGyms, getBoxingGymById } from '../../data/sports/boxingGyms';
+import { getAllBoxingGyms, getBoxingGymById } from '../../data/cities/contentSelectors';
 import { getBoxingTrainerById } from '../../data/sports/boxingTrainers';
 import { getBoxingTrainingById } from '../../data/sports/boxingTrainings';
 import { getBoxingOpponentById } from '../../data/sports/boxingOpponents';
@@ -12,6 +12,7 @@ import type { GameStateSetter } from './commandSupport';
 import { applyBoxingOperationState, mergeLifeLog } from './commandSupport';
 
 export function createBoxingCommands(setGameState: GameStateSetter) {
+  const boxingGymCatalogue = getAllBoxingGyms();
   function buyBoxingMembership(gymId: BoxingGymId): void {
     const gym = getBoxingGymById(gymId);
     if (!gym) return;
@@ -30,7 +31,7 @@ export function createBoxingCommands(setGameState: GameStateSetter) {
     const trainer = getBoxingTrainerById(trainerId);
     if (!trainer) return;
     setGameState((currentState) => {
-      const gym = boxingGyms.find((candidate) => candidate.trainerIds.includes(trainer.id));
+      const gym = boxingGymCatalogue.find((candidate) => candidate.trainerIds.includes(trainer.id));
       if (!gym) return currentState;
       return applyBoxingOperationState(currentState, selectBoxingTrainer({
         player: currentState.player,
@@ -54,7 +55,7 @@ export function createBoxingCommands(setGameState: GameStateSetter) {
           lifeLog: mergeLifeLog([logEntry], currentState.lifeLog)
         };
       }
-      const gym = boxingGyms[0];
+      const gym = boxingGymCatalogue[0];
       const location = getLocationById(gym.locationId);
       const trainer = getBoxingTrainerById(currentState.player.boxing.selectedTrainerId);
       return applyBoxingOperationState(currentState, applyBoxingTraining({
@@ -81,7 +82,7 @@ export function createBoxingCommands(setGameState: GameStateSetter) {
           lifeLog: mergeLifeLog([logEntry], currentState.lifeLog)
         };
       }
-      const gym = boxingGyms[0];
+      const gym = boxingGymCatalogue[0];
       const location = getLocationById(gym.locationId);
       const trainer = getBoxingTrainerById(currentState.player.boxing.selectedTrainerId);
       return applyBoxingOperationState(currentState, applyBoxingSparring({
@@ -108,7 +109,7 @@ export function createBoxingCommands(setGameState: GameStateSetter) {
           lifeLog: mergeLifeLog([logEntry], currentState.lifeLog)
         };
       }
-      const gym = boxingGyms[0];
+      const gym = boxingGymCatalogue[0];
       const location = getLocationById(gym.locationId);
       const opponents = tournament.opponentIds
         .map((opponentId) => getBoxingOpponentById(opponentId))

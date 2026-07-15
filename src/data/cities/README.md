@@ -37,6 +37,7 @@ export const newCityContentPack = defineCityContentPack({
     educationPrograms: newCityCourses,
     universities: newCityUniversities,
     degreePrograms: newCityDegreePrograms,
+    universitySubjects: newCityUniversitySubjects,
     medicalServices: newCityMedicalServices,
     boxingGyms: newCityBoxingGyms,
     businessPremises: newCityBusinessPremises,
@@ -59,7 +60,7 @@ export const cityRegistry = createCityRegistry([
 ]);
 ```
 
-The registry and completeness report require no UI changes. Existing screens can migrate gradually from legacy global catalogues to `getCityContentBundle(cityId)`.
+The registry and completeness report require no UI changes. Runtime systems read through `src/data/cities/contentSelectors.ts`, while source catalogues remain responsible only for defining data.
 
 ## 4. Check completeness
 
@@ -88,9 +89,8 @@ In `src/data/intercity/routes.ts`:
 - use `createBidirectionalRoadConnections(...)` for car travel;
 - add temporary accommodation only when the city needs it.
 
-Use `getCityContentBundle(cityId)` when a system needs the city jobs, housing, education, medicine, sports, business or transport data.
+Use `getCityContentBundle(cityId)` for a complete city view, or the focused selectors such as `getJobsForCity`, `getHousingForCity`, `getMedicalServicesForCity` and `getBoxingGymsForCity`.
 
+## Runtime access rule
 
-## Compatibility note
-
-The current global catalogues remain exported so existing gameplay stays unchanged. New city-aware systems should read from the city bundle. Removing the legacy global unions is a separate consumer-migration patch.
+Game state, commands, selectors and UI must not read the legacy global arrays directly. They use `contentSelectors.ts`. The original catalogue modules remain exported as authoring sources for pack construction and backward-compatible external imports.

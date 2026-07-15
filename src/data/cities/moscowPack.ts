@@ -2,7 +2,7 @@ import type { LocationId } from '../../types/ids';
 import { businessPremises } from '../business/premises';
 import { moscowDistricts } from '../districts/moscowDistricts';
 import { basicEducationPrograms } from '../education/basicPrograms';
-import { degreePrograms, universities } from '../education/universities';
+import { degreePrograms, universities, universitySubjects } from '../education/universities';
 import { medicalServices } from '../healthcare/services';
 import { basicHousing } from '../housing/basicHousing';
 import { basicJobs } from '../jobs/basicJobs';
@@ -28,6 +28,7 @@ export const moscowContentPack = defineCityContentPack({
     educationPrograms: basicEducationPrograms,
     universities,
     degreePrograms,
+    universitySubjects,
     medicalServices,
     boxingGyms,
     businessPremises

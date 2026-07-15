@@ -10,6 +10,7 @@ describe('registered city content packs', () => {
     expect(bundle?.jobs.length).toBeGreaterThan(0);
     expect(bundle?.shops.length).toBeGreaterThan(0);
     expect(bundle?.universities.length).toBeGreaterThan(0);
+    expect(bundle?.universitySubjects.length).toBeGreaterThan(0);
     expect(bundle?.medicalServices.length).toBeGreaterThan(0);
     expect(bundle?.sportFacilities.length).toBeGreaterThan(0);
     expect(bundle?.boxingGyms.length).toBeGreaterThan(0);
@@ -26,6 +27,7 @@ describe('registered city content packs', () => {
     expect(bundle?.shops.length).toBeGreaterThan(0);
     expect(bundle?.universities.length).toBeGreaterThan(0);
     expect(bundle?.degreePrograms.length).toBeGreaterThan(0);
+    expect(bundle?.universitySubjects.length).toBeGreaterThan(0);
     expect(bundle?.transportNodes.length).toBeGreaterThan(0);
     expect(bundle?.completeness?.missingCategories).toContain('healthcare');
     expect(bundle?.completeness?.missingCategories).toContain('business');

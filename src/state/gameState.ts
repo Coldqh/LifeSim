@@ -20,7 +20,6 @@ import { createPopulationSeed, generatePopulation, simulatePopulation } from '..
 import { createInitialSocialState, createNpcPersonality } from '../core/relationships';
 import type { SocialState } from '../types/socialEvent';
 import { populationDataSource } from '../data/population/config';
-import { basicHousing } from '../data/housing/basicHousing';
 import { createHousingMarket } from '../core/housing';
 import { createEmptyBusinessReport, createInitialBusinessWorldState } from '../core/business';
 import { createInitialPhoneState } from '../core/phone';
@@ -30,9 +29,9 @@ import { createInitialMedicalState } from '../core/healthcare';
 import { createInitialIntercityState } from '../core/intercity';
 import { createInitialUniversityState } from '../core/university';
 import { createInitialWorldAtlasState, getRegionalCityIds, normalizeWorldAtlasState } from '../core/world-atlas';
-import { businessPremises } from '../data/business/premises';
 import { usedVehicleListingTemplates } from '../data/vehicles/usedListingTemplates';
 import { cityRegistry } from '../data/cities';
+import { getAllBusinessPremises, getAllHousing } from '../data/cities/contentSelectors';
 import { intercityNetwork } from '../data/intercity/routes';
 import {
   CURRENT_SAVE_VERSION,
@@ -47,6 +46,8 @@ import {
 
 export { CURRENT_SAVE_VERSION, GAME_STATE_BACKUP_STORAGE_KEY, GAME_STATE_STORAGE_KEY } from './saveMigrations';
 const REMOVED_PRODUCT_IDS = new Set(['hygiene_kit', 'toothpaste', 'laundry_powder']);
+const housingCatalogue = getAllHousing();
+const businessPremisesCatalogue = getAllBusinessPremises();
 
 export type LifeLogEntry = {
   id: string;
@@ -254,9 +255,9 @@ export function createInitialGameState(): GameState {
         seed: population.seed ^ 0x48a3f2,
         day: time.day,
         currentHousingId: housingId('housing_room_danilovsky'),
-        catalogue: basicHousing
+        catalogue: housingCatalogue
       }),
-      business: createInitialBusinessWorldState(population.seed, businessPremises.map((premises) => premises.id)),
+      business: createInitialBusinessWorldState(population.seed, businessPremisesCatalogue.map((premises) => premises.id)),
       phone: createInitialPhoneState(getTotalMinutes(time)),
       finance: createInitialFinanceState(11000, time.day),
       vehicles: createInitialVehicleWorld(population.seed, time.day, usedVehicleListingTemplates),
@@ -437,7 +438,7 @@ function normalizeHousingMarket(value: unknown, time: GameTime, populationSeed: 
       seed: populationSeed ^ 0x48a3f2,
       day: time.day,
       currentHousingId,
-      catalogue: basicHousing
+      catalogue: housingCatalogue
     });
   }
   const candidate = value as Partial<HousingMarketState>;
@@ -446,10 +447,10 @@ function normalizeHousingMarket(value: unknown, time: GameTime, populationSeed: 
       seed: populationSeed ^ 0x48a3f2,
       day: time.day,
       currentHousingId,
-      catalogue: basicHousing
+      catalogue: housingCatalogue
     });
   }
-  const knownIds = new Set(basicHousing.map((housing) => housing.id));
+  const knownIds = new Set(housingCatalogue.map((housing) => housing.id));
   return {
     seed: candidate.seed,
     lastRefreshDay: typeof candidate.lastRefreshDay === 'number' ? candidate.lastRefreshDay : time.day,
@@ -465,10 +466,10 @@ function normalizeHousingMarket(value: unknown, time: GameTime, populationSeed: 
 
 
 function normalizeBusinessWorld(value: unknown, time: GameTime, populationSeed: number): BusinessWorldState {
-  const initial = createInitialBusinessWorldState(populationSeed, businessPremises.map((premises) => premises.id));
+  const initial = createInitialBusinessWorldState(populationSeed, businessPremisesCatalogue.map((premises) => premises.id));
   if (!value || typeof value !== 'object') return initial;
   const candidate = value as Partial<BusinessWorldState>;
-  const knownPremisesIds = new Set(businessPremises.map((premises) => premises.id));
+  const knownPremisesIds = new Set(businessPremisesCatalogue.map((premises) => premises.id));
   const owned = candidate.ownedBusiness && typeof candidate.ownedBusiness === 'object'
     ? candidate.ownedBusiness as Partial<OwnedBusiness>
     : undefined;
@@ -503,7 +504,7 @@ function normalizeBusinessWorld(value: unknown, time: GameTime, populationSeed: 
     seed: typeof candidate.seed === 'number' ? candidate.seed : initial.seed,
     activePremisesIds: Array.isArray(candidate.activePremisesIds)
       ? candidate.activePremisesIds.filter((id) => knownPremisesIds.has(id) && id !== normalizedOwned?.premisesId)
-      : businessPremises.map((premises) => premises.id).filter((id) => id !== normalizedOwned?.premisesId),
+      : businessPremisesCatalogue.map((premises) => premises.id).filter((id) => id !== normalizedOwned?.premisesId),
     ownedBusiness: normalizedOwned
   };
 }

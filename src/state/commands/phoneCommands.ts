@@ -2,7 +2,7 @@ import { applyForJob as applyJob, getJobApplicationFailure } from '../../core/jo
 import { getLocationById } from '../../core/location';
 import { completeJobInterview, markPhoneMessageRead, markPhoneNotificationRead, setPhoneMapTarget, submitPhoneJobApplication, toggleSavedPhoneJob } from '../../core/phone';
 import { addMinutes, getTotalMinutes } from '../../core/time';
-import { getJobById } from '../../data/jobs/basicJobs';
+import { getJobById } from '../../data/cities/contentSelectors';
 import type { JobId, PhoneMessageId, PhoneNotificationId, LocationId } from '../../types/ids';
 import { createLifeLogEntry } from '../gameState';
 import type { GameStateSetter } from './commandSupport';

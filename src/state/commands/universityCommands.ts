@@ -1,7 +1,7 @@
 import { getLocationById } from '../../core/location';
 import { getTotalMinutes } from '../../core/time';
 import { attendEntranceExam, attendUniversityClass, completeUniversityAssignment, enrollUniversityProgram, submitUniversityApplication, takeUniversitySemesterExam } from '../../core/university';
-import { getDegreeProgramById, getUniversityById, getUniversitySubjectById } from '../../data/education/universities';
+import { getDegreeProgramById, getUniversityById, getUniversitySubjectById } from '../../data/cities/contentSelectors';
 import type { DegreeProgramId, UniversitySubjectId, PhoneNotificationId, PhoneCalendarEventId } from '../../types/ids';
 import { createLifeLogEntry } from '../gameState';
 import type { GameStateSetter } from './commandSupport';

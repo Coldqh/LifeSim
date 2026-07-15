@@ -1,6 +1,6 @@
 import { HOUSING_MOVING_DURATION_MINUTES, HOUSING_VIEWING_DURATION_MINUTES, isHousingListingActive, markHousingViewed, moveIntoHousing, scheduleHousingViewing } from '../../core/housing';
 import { addMinutes } from '../../core/time';
-import { getHousingById } from '../../data/housing/basicHousing';
+import { getHousingById } from '../../data/cities/contentSelectors';
 import type { HousingId } from '../../types/housing';
 import { createLifeLogEntry } from '../gameState';
 import type { GameStateSetter } from './commandSupport';

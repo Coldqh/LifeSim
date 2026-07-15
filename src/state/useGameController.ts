@@ -21,24 +21,33 @@ import { getEntranceExamFailure, getUniversityApplicationForProgram, getUniversi
 import { calculateVehicleTravelQuote } from '../core/vehicles';
 import { createDistrictTravelOption, createLocationTravelOptions } from '../core/travel';
 import { allLocations } from '../data/locations';
+import {
+  getAllBoxingGyms,
+  getAllDegreePrograms,
+  getAllEducationPrograms,
+  getAllJobs,
+  getAllMedicalServices,
+  getAllUniversitySubjects,
+  getBoxingGymById,
+  getBoxingGymByLocationId,
+  getBusinessPremisesById,
+  getDegreeProgramById,
+  getHousingById,
+  getJobById,
+  getJobsForLocation,
+  getUniversityById
+} from '../data/cities/contentSelectors';
 import { getNpcRoleById } from '../data/population/npcRoles';
 import { npcInteractionTemplates } from '../data/social/interactionTemplates';
 import { getSocialMeetingType, socialMeetingTypes, socialQuickMessages } from '../data/social/meetingTypes';
-import { getHousingById } from '../data/housing/basicHousing';
 import { businessTypes, getBusinessTypeById } from '../data/business/businessTypes';
-import { getBusinessPremisesById } from '../data/business/premises';
 import { businessEquipment } from '../data/business/equipment';
 import { businessSupplies } from '../data/business/supplies';
 import { getBusinessMenuItemById } from '../data/business/menu';
 import { businessUpgrades } from '../data/business/upgrades';
-import { basicEducationPrograms } from '../data/education/basicPrograms';
-import { degreePrograms, getDegreeProgramById, getUniversityById, universitySubjects } from '../data/education/universities';
-import { basicJobs, getJobById, getJobsForLocation } from '../data/jobs/basicJobs';
 import { getProductById } from '../data/products/basicProducts';
-import { medicalServices } from '../data/healthcare/services';
 import { getMedicalConditionDefinition } from '../data/healthcare/conditions';
 import { basicSkills, getSkillById } from '../data/skills/basicSkills';
-import { boxingGyms, getBoxingGymById, getBoxingGymByLocationId } from '../data/sports/boxingGyms';
 import { boxingTrainers, getBoxingTrainerById } from '../data/sports/boxingTrainers';
 import { boxingTrainings } from '../data/sports/boxingTrainings';
 import { boxingOpponents } from '../data/sports/boxingOpponents';
@@ -55,6 +64,13 @@ import { GAS_STATION_LOCATION_IDS, SERVICE_LOCATION_IDS, getDealerLocationIdForM
 import { selectIntercityState } from './selectors/intercityState';
 import { selectScheduledWaitState } from './selectors/scheduledWaitState';
 import { createGameCommands, getNpcSocialContext } from './commands';
+
+const jobsCatalogue = getAllJobs();
+const educationProgramsCatalogue = getAllEducationPrograms();
+const degreeProgramsCatalogue = getAllDegreePrograms();
+const universitySubjectCatalogue = getAllUniversitySubjects();
+const medicalServicesCatalogue = getAllMedicalServices();
+const boxingGymsCatalogue = getAllBoxingGyms();
 
 
 function resolveInitialState(): GameState {
@@ -327,7 +343,7 @@ export function useGameController() {
       };
     }
 
-    const jobs = basicJobs.map(buildJobView);
+    const jobs = jobsCatalogue.map(buildJobView);
     const currentJobView = currentJob ? buildJobView(currentJob) : undefined;
     const currentLocationJobs = getJobsForLocation(gameState.player.locationId).map(buildJobView);
 
@@ -432,11 +448,11 @@ export function useGameController() {
       state,
       time: gameState.time,
       program: activeProgram,
-      subjects: universitySubjects,
+      subjects: universitySubjectCatalogue,
       university: activeUniversity,
       currentLocationId: gameState.player.locationId
     });
-    const programViews = degreePrograms.map((program) => {
+    const programViews = degreeProgramsCatalogue.map((program) => {
       const university = getUniversityById(program.universityId);
       const application = getUniversityApplicationForProgram(state, program.id);
       const missingSkillRequirements = (program.requiredSkills ?? []).map((requirement) => ({
@@ -490,7 +506,7 @@ export function useGameController() {
     const phone = gameState.world.phone;
     const currentLocation = getLocationById(gameState.player.locationId);
     const travelContext = { playerMoney: gameState.player.money, playerNeeds: gameState.player.needs };
-    const jobs = basicJobs.map((job) => {
+    const jobs = jobsCatalogue.map((job) => {
       const location = getLocationById(job.locationId);
       const district = location ? getDistrictById(location.districtId) : undefined;
       const application = getJobApplicationForJob(phone, job.id);
@@ -529,7 +545,7 @@ export function useGameController() {
     const currentJob = getJobById(gameState.player.currentJobId);
     const enrolledProgram = getDegreeProgramById(gameState.world.university.enrollment?.programId);
     const enrolledUniversity = getUniversityById(enrolledProgram?.universityId);
-    const boxingLocationId = boxingGyms[0]?.locationId;
+    const boxingLocationId = boxingGymsCatalogue[0]?.locationId;
     const ownedBusinessLocationId = getBusinessPremisesById(gameState.world.business.ownedBusiness?.premisesId)?.locationId;
     const contacts = Object.values(gameState.world.social.contacts)
       .map((contact) => {
@@ -629,7 +645,7 @@ export function useGameController() {
       progress: getSkillProgress(gameState.player.skills, skill.id)
     }));
 
-    const programs = basicEducationPrograms.map((program) => {
+    const programs = educationProgramsCatalogue.map((program) => {
       const currentLocation = getLocationById(gameState.player.locationId);
       const failure = getEducationProgramFailure(gameState.player, program, gameState.time, currentLocation?.type);
       return {
@@ -651,7 +667,7 @@ export function useGameController() {
   }, [gameState.player, gameState.time]);
 
   const boxingState = useMemo(() => {
-    const gymViews = boxingGyms.map((entry) => {
+    const gymViews = boxingGymsCatalogue.map((entry) => {
       const location = getLocationById(entry.locationId);
       const membershipActive = hasActiveBoxingMembership(gameState.player.boxing, entry, gameState.time.day);
       const membershipFailure = getBoxingMembershipFailure(gameState.player, gameState.time, entry, location?.openingHours);
@@ -754,7 +770,7 @@ export function useGameController() {
       condition,
       definition: getMedicalConditionDefinition(condition.id)
     }));
-    const services = medicalServices.map((service) => {
+    const services = medicalServicesCatalogue.map((service) => {
       const clinic = getLocationById(service.clinicLocationId);
       const appointment = gameState.world.medical.appointments.find((entry) => entry.serviceId === service.id && entry.status === 'scheduled');
       const attendFailure = appointment

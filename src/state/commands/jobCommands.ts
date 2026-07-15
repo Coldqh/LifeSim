@@ -2,7 +2,7 @@ import { accrueSalary } from '../../core/finance';
 import { applyForJob as applyJob, applyJobPromotion, applyJobShift } from '../../core/jobs';
 import { applyWorkWhileSick, getMedicalActivityFailure } from '../../core/healthcare';
 import { getTotalMinutes } from '../../core/time';
-import { getJobById } from '../../data/jobs/basicJobs';
+import { getJobById } from '../../data/cities/contentSelectors';
 import { getSkillById } from '../../data/skills/basicSkills';
 import type { JobId } from '../../types/ids';
 import { createLifeLogEntry } from '../gameState';

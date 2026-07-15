@@ -7,7 +7,7 @@ import type { Housing } from '../../types/housing';
 import type { Job } from '../../types/job';
 import type { City, District, Location } from '../../types/location';
 import type { Shop } from '../../types/product';
-import type { DegreeProgramDefinition, UniversityDefinition } from '../../types/university';
+import type { DegreeProgramDefinition, UniversityDefinition, UniversitySubjectDefinition } from '../../types/university';
 
 export type CityContentCategory =
   | 'jobs'
@@ -26,6 +26,7 @@ export type CityContent = {
   educationPrograms: readonly EducationProgram[];
   universities: readonly UniversityDefinition[];
   degreePrograms: readonly DegreeProgramDefinition[];
+  universitySubjects: readonly UniversitySubjectDefinition[];
   medicalServices: readonly MedicalService[];
   sportFacilityLocationIds: readonly LocationId[];
   boxingGyms: readonly BoxingGym[];
@@ -87,6 +88,7 @@ const EMPTY_CONTENT: CityContent = {
   educationPrograms: [],
   universities: [],
   degreePrograms: [],
+  universitySubjects: [],
   medicalServices: [],
   sportFacilityLocationIds: [],
   boxingGyms: [],
@@ -103,6 +105,7 @@ function normalizeContent(content: Partial<CityContent> | undefined): CityConten
     educationPrograms: [...(content?.educationPrograms ?? [])],
     universities: [...(content?.universities ?? [])],
     degreePrograms: [...(content?.degreePrograms ?? [])],
+    universitySubjects: [...(content?.universitySubjects ?? [])],
     medicalServices: [...(content?.medicalServices ?? [])],
     sportFacilityLocationIds: [...(content?.sportFacilityLocationIds ?? [])],
     boxingGyms: [...(content?.boxingGyms ?? [])],
@@ -136,6 +139,7 @@ function assertUniqueContent(pack: CityContentPack): void {
   assertUnique(pack.content.educationPrograms, (entry) => String(entry.id), `${cityLabel} education program`);
   assertUnique(pack.content.universities, (entry) => String(entry.id), `${cityLabel} university`);
   assertUnique(pack.content.degreePrograms, (entry) => String(entry.id), `${cityLabel} degree program`);
+  assertUnique(pack.content.universitySubjects, (entry) => String(entry.id), `${cityLabel} university subject`);
   assertUnique(pack.content.medicalServices, (entry) => String(entry.id), `${cityLabel} medical service`);
   assertUnique(pack.content.sportFacilityLocationIds, String, `${cityLabel} sport facility`);
   assertUnique(pack.content.boxingGyms, (entry) => String(entry.id), `${cityLabel} boxing gym`);
@@ -155,6 +159,7 @@ function validateCityContent(pack: CityContentPack): void {
   const districtIds = new Set(pack.districts.map((district) => String(district.id)));
   const shopIds = new Set(pack.content.shops.map((shop) => String(shop.id)));
   const universityIds = new Set(pack.content.universities.map((university) => String(university.id)));
+  const universitySubjectIds = new Set(pack.content.universitySubjects.map((subject) => String(subject.id)));
 
   for (const location of pack.locations) {
     if (location.shopId && !shopIds.has(String(location.shopId))) {
@@ -180,6 +185,11 @@ function validateCityContent(pack: CityContentPack): void {
   for (const degreeProgram of pack.content.degreePrograms) {
     if (!universityIds.has(String(degreeProgram.universityId))) {
       throw new Error(`Degree program ${String(degreeProgram.id)} points outside city universities.`);
+    }
+    for (const subjectId of degreeProgram.subjectIds) {
+      if (!universitySubjectIds.has(String(subjectId))) {
+        throw new Error(`Degree program ${String(degreeProgram.id)} references subject outside city education content.`);
+      }
     }
   }
   for (const service of pack.content.medicalServices) {
@@ -302,6 +312,7 @@ export function createCityRegistry(packs: readonly CityContentPack[]): CityRegis
     educationPrograms: mergeUniqueById(packs, (pack) => pack.content.educationPrograms, (entry) => String(entry.id)),
     universities: mergeUniqueById(packs, (pack) => pack.content.universities, (entry) => String(entry.id)),
     degreePrograms: mergeUniqueById(packs, (pack) => pack.content.degreePrograms, (entry) => String(entry.id)),
+    universitySubjects: mergeUniqueById(packs, (pack) => pack.content.universitySubjects, (entry) => String(entry.id)),
     medicalServices: mergeUniqueById(packs, (pack) => pack.content.medicalServices, (entry) => String(entry.id)),
     sportFacilityLocationIds: mergeUniqueById(packs, (pack) => pack.content.sportFacilityLocationIds, String),
     boxingGyms: mergeUniqueById(packs, (pack) => pack.content.boxingGyms, (entry) => String(entry.id)),

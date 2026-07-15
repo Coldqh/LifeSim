@@ -1,13 +1,11 @@
 import { useState } from 'react';
-import { APP_VERSION_LABEL } from '../../appVersion';
 import { useUiTheme } from '../../state';
 import { formatRubles } from '../../core/economy';
 import { getLifeActionFailure } from '../../core/actions';
 import { adjustActivityNeedsDelta, getNeedSeverity, getNeedsDecayDelta } from '../../core/needs';
-import { getHousingById } from '../../data/housing/basicHousing';
+import { getHousingById } from '../../data/cities/contentSelectors';
 import { formatGameTime, formatWeekday } from '../../core/time';
 import type { GameState } from '../../state';
-import type { ScheduledWaitState } from '../../state/selectors/scheduledWaitState';
 import type { LifeAction } from '../../types/actions';
 import type {
   DistrictId,
@@ -48,7 +46,6 @@ import type { ScheduleStatus } from '../../types/schedule';
 import type { DistrictTravelOption, LocationTravelOption } from '../../types/travel';
 import { Icon, type IconName } from '../icons';
 import { CharacterScene } from '../visuals';
-import lifeSimAppIcon from '../../assets/ui/lifesim-app-icon.webp';
 import { ActionCard } from './ActionCard';
 import { createNeedsEffectItems, EffectList } from './EffectList';
 import { HousingPanel } from './HousingPanel';
@@ -68,7 +65,6 @@ import { PeoplePanel } from './PeoplePanel';
 import { SocialEventModal } from './SocialEventModal';
 
 type DashboardTab = 'character' | 'city' | 'housing' | 'business' | 'jobs' | 'development' | 'sport' | 'people' | 'log';
-type CitySubtab = 'actions' | 'people' | 'travel';
 
 type JobView = {
   job: Job;
@@ -155,7 +151,6 @@ type DashboardProps = {
   };
   housingState: HousingMarketPanelState;
   businessState: BusinessPanelState;
-  scheduledWaitState?: ScheduledWaitState;
   onPerformAction: (actionId: ActionId) => void;
   onMoveDistrict: (districtId: DistrictId, modeId: TravelModeId) => void;
   onMoveLocation: (locationId: LocationId, modeId: TravelModeId) => void;
@@ -185,9 +180,6 @@ type DashboardProps = {
   onBuyBusinessEquipment: (equipmentId: BusinessEquipmentId) => void;
   onBuyBusinessUpgrade: (upgradeId: BusinessUpgradeId) => void;
   onWorkBusinessOwnerShift: () => void;
-  onOpenPhone: () => void;
-  onWaitForScheduledEvent: (minutes: number) => void;
-  phoneUnreadCount: number;
   onReset: () => void;
 };
 
@@ -205,9 +197,6 @@ const NAVIGATION: NavigationItem[] = [
   { id: 'log', label: 'Журнал', icon: 'log' }
 ];
 
-const MOBILE_PRIMARY_NAVIGATION = NAVIGATION.filter((item) => ['character', 'city', 'jobs'].includes(item.id));
-const MOBILE_MORE_NAVIGATION = NAVIGATION.filter((item) => !MOBILE_PRIMARY_NAVIGATION.includes(item));
-
 const PAGE_TITLES: Record<DashboardTab, { title: string; eyebrow: string }> = {
   character: { title: 'Состояние', eyebrow: 'Личная панель' },
   city: { title: 'Город', eyebrow: 'Москва' },
@@ -219,23 +208,6 @@ const PAGE_TITLES: Record<DashboardTab, { title: string; eyebrow: string }> = {
   people: { title: 'Люди', eyebrow: 'Знакомства и отношения' },
   log: { title: 'Журнал', eyebrow: 'Хронология' }
 };
-
-
-function formatWaitDuration(minutes: number): string {
-  const hours = Math.floor(minutes / 60);
-  const rest = minutes % 60;
-  if (hours > 0 && rest > 0) return `${hours} ч ${rest} мин`;
-  if (hours > 0) return `${hours} ч`;
-  return `${rest} мин`;
-}
-
-function formatShiftDuration(minutes: number): string {
-  const hours = Math.floor(minutes / 60);
-  const rest = minutes % 60;
-  if (hours > 0 && rest > 0) return `${hours} ч ${rest} мин`;
-  if (hours > 0) return `${hours} ч`;
-  return `${rest} мин`;
-}
 
 function needTone(value: number): 'default' | 'good' | 'warning' | 'critical' {
   const severity = getNeedSeverity(value);
@@ -258,7 +230,6 @@ export function Dashboard({
   socialState,
   housingState,
   businessState,
-  scheduledWaitState,
   onPerformAction,
   onMoveDistrict,
   onMoveLocation,
@@ -288,16 +259,11 @@ export function Dashboard({
   onBuyBusinessEquipment,
   onBuyBusinessUpgrade,
   onWorkBusinessOwnerShift,
-  onOpenPhone,
-  onWaitForScheduledEvent,
-  phoneUnreadCount,
   onReset
 }: DashboardProps) {
   const { player, time, lastResult } = gameState;
   const housing = getHousingById(player.housingId);
   const [activeTab, setActiveTab] = useState<DashboardTab>('character');
-  const [mobileMoreOpen, setMobileMoreOpen] = useState(false);
-  const [citySubtab, setCitySubtab] = useState<CitySubtab>('actions');
   const { theme, toggleTheme } = useUiTheme();
   const activeHourDecayItems = createNeedsEffectItems(getNeedsDecayDelta(60, 'active'));
   const page = activeTab === 'city'
@@ -309,13 +275,13 @@ export function Dashboard({
   }
 
   return (
-    <main className={`app-frame ${mobileMoreOpen ? 'mobile-more-open' : ''}`}>
+    <main className="app-frame">
       <div className="ambient-canvas" aria-hidden="true"><i/><i/><i/><span/></div>
 
       <aside className="desktop-navigation" aria-label="Навигация LifeSim">
         <div className="brand-block" aria-label="LifeSim">
-          <span className="brand-block__mark"><img src={lifeSimAppIcon} alt="" /></span>
-          <div><strong>LIFESIM</strong><small>URBAN LIFE SYSTEM</small><em>{APP_VERSION_LABEL}</em></div>
+          <span className="brand-block__mark">LS<i /></span>
+          <div><strong>LIFESIM</strong><small>URBAN LIFE SYSTEM</small></div>
         </div>
 
         <nav className="primary-navigation" aria-label="Разделы игры">
@@ -352,13 +318,9 @@ export function Dashboard({
 
       <section className="app-workspace">
         <header className="top-status-bar">
-          <div className="top-bar-leading">
-            <img className="top-bar-app-icon" src={lifeSimAppIcon} alt="" />
-            <div className="page-identity">
+          <div className="page-identity">
             <span>{page.eyebrow}</span>
-              <h1>{page.title}</h1>
-            </div>
-            <span className="app-version-badge">{APP_VERSION_LABEL}</span>
+            <h1>{page.title}</h1>
           </div>
 
           <div className="global-status" aria-label="Текущее состояние">
@@ -432,88 +394,54 @@ export function Dashboard({
           ) : null}
 
           {activeTab === 'city' ? (
-            <section className="screen screen-enter city-workspace-screen">
-              <nav className="city-subtabs" aria-label="Разделы города">
-                <button className={citySubtab === 'actions' ? 'is-active' : ''} type="button" onClick={() => setCitySubtab('actions')}><Icon name="sparkle" size={16} />Действия</button>
-                <button className={citySubtab === 'people' ? 'is-active' : ''} type="button" onClick={() => setCitySubtab('people')}><Icon name="users" size={16} />Люди</button>
-                <button className={citySubtab === 'travel' ? 'is-active' : ''} type="button" onClick={() => setCitySubtab('travel')}><Icon name="pin" size={16} />Переход</button>
-              </nav>
-
-              {citySubtab !== 'travel' ? (
-                <section className="panel city-current-location-strip">
-                  <span className="city-current-location-strip__icon"><Icon name="pin" size={18} /></span>
-                  <div><strong>{locationState.location?.name ?? 'Место не найдено'}</strong><small>{locationState.location?.address ?? locationState.district?.name ?? 'Адрес не указан'}</small></div>
-                  <span className={locationState.locationScheduleStatus.isOpen ? 'schedule-inline schedule-inline--open' : 'schedule-inline schedule-inline--closed'}>{locationState.locationScheduleStatus.shortLabel}</span>
-                </section>
-              ) : null}
-
-              {citySubtab === 'actions' ? (
-                <div className="city-tab-stack">
-                  {scheduledWaitState ? (
-                    <section className="panel scheduled-wait-card">
-                      <span className="scheduled-wait-card__icon"><Icon name="clock" size={19} /></span>
-                      <div><strong>{scheduledWaitState.title}</strong><small>{scheduledWaitState.description} · через {formatWaitDuration(scheduledWaitState.minutes)}</small></div>
-                      <button type="button" onClick={() => onWaitForScheduledEvent(scheduledWaitState.minutes)}>Ждать</button>
-                    </section>
-                  ) : null}
-
-                  {locationState.shop ? <ShopPanel locationAddress={locationState.location?.address} locationName={locationState.location?.name} shop={locationState.shop} products={locationState.shopProducts} scheduleStatus={locationState.locationScheduleStatus} scheduleFailure={locationState.shopScheduleFailure} onBuyProduct={onBuyProduct} /> : null}
-
-                  <section className="panel actions-panel visual-panel">
-                    <div className="actions-panel__beam" aria-hidden="true" />
-                    <div className="section-heading section-heading--compact">
-                      <div><span className="section-kicker">Текущее место</span><h2>Действия</h2></div>
-                      <span className="section-counter">{actions.length}</span>
-                    </div>
-                    {actions.length > 0 ? (
-                      <div className="actions-list">{actions.map((action) => (
-                        <ActionCard
-                          action={action}
-                          failure={locationState.actionScheduleFailure ?? getLifeActionFailure(player, action)}
-                          effectiveNeedsDelta={adjustActivityNeedsDelta(player.needs, action.needsDelta, {
-                            scaleEnergyCost: true,
-                            scaleEnergyRecovery: action.category === 'sleep' || action.category === 'rest'
-                          })}
-                          key={action.id}
-                          onPerform={onPerformAction}
-                        />
-                      ))}</div>
-                    ) : <div className="empty-state compact-empty-state">Нет доступных действий</div>}
-                  </section>
-
-                  {jobState.currentLocationJobs.length > 0 ? (
-                    <section className="panel city-vacancies-panel">
-                      <div className="section-heading section-heading--compact"><div><span className="section-kicker">Текущее место</span><h2>Вакансии</h2></div><span className="section-counter">{jobState.currentLocationJobs.length}</span></div>
-                      <div className="city-vacancies-list">
-                        {jobState.currentLocationJobs.map((view) => (
-                          <article key={view.job.id}>
-                            <div><strong>{view.job.title}</strong><small>{formatRubles(view.job.wagePerShift)} / смена · {formatShiftDuration(view.job.shiftDurationMinutes)}</small></div>
-                            <button disabled={view.isCurrentJob || !view.canApply} type="button" onClick={() => onApplyForJob(view.job.id)}>{view.isCurrentJob ? 'Текущая' : 'Открыть'}</button>
-                          </article>
-                        ))}
-                      </div>
-                    </section>
-                  ) : null}
-                </div>
-              ) : null}
-
-              {citySubtab === 'people' ? <LocationPeoplePanel presence={populationState.presence} summary={populationState.summary} /> : null}
-
-              {citySubtab === 'travel' ? (
+            <section className="screen screen-enter city-screen">
+              <div className="city-main-column">
                 <LocationPanel
                   city={locationState.city}
                   district={locationState.district}
                   location={locationState.location}
                   districtTravelOptions={locationState.districtTravelOptions}
                   locationTravelOptions={locationState.locationTravelOptions}
-                  locationJobs={[]}
+                  locationJobs={jobState.currentLocationJobs}
                   currentScheduleStatus={locationState.locationScheduleStatus}
                   locationScheduleStatuses={locationState.locationScheduleStatuses}
                   onMoveDistrict={onMoveDistrict}
                   onMoveLocation={onMoveLocation}
                   onApplyForJob={onApplyForJob}
                 />
-              ) : null}
+              </div>
+
+              <aside className="context-column">
+                <LocationPeoplePanel presence={populationState.presence} summary={populationState.summary} />
+                <ShopPanel locationAddress={locationState.location?.address} locationName={locationState.location?.name} shop={locationState.shop} products={locationState.shopProducts} scheduleStatus={locationState.locationScheduleStatus} scheduleFailure={locationState.shopScheduleFailure} onBuyProduct={onBuyProduct} />
+                <section className="panel actions-panel visual-panel">
+                  <div className="actions-panel__beam" aria-hidden="true" />
+                  <div className="section-heading section-heading--compact">
+                    <div><span className="section-kicker">Текущее место</span><h2>Действия</h2></div>
+                    <span className="section-counter">{actions.length}</span>
+                  </div>
+                  {actions.length > 0 ? (
+                    <div className="actions-list">{actions.map((action) => (
+                      <ActionCard
+                        action={action}
+                        failure={locationState.actionScheduleFailure ?? getLifeActionFailure(player, action)}
+                        effectiveNeedsDelta={adjustActivityNeedsDelta(
+                          player.needs,
+                          action.needsDelta,
+                          {
+                            scaleEnergyCost: true,
+                            scaleEnergyRecovery: action.category === 'sleep' || action.category === 'rest'
+                          }
+                        )}
+                        key={action.id}
+                        onPerform={onPerformAction}
+                      />
+                    ))}</div>
+                  ) : (
+                    <div className="empty-state compact-empty-state">Нет доступных действий</div>
+                  )}
+                </section>
+              </aside>
             </section>
           ) : null}
 
@@ -550,7 +478,7 @@ export function Dashboard({
 
           {activeTab === 'jobs' ? <section className="screen screen-enter narrow-screen"><JobPanel currentJobView={jobState.currentJobView} colleagues={socialState.colleagues} onInteract={onInteractWithNpc} onPromoteJob={onPromoteJob} onWorkShift={onWorkShift} /></section> : null}
           {activeTab === 'development' ? <section className="screen screen-enter narrow-screen"><DevelopmentPanel skills={educationState.skills} programs={educationState.programs} onStudyProgram={onStudyProgram} /></section> : null}
-          {activeTab === 'sport' ? <section className="screen screen-enter sport-screen"><SportPanel state={boxingState} currentDay={time.day} onOpenCity={() => { setActiveTab('city'); setCitySubtab('travel'); }} onBuyMembership={onBuyBoxingMembership} onChooseTrainer={onChooseBoxingTrainer} onTraining={onBoxingTraining} onSparring={onBoxingSparring} onTournament={onBoxingTournament} /></section> : null}
+          {activeTab === 'sport' ? <section className="screen screen-enter sport-screen"><SportPanel state={boxingState} currentDay={time.day} onBuyMembership={onBuyBoxingMembership} onChooseTrainer={onChooseBoxingTrainer} onTraining={onBoxingTraining} onSparring={onBoxingSparring} onTournament={onBoxingTournament} /></section> : null}
           {activeTab === 'people' ? <section className="screen screen-enter people-screen"><PeoplePanel currentPeople={socialState.currentPeople} knownPeople={socialState.knownPeople} scheduledCount={socialState.scheduledCount} history={socialState.history} onInteract={onInteractWithNpc} onExchangeContact={onExchangeNpcContact} /></section> : null}
           {activeTab === 'log' ? <section className="screen screen-enter narrow-screen"><LifeLog entries={gameState.lifeLog} /></section> : null}
         </div>
@@ -559,56 +487,18 @@ export function Dashboard({
       <SocialEventModal event={socialState.activeEvent} npc={socialState.activeEventNpc} onChoose={onChooseSocialEvent} />
 
       <nav className="mobile-navigation" aria-label="Мобильная навигация">
-        {MOBILE_PRIMARY_NAVIGATION.map((item) => (
+        {NAVIGATION.map((item) => (
           <button
             aria-current={activeTab === item.id ? 'page' : undefined}
             className={activeTab === item.id ? 'mobile-navigation__item mobile-navigation__item--active' : 'mobile-navigation__item'}
             key={item.id}
             type="button"
-            onClick={() => { setActiveTab(item.id); setMobileMoreOpen(false); }}
+            onClick={() => setActiveTab(item.id)}
           >
             <Icon name={item.icon} size={21} /><span>{item.label}</span>
           </button>
         ))}
-        <button className="mobile-navigation__item mobile-navigation__phone" type="button" onClick={() => { setMobileMoreOpen(false); onOpenPhone(); }}>
-          <span className="mobile-navigation__phone-icon"><Icon name="phone" size={21} />{phoneUnreadCount > 0 ? <i>{phoneUnreadCount > 99 ? '99+' : phoneUnreadCount}</i> : null}</span>
-          <span>Телефон</span>
-        </button>
-        <button
-          aria-expanded={mobileMoreOpen}
-          className={`mobile-navigation__item mobile-navigation__more ${MOBILE_MORE_NAVIGATION.some((item) => item.id === activeTab) ? 'mobile-navigation__item--active' : ''}`}
-          type="button"
-          onClick={() => setMobileMoreOpen((open) => !open)}
-        >
-          <span className="mobile-navigation__dots" aria-hidden="true"><i/><i/><i/></span><span>Ещё</span>
-        </button>
       </nav>
-
-      <div className={`mobile-more-layer ${mobileMoreOpen ? 'is-open' : ''}`} aria-hidden={!mobileMoreOpen}>
-        <button className="mobile-more-backdrop" type="button" aria-label="Закрыть меню" onClick={() => setMobileMoreOpen(false)} />
-        <section className="mobile-more-sheet" aria-label="Все разделы">
-          <header>
-            <div><span>LifeSim</span><strong>Все разделы</strong></div>
-            <small>{APP_VERSION_LABEL}</small>
-          </header>
-          <div className="mobile-more-grid">
-            {MOBILE_MORE_NAVIGATION.map((item) => (
-              <button
-                className={activeTab === item.id ? 'is-active' : ''}
-                key={item.id}
-                type="button"
-                onClick={() => { setActiveTab(item.id); setMobileMoreOpen(false); }}
-              >
-                <Icon name={item.icon} size={22}/><span>{item.label}</span>
-              </button>
-            ))}
-          </div>
-          <footer>
-            <button type="button" onClick={toggleTheme}><Icon name={theme === 'dark' ? 'sun' : 'moon'} size={18}/><span>{theme === 'dark' ? 'Светлая тема' : 'Тёмная тема'}</span></button>
-            <button className="danger" type="button" onClick={handleResetClick}><Icon name="reset" size={18}/><span>Сбросить игру</span></button>
-          </footer>
-        </section>
-      </div>
     </main>
   );
 }
