@@ -23,6 +23,7 @@ import { createDistrictTravelOption, createLocationTravelOptions } from '../core
 import { allLocations } from '../data/locations';
 import {
   getAllBoxingGyms,
+  getAllBoxingTrainers,
   getAllDegreePrograms,
   getAllEducationPrograms,
   getAllJobs,
@@ -30,6 +31,7 @@ import {
   getAllUniversitySubjects,
   getBoxingGymById,
   getBoxingGymByLocationId,
+  getBoxingTrainerById,
   getBusinessPremisesById,
   getDegreeProgramById,
   getHousingById,
@@ -48,7 +50,6 @@ import { businessUpgrades } from '../data/business/upgrades';
 import { getProductById } from '../data/products/basicProducts';
 import { getMedicalConditionDefinition } from '../data/healthcare/conditions';
 import { basicSkills, getSkillById } from '../data/skills/basicSkills';
-import { boxingTrainers, getBoxingTrainerById } from '../data/sports/boxingTrainers';
 import { boxingTrainings } from '../data/sports/boxingTrainings';
 import { boxingOpponents } from '../data/sports/boxingOpponents';
 import { boxingTournaments } from '../data/sports/boxingTournaments';
@@ -71,6 +72,7 @@ const degreeProgramsCatalogue = getAllDegreePrograms();
 const universitySubjectCatalogue = getAllUniversitySubjects();
 const medicalServicesCatalogue = getAllMedicalServices();
 const boxingGymsCatalogue = getAllBoxingGyms();
+const boxingTrainersCatalogue = getAllBoxingTrainers();
 
 
 function resolveInitialState(): GameState {
@@ -545,7 +547,8 @@ export function useGameController() {
     const currentJob = getJobById(gameState.player.currentJobId);
     const enrolledProgram = getDegreeProgramById(gameState.world.university.enrollment?.programId);
     const enrolledUniversity = getUniversityById(enrolledProgram?.universityId);
-    const boxingLocationId = boxingGymsCatalogue[0]?.locationId;
+    const boxingLocationId = getBoxingGymById(gameState.player.boxing.membership?.gymId)?.locationId
+      ?? boxingGymsCatalogue.find((gym) => getLocationById(gym.locationId)?.cityId === gameState.player.cityId)?.locationId;
     const ownedBusinessLocationId = getBusinessPremisesById(gameState.world.business.ownedBusiness?.premisesId)?.locationId;
     const contacts = Object.values(gameState.world.social.contacts)
       .map((contact) => {
@@ -692,7 +695,7 @@ export function useGameController() {
     const membershipFailure = gym
       ? getBoxingMembershipFailure(gameState.player, gameState.time, gym, gymLocation?.openingHours)
       : 'Боксёрский зал не найден.';
-    const trainers = boxingTrainers
+    const trainers = boxingTrainersCatalogue
       .filter((trainer) => gym?.trainerIds.includes(trainer.id))
       .map((trainer) => {
         const failure = gym ? getBoxingTrainerSelectionFailure(gameState.player, gameState.time, gym, trainer) : 'Зал не найден.';
@@ -770,7 +773,9 @@ export function useGameController() {
       condition,
       definition: getMedicalConditionDefinition(condition.id)
     }));
-    const services = medicalServicesCatalogue.map((service) => {
+    const services = medicalServicesCatalogue
+      .filter((service) => getLocationById(service.clinicLocationId)?.cityId === gameState.player.cityId)
+      .map((service) => {
       const clinic = getLocationById(service.clinicLocationId);
       const appointment = gameState.world.medical.appointments.find((entry) => entry.serviceId === service.id && entry.status === 'scheduled');
       const attendFailure = appointment
@@ -822,6 +827,7 @@ export function useGameController() {
     const listings = gameState.world.housingMarket.activeHousingIds
       .map((id) => getHousingById(id))
       .filter((housing): housing is NonNullable<typeof housing> => Boolean(housing))
+      .filter((housing) => getLocationById(housing.locationId)?.cityId === gameState.player.cityId)
       .map((housing) => {
         const location = getLocationById(housing.locationId);
         const district = getDistrictById(housing.districtId);
@@ -857,6 +863,7 @@ export function useGameController() {
     const premisesListings = world.activePremisesIds
       .map((id) => getBusinessPremisesById(id))
       .filter((premises): premises is NonNullable<typeof premises> => Boolean(premises))
+      .filter((premises) => getLocationById(premises.locationId)?.cityId === gameState.player.cityId)
       .map((premises) => {
         const location = getLocationById(premises.locationId);
         const district = getDistrictById(premises.districtId);

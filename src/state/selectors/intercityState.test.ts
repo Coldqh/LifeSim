@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { CityId, IntercityRouteId, IntercityTicketId, LocationId, VehicleModelId } from '../../types/ids';
 import type { IntercityTravelState } from '../../types/intercity';
 import type { VehicleWorldState } from '../../types/vehicle';
+import { createInitialTime } from '../../core/time';
 import { selectIntercityState, type IntercityStateSelectorInput } from './intercityState';
 
 const cityId = (value: string) => value as CityId;
@@ -29,7 +30,7 @@ function createVehicleWorld(): VehicleWorldState {
 
 function createInput(overrides: Partial<IntercityStateSelectorInput> = {}): IntercityStateSelectorInput {
   return {
-    time: { day: 1, hour: 7, minute: 0, weekday: 'monday' },
+    time: createInitialTime(),
     player: {
       cityId: cityId('moscow'),
       locationId: locationId('msk_tverskoy_yaroslavsky_station'),
@@ -79,7 +80,8 @@ describe('selectIntercityState', () => {
 
     expect(result.routes.map((entry) => entry.route.id)).toEqual([
       'route_moscow_yaroslavl_train',
-      'route_moscow_yaroslavl_bus'
+      'route_moscow_yaroslavl_bus',
+      'route_moscow_rybinsk_bus'
     ]);
     expect(result.tickets).toHaveLength(1);
     expect(result.tickets[0].route?.id).toBe('route_moscow_yaroslavl_train');
@@ -88,9 +90,10 @@ describe('selectIntercityState', () => {
     expect(result.tickets[0].boardFailure).toBeUndefined();
     expect(result.accommodations).toEqual([]);
     expect(result.currentCity?.id).toBe('moscow');
-    expect(result.roadDestinations).toHaveLength(1);
+    expect(result.roadDestinations).toHaveLength(2);
     expect(result.roadDestinations[0].connection.destinationCityId).toBe('yaroslavl');
     expect(result.roadDestinations[0].city?.id).toBe('yaroslavl');
+    expect(result.roadDestinations[1].city?.id).toBe('rybinsk');
     expect(result.roadDestinations[0].arrivalLocation?.id).toBe('yar_leninsky_main_station');
     expect(result.ownedModel?.id).toBe('lada_granta_2018');
     expect(result.roadDestinations[0].carQuote).toEqual({
@@ -113,7 +116,9 @@ describe('selectIntercityState', () => {
 
     expect(result.routes.map((entry) => entry.route.id)).toEqual([
       'route_yaroslavl_moscow_train',
-      'route_yaroslavl_moscow_bus'
+      'route_yaroslavl_moscow_bus',
+      'route_yaroslavl_rybinsk_train',
+      'route_yaroslavl_rybinsk_bus'
     ]);
     expect(result.accommodations.map((entry) => ({
       id: entry.accommodation.id,
@@ -125,12 +130,37 @@ describe('selectIntercityState', () => {
       { id: 'stay_yar_daily_apartment', active: false, canAffordNight: false }
     ]);
     expect(result.currentCity?.id).toBe('yaroslavl');
-    expect(result.roadDestinations).toHaveLength(1);
+    expect(result.roadDestinations).toHaveLength(2);
     expect(result.roadDestinations[0].connection.destinationCityId).toBe('moscow');
     expect(result.roadDestinations[0].city?.id).toBe('moscow');
+    expect(result.roadDestinations[1].city?.id).toBe('rybinsk');
     expect(result.roadDestinations[0].arrivalLocation?.id).toBe('msk_tverskoy_yaroslavsky_station');
     expect(result.ownedModel).toBeUndefined();
     expect(result.roadDestinations[0].carQuote.available).toBe(false);
     expect(result.roadDestinations[0].carQuote.unavailableReason).toBe('Нет личного автомобиля.');
   });
+
+  it('builds Rybinsk routes, stays and road destinations from the registry', () => {
+    const result = selectIntercityState(createInput({
+      player: {
+        cityId: cityId('rybinsk'),
+        locationId: locationId('ryb_center_station'),
+        money: 3_000
+      }
+    }));
+
+    expect(result.routes.map((entry) => entry.route.id)).toEqual([
+      'route_rybinsk_yaroslavl_train',
+      'route_rybinsk_yaroslavl_bus',
+      'route_rybinsk_moscow_bus'
+    ]);
+    expect(result.accommodations.map((entry) => entry.accommodation.id)).toEqual([
+      'stay_ryb_hostel_station',
+      'stay_ryb_hotel_volga',
+      'stay_ryb_daily_apartment'
+    ]);
+    expect(result.currentCity?.id).toBe('rybinsk');
+    expect(result.roadDestinations.map((entry) => entry.city?.id)).toEqual(['yaroslavl', 'moscow']);
+  });
+
 });

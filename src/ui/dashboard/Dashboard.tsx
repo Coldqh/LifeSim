@@ -4,7 +4,7 @@ import { formatRubles } from '../../core/economy';
 import { getLifeActionFailure } from '../../core/actions';
 import { adjustActivityNeedsDelta, getNeedSeverity, getNeedsDecayDelta } from '../../core/needs';
 import { getHousingById } from '../../data/cities/contentSelectors';
-import { formatGameTime, formatWeekday } from '../../core/time';
+import { formatGameDateShort, formatGameTime, formatWeekday } from '../../core/time';
 import type { GameState } from '../../state';
 import type { LifeAction } from '../../types/actions';
 import type {
@@ -330,7 +330,7 @@ export function Dashboard({
             </div>
             <div className="global-status__item">
               <Icon name="clock" size={17} />
-              <div><span>День {time.day} · {formatWeekday(time.weekday)}</span><strong>{formatGameTime(time)}</strong></div>
+              <div><span>{formatGameDateShort(time)} · {formatWeekday(time.weekday)}</span><strong>{formatGameTime(time)}</strong></div>
             </div>
             <div className="global-status__item global-status__item--money">
               <Icon name="wallet" size={17} />

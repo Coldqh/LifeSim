@@ -36,7 +36,7 @@ import type { Npc, NpcRoleDefinition } from '../../../types/npc';
 import type { NpcRelationship, RelationshipStatus } from '../../../types/relationship';
 import type { SocialContact, SocialCircleTag, SocialInvitation, SocialMeeting, SocialMeetingDefinition, SocialMeetingSlot, SocialMessageActionId, SocialQuickMessageDefinition } from '../../../types/socialLife';
 import { VEHICLE_DEFECT_LABELS } from '../../../core/vehicles';
-import { formatGameTime } from '../../../core/time';
+import { formatGameDate, formatGameTime, formatSeason, formatWeekday } from '../../../core/time';
 import { getRelationshipStatusLabel } from '../../../core/relationships';
 import { Icon } from '../../icons';
 import type { PhonePanelState } from '../phoneTypes';
@@ -44,6 +44,7 @@ import { APPLICATION_LABELS, formatRubles, formatTotalMinutes, getApplicationTon
 
 export default function CalendarApp(props: {
   state: PhonePanelState;
+  time: GameTime;
   onRoute: (locationId: LocationId) => void;
   onAttend: (jobId: JobId) => void;
   onAttendMedical: (serviceId: MedicalServiceId) => void;
@@ -54,7 +55,7 @@ export default function CalendarApp(props: {
   const events = [...props.state.phone.calendarEvents].sort((a, b) => a.startsAtTotalMinutes - b.startsAtTotalMinutes);
   return (
     <div className="phone-app-page phone-screen-enter">
-      <div className="phone-app-banner phone-app-banner--calendar"><Icon name="calendar" size={25}/><div><strong>Календарь</strong><small>Встречи и приёмы</small></div></div>
+      <div className="phone-app-banner phone-app-banner--calendar"><Icon name="calendar" size={25}/><div><strong>{formatGameDate(props.time)}</strong><small>{formatWeekday(props.time.weekday)} · {formatSeason(props.time.calendar.season)} · {formatGameTime(props.time)}</small></div></div>
       <div className="phone-calendar-list">
         {events.length ? events.map((event) => {
           const vacancy = event.jobId ? props.state.jobs.find((entry) => entry.job.id === event.jobId) : undefined;

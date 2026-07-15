@@ -3,7 +3,7 @@ import type { Npc, NpcWorldState } from '../../types/npc';
 import type { LocationPopulationProfile, PopulationState } from '../../types/population';
 import type { GameTime, Weekday } from '../../types/time';
 import type { LocationId, NpcId } from '../../types/ids';
-import { addMinutes, getTotalMinutes } from '../time';
+import { fromTotalMinutes, getTotalMinutes } from '../time';
 import { getScheduleStatus } from '../schedule';
 
 const STEP_MINUTES = 15;
@@ -29,7 +29,7 @@ function deterministicUnit(seed: number, key: string): number {
 }
 
 function timeFromTotalMinutes(totalMinutes: number): GameTime {
-  return addMinutes({ day: 1, hour: 0, minute: 0, weekday: 'monday' }, Math.max(0, totalMinutes));
+  return fromTotalMinutes(totalMinutes);
 }
 
 function previousWeekday(weekday: Weekday): Weekday {

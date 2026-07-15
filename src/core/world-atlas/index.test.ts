@@ -3,6 +3,7 @@ import type { CityId, CountryId, DistrictId, LocationId } from '../../types/ids'
 import type { City, District, Location } from '../../types/location';
 import type { PopulationState } from '../../types/population';
 import type { GameTime } from '../../types/time';
+import { getCalendarDateForDay, getWeekdayForDay } from '../time';
 import {
   createInitialWorldAtlasState,
   processWorldAtlasTime
@@ -62,7 +63,8 @@ const time = (day: number, hour = 7): GameTime => ({
   day,
   hour,
   minute: 0,
-  weekday: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'][(day - 1) % 7] as GameTime['weekday']
+  weekday: getWeekdayForDay(day),
+  calendar: getCalendarDateForDay(day)
 });
 
 describe('world atlas runtime', () => {

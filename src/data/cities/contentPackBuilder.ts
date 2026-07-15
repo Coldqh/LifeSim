@@ -1,4 +1,4 @@
-import type { BoxingGym } from '../../types/boxing';
+import type { BoxingGym, BoxingTrainer } from '../../types/boxing';
 import type { BusinessPremises } from '../../types/business';
 import type { EducationProgram } from '../../types/education';
 import type { MedicalService } from '../../types/healthcare';
@@ -40,6 +40,7 @@ export type BuildCityContentInput = {
   universitySubjects: readonly UniversitySubjectDefinition[];
   medicalServices: readonly MedicalService[];
   boxingGyms: readonly BoxingGym[];
+  boxingTrainers?: readonly BoxingTrainer[];
   businessPremises: readonly BusinessPremises[];
   eventIds?: readonly EventId[];
 };
@@ -68,6 +69,8 @@ export function buildCityContent(input: BuildCityContentInput): CityContent {
   const referencedShopIds = uniqueByString(
     input.locations.flatMap((location) => location.shopId ? [location.shopId] : [])
   );
+  const cityBoxingGyms = input.boxingGyms.filter((gym) => locationIds.has(String(gym.locationId)));
+  const referencedTrainerIds = new Set(cityBoxingGyms.flatMap((gym) => (gym.trainerIds ?? []).map(String)));
 
   return {
     jobs: input.jobs.filter((job) => locationIds.has(String(job.locationId))),
@@ -83,7 +86,8 @@ export function buildCityContent(input: BuildCityContentInput): CityContent {
     sportFacilityLocationIds: input.locations
       .filter((location) => SPORT_LOCATION_TYPES.has(location.type))
       .map((location) => location.id),
-    boxingGyms: input.boxingGyms.filter((gym) => locationIds.has(String(gym.locationId))),
+    boxingGyms: cityBoxingGyms,
+    boxingTrainers: (input.boxingTrainers ?? []).filter((trainer) => referencedTrainerIds.has(String(trainer.id))),
     businessPremises: input.businessPremises.filter((premises) => (
       locationIds.has(String(premises.locationId)) && districtIds.has(String(premises.districtId))
     )),

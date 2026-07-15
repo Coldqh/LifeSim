@@ -88,7 +88,9 @@ describe('game state storage', () => {
       const loaded = loadGameState();
 
       expect(loaded?.world.atlas.activeCityId).toBe(state.player.cityId);
-      expect(Object.keys(loaded?.world.atlas.cityStates ?? {})).toEqual(['moscow', 'yaroslavl']);
+      expect(Object.keys(loaded?.world.atlas.cityStates ?? {})).toEqual(['moscow', 'yaroslavl', 'rybinsk']);
+      expect(loaded?.time.calendar).toEqual(state.time.calendar);
+      expect(loaded?.player.birthDate).toEqual(state.player.birthDate);
     });
   });
 

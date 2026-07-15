@@ -1,14 +1,27 @@
 import { describe, expect, it } from 'vitest';
 import { businessPremises } from '../business/premises';
+import { rybinskBusinessPremises } from '../business/rybinskPremises';
 import { basicEducationPrograms } from '../education/basicPrograms';
+import {
+  rybinskDegreePrograms,
+  rybinskEducationPrograms,
+  rybinskUniversities,
+  rybinskUniversitySubjects
+} from '../education/rybinskEducation';
 import { degreePrograms, universities, universitySubjects } from '../education/universities';
 import { medicalServices } from '../healthcare/services';
+import { rybinskMedicalServices } from '../healthcare/rybinskServices';
 import { basicHousing } from '../housing/basicHousing';
+import { rybinskHousing } from '../housing/rybinskHousing';
 import { basicJobs } from '../jobs/basicJobs';
+import { rybinskJobs } from '../jobs/rybinskJobs';
 import { basicShops } from '../shops/basicShops';
 import { boxingGyms } from '../sports/boxingGyms';
+import { boxingTrainers } from '../sports/boxingTrainers';
+import { rybinskBoxingGyms, rybinskBoxingTrainers } from '../sports/rybinskBoxing';
 import {
   getAllBoxingGyms,
+  getAllBoxingTrainers,
   getAllBusinessPremises,
   getAllDegreePrograms,
   getAllEducationPrograms,
@@ -19,6 +32,7 @@ import {
   getAllUniversities,
   getAllUniversitySubjects,
   getBoxingGymById,
+  getBoxingTrainerById,
   getBusinessPremisesById,
   getDegreeProgramById,
   getEducationProgramById,
@@ -31,33 +45,37 @@ import {
   getUniversityById,
   getUniversitySubjectById
 } from './contentSelectors';
-import { cityRegistry, moscowCity, yaroslavlCity } from './index';
+import { cityRegistry, moscowCity, rybinskCity, yaroslavlCity } from './index';
 
 const ids = <T extends { id: unknown }>(values: readonly T[]) => values.map((entry) => String(entry.id));
 
 describe('city content selectors', () => {
-  it('preserves the current aggregate catalogue order and contents', () => {
-    expect(ids(getAllJobs())).toEqual(ids(basicJobs));
-    expect(ids(getAllHousing())).toEqual(ids(basicHousing));
+  it('preserves legacy catalogue order and appends Rybinsk content', () => {
+    expect(ids(getAllJobs())).toEqual([...ids(basicJobs), ...ids(rybinskJobs)]);
+    expect(ids(getAllHousing())).toEqual([...ids(basicHousing), ...ids(rybinskHousing)]);
     expect(ids(getAllShops())).toEqual(ids(basicShops));
-    expect(ids(getAllEducationPrograms())).toEqual(ids(basicEducationPrograms));
-    expect(ids(getAllUniversities())).toEqual(ids(universities));
-    expect(ids(getAllDegreePrograms())).toEqual(ids(degreePrograms));
-    expect(ids(getAllUniversitySubjects())).toEqual(ids(universitySubjects));
-    expect(ids(getAllMedicalServices())).toEqual(ids(medicalServices));
-    expect(ids(getAllBoxingGyms())).toEqual(ids(boxingGyms));
-    expect(ids(getAllBusinessPremises())).toEqual(ids(businessPremises));
+    expect(ids(getAllEducationPrograms())).toEqual([...ids(basicEducationPrograms), ...ids(rybinskEducationPrograms)]);
+    expect(ids(getAllUniversities())).toEqual([...ids(universities), ...ids(rybinskUniversities)]);
+    expect(ids(getAllDegreePrograms())).toEqual([...ids(degreePrograms), ...ids(rybinskDegreePrograms)]);
+    expect(ids(getAllUniversitySubjects())).toEqual([...ids(universitySubjects), ...ids(rybinskUniversitySubjects)]);
+    expect(ids(getAllMedicalServices())).toEqual([...ids(medicalServices), ...ids(rybinskMedicalServices)]);
+    expect(ids(getAllBoxingGyms())).toEqual([...ids(boxingGyms), ...ids(rybinskBoxingGyms)]);
+    expect(ids(getAllBoxingTrainers())).toEqual([...ids(boxingTrainers), ...ids(rybinskBoxingTrainers)]);
+    expect(ids(getAllBusinessPremises())).toEqual([...ids(businessPremises), ...ids(rybinskBusinessPremises)]);
   });
 
   it('scopes jobs through the registered city packs', () => {
     const moscowJobs = getJobsForCity(moscowCity.id);
     const yaroslavlJobs = getJobsForCity(yaroslavlCity.id);
+    const rybinskJobsForCity = getJobsForCity(rybinskCity.id);
 
     expect(moscowJobs.length).toBeGreaterThan(0);
     expect(yaroslavlJobs.length).toBeGreaterThan(0);
+    expect(rybinskJobsForCity.length).toBeGreaterThan(0);
     expect(moscowJobs.every((job) => cityRegistry.getLocation(job.locationId)?.cityId === moscowCity.id)).toBe(true);
     expect(yaroslavlJobs.every((job) => cityRegistry.getLocation(job.locationId)?.cityId === yaroslavlCity.id)).toBe(true);
-    expect(getJobsForLocation(yaroslavlJobs[0]?.locationId).map((job) => job.id)).toContain(yaroslavlJobs[0]?.id);
+    expect(rybinskJobsForCity.every((job) => cityRegistry.getLocation(job.locationId)?.cityId === rybinskCity.id)).toBe(true);
+    expect(getJobsForLocation(rybinskJobsForCity[0]?.locationId).map((job) => job.id)).toContain(rybinskJobsForCity[0]?.id);
   });
 
   it('resolves runtime definitions from the city registry catalogues', () => {
@@ -70,6 +88,7 @@ describe('city content selectors', () => {
     const subject = getAllUniversitySubjects()[0];
     const service = getAllMedicalServices()[0];
     const gym = getAllBoxingGyms()[0];
+    const trainer = getAllBoxingTrainers()[0];
     const premises = getAllBusinessPremises()[0];
 
     expect(getJobById(job?.id)).toBe(job);
@@ -81,6 +100,7 @@ describe('city content selectors', () => {
     expect(getUniversitySubjectById(subject?.id)).toBe(subject);
     expect(getMedicalServiceById(service?.id)).toBe(service);
     expect(getBoxingGymById(gym?.id)).toBe(gym);
+    expect(getBoxingTrainerById(trainer?.id)).toBe(trainer);
     expect(getBusinessPremisesById(premises?.id)).toBe(premises);
   });
 });

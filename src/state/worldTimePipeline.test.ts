@@ -25,6 +25,7 @@ describe('advanceWorldTime', () => {
     expect(result.world.atlas.lastProcessedTotalMinutes).toBe(currentTotalMinutes);
     expect(result.world.atlas.cityStates.moscow.tier).toBe('active');
     expect(result.world.atlas.cityStates.yaroslavl.tier).toBe('regional');
+    expect(result.world.atlas.cityStates.rybinsk.tier).toBe('regional');
     expect(result.player.needs.hunger).toBeLessThan(state.player.needs.hunger);
   });
 
@@ -64,7 +65,28 @@ describe('advanceWorldTime', () => {
     expect(second.world.finance.transactions).toHaveLength(first.world.finance.transactions.length);
     expect(second.world.phone.lastProcessedTotalMinutes).toBe(getTotalMinutes(nextTime));
   });
-  it('keeps remote city NPC details frozen while the active city advances', () => {
+
+  it('advances player age exactly on the stored birthday', () => {
+    const state = createInitialGameState();
+    const beforeBirthday = {
+      ...state,
+      time: { ...state.time, day: 347, calendar: { year: 2027, month: 8, dayOfMonth: 19, season: 'summer' as const } },
+      player: { ...state.player, age: 18 }
+    };
+    const nextTime = addMinutes(beforeBirthday.time, 24 * 60);
+    const result = advanceWorldTime({
+      state: beforeBirthday,
+      player: beforeBirthday.player,
+      nextTime,
+      decayProfile: 'resting',
+      actionTitle: 'Ожидание'
+    });
+
+    expect(result.player.age).toBe(19);
+    expect(result.lifeLogEntries.some((entry) => entry.title === 'День рождения')).toBe(true);
+  });
+
+  it('keeps non-active city NPC details frozen while the active city advances', () => {
     const state = createInitialGameState();
     const remoteNpc = state.world.population.npcs.find((npc) => String(npc.homeDistrictId).startsWith('yar_'));
     expect(remoteNpc).toBeDefined();

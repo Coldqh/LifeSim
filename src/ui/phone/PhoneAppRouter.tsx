@@ -55,7 +55,7 @@ export function PhoneAppRouter(props: PhoneShellProps) {
       content = <MessagesApp state={props.state} onRead={props.onReadMessage}/>;
       break;
     case 'calendar':
-      content = <CalendarApp state={props.state} onRoute={openMap} onAttend={props.onAttendInterview} onAttendMedical={props.onAttendMedicalVisit} onBoardIntercity={props.onBoardIntercityTicket} onAttendUniversity={props.onAttendDegreeEntranceExam} onAttendSocial={props.onAttendSocialMeeting}/>;
+      content = <CalendarApp time={props.time} state={props.state} onRoute={openMap} onAttend={props.onAttendInterview} onAttendMedical={props.onAttendMedicalVisit} onBoardIntercity={props.onBoardIntercityTicket} onAttendUniversity={props.onAttendDegreeEntranceExam} onAttendSocial={props.onAttendSocialMeeting}/>;
       break;
     case 'notifications':
       content = <NotificationsApp state={props.state} onRead={props.onReadNotification}/>;

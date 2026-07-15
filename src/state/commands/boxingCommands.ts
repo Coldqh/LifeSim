@@ -1,18 +1,39 @@
 import { getMedicalActivityFailure } from '../../core/healthcare';
 import { getLocationById } from '../../core/location';
 import { applyBoxingMembership, applyBoxingSparring, applyBoxingTournament, applyBoxingTraining, selectBoxingTrainer } from '../../core/sport';
-import { getAllBoxingGyms, getBoxingGymById } from '../../data/cities/contentSelectors';
-import { getBoxingTrainerById } from '../../data/sports/boxingTrainers';
+import {
+  getAllBoxingGyms,
+  getBoxingGymById,
+  getBoxingGymByLocationId,
+  getBoxingTrainerById
+} from '../../data/cities/contentSelectors';
 import { getBoxingTrainingById } from '../../data/sports/boxingTrainings';
 import { getBoxingOpponentById } from '../../data/sports/boxingOpponents';
 import { getBoxingTournamentById } from '../../data/sports/boxingTournaments';
 import type { BoxingGymId, BoxingOpponentId, BoxingTournamentId, BoxingTrainerId, BoxingTrainingId } from '../../types/ids';
+import type { GameState } from '../gameState';
 import { createLifeLogEntry } from '../gameState';
 import type { GameStateSetter } from './commandSupport';
 import { applyBoxingOperationState, mergeLifeLog } from './commandSupport';
 
+function resolvePlayerGym(state: GameState, catalogue: ReturnType<typeof getAllBoxingGyms>) {
+  return getBoxingGymById(state.player.boxing.membership?.gymId)
+    ?? getBoxingGymByLocationId(state.player.locationId)
+    ?? catalogue.find((gym) => getLocationById(gym.locationId)?.cityId === state.player.cityId);
+}
+
+function rejectMedicalActivity(state: GameState, failure: string): GameState {
+  const logEntry = createLifeLogEntry(state, 'Бокс недоступен', failure);
+  return {
+    ...state,
+    lastResult: { ok: false, actionName: 'Бокс', timeDeltaMinutes: 0, messages: [failure] },
+    lifeLog: mergeLifeLog([logEntry], state.lifeLog)
+  };
+}
+
 export function createBoxingCommands(setGameState: GameStateSetter) {
   const boxingGymCatalogue = getAllBoxingGyms();
+
   function buyBoxingMembership(gymId: BoxingGymId): void {
     const gym = getBoxingGymById(gymId);
     if (!gym) return;
@@ -31,8 +52,8 @@ export function createBoxingCommands(setGameState: GameStateSetter) {
     const trainer = getBoxingTrainerById(trainerId);
     if (!trainer) return;
     setGameState((currentState) => {
-      const gym = boxingGymCatalogue.find((candidate) => candidate.trainerIds.includes(trainer.id));
-      if (!gym) return currentState;
+      const gym = resolvePlayerGym(currentState, boxingGymCatalogue);
+      if (!gym || !gym.trainerIds.includes(trainer.id)) return currentState;
       return applyBoxingOperationState(currentState, selectBoxingTrainer({
         player: currentState.player,
         time: currentState.time,
@@ -47,15 +68,9 @@ export function createBoxingCommands(setGameState: GameStateSetter) {
     if (!training) return;
     setGameState((currentState) => {
       const medicalFailure = getMedicalActivityFailure(currentState.world.medical, 'boxing_training');
-      if (medicalFailure) {
-        const logEntry = createLifeLogEntry(currentState, 'Бокс недоступен', medicalFailure);
-        return {
-          ...currentState,
-          lastResult: { ok: false, actionName: 'Бокс', timeDeltaMinutes: 0, messages: [medicalFailure] },
-          lifeLog: mergeLifeLog([logEntry], currentState.lifeLog)
-        };
-      }
-      const gym = boxingGymCatalogue[0];
+      if (medicalFailure) return rejectMedicalActivity(currentState, medicalFailure);
+      const gym = resolvePlayerGym(currentState, boxingGymCatalogue);
+      if (!gym) return currentState;
       const location = getLocationById(gym.locationId);
       const trainer = getBoxingTrainerById(currentState.player.boxing.selectedTrainerId);
       return applyBoxingOperationState(currentState, applyBoxingTraining({
@@ -74,15 +89,9 @@ export function createBoxingCommands(setGameState: GameStateSetter) {
     if (!opponent) return;
     setGameState((currentState) => {
       const medicalFailure = getMedicalActivityFailure(currentState.world.medical, 'sparring');
-      if (medicalFailure) {
-        const logEntry = createLifeLogEntry(currentState, 'Бокс недоступен', medicalFailure);
-        return {
-          ...currentState,
-          lastResult: { ok: false, actionName: 'Бокс', timeDeltaMinutes: 0, messages: [medicalFailure] },
-          lifeLog: mergeLifeLog([logEntry], currentState.lifeLog)
-        };
-      }
-      const gym = boxingGymCatalogue[0];
+      if (medicalFailure) return rejectMedicalActivity(currentState, medicalFailure);
+      const gym = resolvePlayerGym(currentState, boxingGymCatalogue);
+      if (!gym) return currentState;
       const location = getLocationById(gym.locationId);
       const trainer = getBoxingTrainerById(currentState.player.boxing.selectedTrainerId);
       return applyBoxingOperationState(currentState, applyBoxingSparring({
@@ -101,15 +110,9 @@ export function createBoxingCommands(setGameState: GameStateSetter) {
     if (!tournament) return;
     setGameState((currentState) => {
       const medicalFailure = getMedicalActivityFailure(currentState.world.medical, 'tournament');
-      if (medicalFailure) {
-        const logEntry = createLifeLogEntry(currentState, 'Бокс недоступен', medicalFailure);
-        return {
-          ...currentState,
-          lastResult: { ok: false, actionName: 'Бокс', timeDeltaMinutes: 0, messages: [medicalFailure] },
-          lifeLog: mergeLifeLog([logEntry], currentState.lifeLog)
-        };
-      }
-      const gym = boxingGymCatalogue[0];
+      if (medicalFailure) return rejectMedicalActivity(currentState, medicalFailure);
+      const gym = resolvePlayerGym(currentState, boxingGymCatalogue);
+      if (!gym) return currentState;
       const location = getLocationById(gym.locationId);
       const opponents = tournament.opponentIds
         .map((opponentId) => getBoxingOpponentById(opponentId))

@@ -57,6 +57,21 @@ describe('save migrations', () => {
     expect(migrated.world.atlas.lastProcessedTotalMinutes).toBe((8 - 1) * 24 * 60 + 13 * 60 + 15);
   });
 
+
+  it('adds calendar and birth date when migrating v25 to v26', () => {
+    const migrated = migrateSaveState({
+      player: { age: 18 },
+      time: { day: 347, hour: 9, minute: 30 },
+      world: {}
+    }, 25).state as {
+      player: { birthDate: { year: number; month: number; dayOfMonth: number } };
+      time: { calendar: { year: number; month: number; dayOfMonth: number; season: string } };
+    };
+
+    expect(migrated.time.calendar).toEqual({ year: 2027, month: 8, dayOfMonth: 19, season: 'summer' });
+    expect(migrated.player.birthDate).toEqual({ year: 2008, month: 8, dayOfMonth: 20 });
+  });
+
   it('decodes both legacy raw states and the current versioned envelope', () => {
     const legacy = decodeSavePayload(JSON.stringify({ player: { inventory: [] } }), 23);
     const encoded = encodeSavePayload({ marker: 'current' });
@@ -75,7 +90,7 @@ describe('save migrations', () => {
   it('uses a new current key, a dedicated backup key and descending legacy keys', () => {
     expect(GAME_STATE_STORAGE_KEY).toBe(`lifesim.gameState.v${CURRENT_SAVE_VERSION}`);
     expect(GAME_STATE_BACKUP_STORAGE_KEY).toBe(`${GAME_STATE_STORAGE_KEY}.backup`);
-    expect(LEGACY_GAME_STATE_STORAGE_KEYS[0]).toBe('lifesim.gameState.v24');
+    expect(LEGACY_GAME_STATE_STORAGE_KEYS[0]).toBe('lifesim.gameState.v25');
     expect(LEGACY_GAME_STATE_STORAGE_KEYS[LEGACY_GAME_STATE_STORAGE_KEYS.length - 1]).toBe('lifesim.gameState.v7');
   });
 });

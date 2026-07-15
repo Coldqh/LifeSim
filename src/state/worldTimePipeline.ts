@@ -14,7 +14,7 @@ import { processPhoneTime } from '../core/phone';
 import { processSocialLifeTime } from '../core/social-life';
 import { maybeActivateSocialEvent, processScheduledSocialEvents } from '../core/events';
 import { applyBoxingRecovery } from '../core/sport';
-import { fromTotalMinutes, getElapsedMinutes, getTotalMinutes } from '../core/time';
+import { calculateAge, formatGameDate, fromTotalMinutes, getElapsedMinutes, getTotalMinutes } from '../core/time';
 import { processUniversityTime } from '../core/university';
 import { refreshVehicleMarket } from '../core/vehicles';
 import { getRegionalCityIds, processWorldAtlasTime, simulateActiveCityPopulation } from '../core/world-atlas';
@@ -237,6 +237,14 @@ export function advanceWorldTime(input: AdvanceWorldTimeInput): AdvanceWorldTime
   const decayApplied = applyNeedsDecay(input.player.needs, elapsedMinutes, decayProfile);
   const decayMessage = describeNeedsDecay(decayApplied.delta);
   let nextPlayer: Player = { ...input.player, needs: decayApplied.needs };
+  const previousAge = calculateAge(nextPlayer.birthDate, state.time.calendar);
+  const currentAge = calculateAge(nextPlayer.birthDate, nextTime.calendar);
+  nextPlayer = { ...nextPlayer, age: currentAge };
+  if (currentAge > previousAge) {
+    const birthdayMessage = `${formatGameDate(nextTime)}. Тебе исполнилось ${currentAge}.`;
+    messages.push(birthdayMessage);
+    lifeLogEntries.push(createLifeLogEntry({ time: nextTime }, 'День рождения', birthdayMessage));
+  }
   let housingMarket = sourceWorld.housingMarket;
   let comfortNeedsDelta: Partial<NeedsState> = {};
 

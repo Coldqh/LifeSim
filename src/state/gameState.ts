@@ -4,7 +4,7 @@ import type { Player } from '../types/player';
 import type { PlayerSkills } from '../types/skill';
 import type { HousingId, HousingMarketState, RentalContract } from '../types/housing';
 import type { BusinessWorldState, OwnedBusiness } from '../types/business';
-import type { GameTime } from '../types/time';
+import type { CalendarDate, GameTime } from '../types/time';
 import type { PhoneState } from '../types/phone';
 import type { PersonalFinanceState } from '../types/finance';
 import type { VehicleWorldState } from '../types/vehicle';
@@ -12,7 +12,7 @@ import type { MedicalState } from '../types/healthcare';
 import type { IntercityTravelState } from '../types/intercity';
 import type { UniversityState } from '../types/university';
 import type { WorldAtlasState } from '../types/worldAtlas';
-import { createInitialTime, formatGameTime, getTotalMinutes } from '../core/time';
+import { calculateAge, createInitialTime, formatGameTime, getTotalMinutes, normalizeGameTime } from '../core/time';
 import { createInitialBoxingProfile } from '../core/sport';
 import type { BoxingProfile } from '../types/boxing';
 import type { PopulationState } from '../types/population';
@@ -182,6 +182,7 @@ export function createInitialPlayer(): Player {
     id: playerId('player_001'),
     name: 'Игрок',
     age: 18,
+    birthDate: { year: 2008, month: 8, dayOfMonth: 20 },
     money: 11000,
     cityId: cityId('moscow'),
     districtId: districtId('msk_danilovsky'),
@@ -642,11 +643,33 @@ function normalizeFinanceState(value: unknown, bankBalance: number, time: GameTi
   };
 }
 
+
+function normalizeBirthDate(value: unknown, time: GameTime, fallbackAge: number): CalendarDate {
+  if (value && typeof value === 'object') {
+    const candidate = value as Partial<CalendarDate>;
+    const year = typeof candidate.year === 'number' ? Math.floor(candidate.year) : undefined;
+    const month = typeof candidate.month === 'number' ? Math.floor(candidate.month) : undefined;
+    const dayOfMonth = typeof candidate.dayOfMonth === 'number' ? Math.floor(candidate.dayOfMonth) : undefined;
+    if (year && month && dayOfMonth && month >= 1 && month <= 12 && dayOfMonth >= 1 && dayOfMonth <= 31) {
+      return { year, month, dayOfMonth };
+    }
+  }
+
+  const age = Math.max(0, Math.floor(Number.isFinite(fallbackAge) ? fallbackAge : 18));
+  const month = 8;
+  const dayOfMonth = 20;
+  const birthdayPassed = time.calendar.month > month
+    || (time.calendar.month === month && time.calendar.dayOfMonth >= dayOfMonth);
+  return { year: time.calendar.year - age - (birthdayPassed ? 0 : 1), month, dayOfMonth };
+}
+
 function normalizeLoadedGameState(value: unknown): GameState | undefined {
   if (!value || typeof value !== 'object') return undefined;
   const parsed = value as GameState;
   if (!parsed.player || !parsed.time || !Array.isArray(parsed.lifeLog)) return undefined;
 
+  const time = normalizeGameTime(parsed.time);
+  const birthDate = normalizeBirthDate(parsed.player.birthDate, time, parsed.player.age ?? 18);
   const inventory = Array.isArray(parsed.player.inventory) ? parsed.player.inventory : [];
   const sanitizedInventory = inventory.filter((item) => !REMOVED_PRODUCT_IDS.has(String(item.productId)));
   const activeCityId = parsed.player.cityId ?? cityId('moscow');
@@ -656,7 +679,7 @@ function normalizeLoadedGameState(value: unknown): GameState | undefined {
     roadConnections: intercityNetwork.roadConnections
   });
   const detailedCityIds = [activeCityId, ...regionalCityIds];
-  const population = normalizePopulation(parsed.world?.population, parsed.time, detailedCityIds);
+  const population = normalizePopulation(parsed.world?.population, time, detailedCityIds);
   const atlas = normalizeWorldAtlasState(parsed.world?.atlas, {
     cities: cityRegistry.cities,
     districts: cityRegistry.districts,
@@ -664,29 +687,32 @@ function normalizeLoadedGameState(value: unknown): GameState | undefined {
     population,
     activeCityId,
     regionalCityIds,
-    time: parsed.time
+    time
   });
   const playerHousingId = parsed.player.housingId ?? housingId('housing_room_danilovsky');
   const daysUntilRent = parsed.player.daysUntilRent ?? 7;
 
   return {
     ...parsed,
+    time,
     world: {
       population,
-      social: normalizeSocialState(parsed.world?.social, parsed.time),
-      housingMarket: normalizeHousingMarket(parsed.world?.housingMarket, parsed.time, population.seed, playerHousingId),
-      business: normalizeBusinessWorld(parsed.world?.business, parsed.time, population.seed),
-      phone: normalizePhoneState(parsed.world?.phone, parsed.time),
-      finance: normalizeFinanceState(parsed.world?.finance, parsed.player.money ?? 0, parsed.time),
-      vehicles: normalizeVehicleWorld(parsed.world?.vehicles, population.seed, parsed.time),
-      medical: normalizeMedicalState(parsed.world?.medical, parsed.time),
-      intercity: normalizeIntercityState(parsed.world?.intercity, parsed.time),
-      university: normalizeUniversityState(parsed.world?.university, parsed.time),
+      social: normalizeSocialState(parsed.world?.social, time),
+      housingMarket: normalizeHousingMarket(parsed.world?.housingMarket, time, population.seed, playerHousingId),
+      business: normalizeBusinessWorld(parsed.world?.business, time, population.seed),
+      phone: normalizePhoneState(parsed.world?.phone, time),
+      finance: normalizeFinanceState(parsed.world?.finance, parsed.player.money ?? 0, time),
+      vehicles: normalizeVehicleWorld(parsed.world?.vehicles, population.seed, time),
+      medical: normalizeMedicalState(parsed.world?.medical, time),
+      intercity: normalizeIntercityState(parsed.world?.intercity, time),
+      university: normalizeUniversityState(parsed.world?.university, time),
       atlas
     },
     player: {
       ...parsed.player,
       cityId: activeCityId,
+      birthDate,
+      age: calculateAge(birthDate, time.calendar),
       housingId: playerHousingId,
       inventory: sanitizedInventory,
       completedShifts: parsed.player.completedShifts ?? {},
@@ -694,7 +720,7 @@ function normalizeLoadedGameState(value: unknown): GameState | undefined {
       jobLevels: parsed.player.jobLevels ?? {},
       skills: normalizePlayerSkills(parsed.player.skills),
       daysUntilRent,
-      rentalContract: normalizeRentalContract(parsed.player.rentalContract, playerHousingId, parsed.time, daysUntilRent),
+      rentalContract: normalizeRentalContract(parsed.player.rentalContract, playerHousingId, time, daysUntilRent),
       boxing: normalizeBoxingProfile(parsed.player.boxing)
     }
   };

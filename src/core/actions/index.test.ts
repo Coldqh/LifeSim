@@ -1,16 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import { applyLifeAction } from './index';
+import { createInitialTime } from '../time';
 import type { LifeAction } from '../../types/actions';
 import type { ActionId } from '../../types/ids';
 import type { Player } from '../../types/player';
 import type { GameTime } from '../../types/time';
 
-const time: GameTime = {
-  day: 1,
-  hour: 7,
-  minute: 0,
-  weekday: 'monday'
-};
+const time: GameTime = createInitialTime();
 
 function createPlayer(money: number): Player {
   return {
@@ -60,7 +56,8 @@ describe('applyLifeAction', () => {
       day: 1,
       hour: 7,
       minute: 15,
-      weekday: 'monday'
+      weekday: 'monday',
+      calendar: { year: 2026, month: 9, dayOfMonth: 7, season: 'autumn' }
     });
     expect(output.player.money).toBe(900);
     expect(output.player.needs).toEqual({

@@ -9,6 +9,7 @@ import { basicJobs } from '../jobs/basicJobs';
 import { yaroslavlLocations } from '../locations/yaroslavlLocations';
 import { basicShops } from '../shops/basicShops';
 import { boxingGyms } from '../sports/boxingGyms';
+import { boxingTrainers } from '../sports/boxingTrainers';
 import { buildCityContent } from './contentPackBuilder';
 import { defineCityContentPack } from './registry';
 import { yaroslavlCity } from './yaroslavl';
@@ -31,6 +32,7 @@ export const yaroslavlContentPack = defineCityContentPack({
     universitySubjects,
     medicalServices,
     boxingGyms,
+    boxingTrainers,
     businessPremises
   })
 });

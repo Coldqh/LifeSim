@@ -1,5 +1,6 @@
+import { getCalendarDateForDay } from '../core/time';
 export const MIN_SUPPORTED_SAVE_VERSION = 7;
-export const CURRENT_SAVE_VERSION = 25;
+export const CURRENT_SAVE_VERSION = 26;
 export const SAVE_ENVELOPE_FORMAT = 'lifesim-save';
 
 export const getGameStateStorageKey = (version: number): string => `lifesim.gameState.v${version}`;
@@ -107,6 +108,40 @@ function migrateV24ToV25(state: unknown): unknown {
   };
 }
 
+
+function migrateV25ToV26(state: unknown): unknown {
+  const root = asRecord(state);
+  const time = asRecord(root?.time);
+  const player = asRecord(root?.player);
+  if (!root || !time || !player) return state;
+
+  const day = typeof time.day === 'number' ? Math.max(1, Math.floor(time.day)) : 1;
+  const calendar = getCalendarDateForDay(day);
+  const age = typeof player.age === 'number' ? Math.max(0, Math.floor(player.age)) : 18;
+  const birthMonth = 8;
+  const birthDayOfMonth = 20;
+  const birthdayPassed = calendar.month > birthMonth
+    || (calendar.month === birthMonth && calendar.dayOfMonth >= birthDayOfMonth);
+  const existingBirthDate = asRecord(player.birthDate);
+
+  return {
+    ...root,
+    time: {
+      ...time,
+      weekday: time.weekday,
+      calendar
+    },
+    player: {
+      ...player,
+      birthDate: existingBirthDate ?? {
+        year: calendar.year - age - (birthdayPassed ? 0 : 1),
+        month: birthMonth,
+        dayOfMonth: birthDayOfMonth
+      }
+    }
+  };
+}
+
 const SAVE_MIGRATIONS = new Map<number, SaveMigration>([
   [7, identityMigration],
   [8, identityMigration],
@@ -125,7 +160,8 @@ const SAVE_MIGRATIONS = new Map<number, SaveMigration>([
   [21, identityMigration],
   [22, identityMigration],
   [23, identityMigration],
-  [24, migrateV24ToV25]
+  [24, migrateV24ToV25],
+  [25, migrateV25ToV26]
 ]);
 
 function assertSupportedVersion(version: number): void {

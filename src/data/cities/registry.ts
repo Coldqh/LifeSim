@@ -1,4 +1,4 @@
-import type { BoxingGym } from '../../types/boxing';
+import type { BoxingGym, BoxingTrainer } from '../../types/boxing';
 import type { BusinessPremises } from '../../types/business';
 import type { EducationProgram } from '../../types/education';
 import type { MedicalService } from '../../types/healthcare';
@@ -30,6 +30,7 @@ export type CityContent = {
   medicalServices: readonly MedicalService[];
   sportFacilityLocationIds: readonly LocationId[];
   boxingGyms: readonly BoxingGym[];
+  boxingTrainers: readonly BoxingTrainer[];
   businessPremises: readonly BusinessPremises[];
   transportNodeLocationIds: readonly LocationId[];
   eventIds: readonly EventId[];
@@ -92,6 +93,7 @@ const EMPTY_CONTENT: CityContent = {
   medicalServices: [],
   sportFacilityLocationIds: [],
   boxingGyms: [],
+  boxingTrainers: [],
   businessPremises: [],
   transportNodeLocationIds: [],
   eventIds: []
@@ -109,6 +111,7 @@ function normalizeContent(content: Partial<CityContent> | undefined): CityConten
     medicalServices: [...(content?.medicalServices ?? [])],
     sportFacilityLocationIds: [...(content?.sportFacilityLocationIds ?? [])],
     boxingGyms: [...(content?.boxingGyms ?? [])],
+    boxingTrainers: [...(content?.boxingTrainers ?? [])],
     businessPremises: [...(content?.businessPremises ?? [])],
     transportNodeLocationIds: [...(content?.transportNodeLocationIds ?? [])],
     eventIds: [...(content?.eventIds ?? [])]
@@ -143,6 +146,7 @@ function assertUniqueContent(pack: CityContentPack): void {
   assertUnique(pack.content.medicalServices, (entry) => String(entry.id), `${cityLabel} medical service`);
   assertUnique(pack.content.sportFacilityLocationIds, String, `${cityLabel} sport facility`);
   assertUnique(pack.content.boxingGyms, (entry) => String(entry.id), `${cityLabel} boxing gym`);
+  assertUnique(pack.content.boxingTrainers, (entry) => String(entry.id), `${cityLabel} boxing trainer`);
   assertUnique(pack.content.businessPremises, (entry) => String(entry.id), `${cityLabel} business premises`);
   assertUnique(pack.content.transportNodeLocationIds, String, `${cityLabel} transport node`);
   assertUnique(pack.content.eventIds, String, `${cityLabel} event`);
@@ -160,6 +164,7 @@ function validateCityContent(pack: CityContentPack): void {
   const shopIds = new Set(pack.content.shops.map((shop) => String(shop.id)));
   const universityIds = new Set(pack.content.universities.map((university) => String(university.id)));
   const universitySubjectIds = new Set(pack.content.universitySubjects.map((subject) => String(subject.id)));
+  const boxingTrainerIds = new Set(pack.content.boxingTrainers.map((trainer) => String(trainer.id)));
 
   for (const location of pack.locations) {
     if (location.shopId && !shopIds.has(String(location.shopId))) {
@@ -200,6 +205,11 @@ function validateCityContent(pack: CityContentPack): void {
   }
   for (const gym of pack.content.boxingGyms) {
     assertPackLocation(pack, gym.locationId, `boxing gym ${String(gym.id)}`);
+    for (const trainerId of gym.trainerIds ?? []) {
+      if (!boxingTrainerIds.has(String(trainerId))) {
+        throw new Error(`Boxing gym ${String(gym.id)} references trainer outside its city pack.`);
+      }
+    }
   }
   for (const premises of pack.content.businessPremises) {
     assertPackLocation(pack, premises.locationId, `business premises ${String(premises.id)}`);
@@ -316,6 +326,7 @@ export function createCityRegistry(packs: readonly CityContentPack[]): CityRegis
     medicalServices: mergeUniqueById(packs, (pack) => pack.content.medicalServices, (entry) => String(entry.id)),
     sportFacilityLocationIds: mergeUniqueById(packs, (pack) => pack.content.sportFacilityLocationIds, String),
     boxingGyms: mergeUniqueById(packs, (pack) => pack.content.boxingGyms, (entry) => String(entry.id)),
+    boxingTrainers: mergeUniqueById(packs, (pack) => pack.content.boxingTrainers, (entry) => String(entry.id)),
     businessPremises: mergeUniqueById(packs, (pack) => pack.content.businessPremises, (entry) => String(entry.id)),
     transportNodeLocationIds: mergeUniqueById(packs, (pack) => pack.content.transportNodeLocationIds, String),
     eventIds: mergeUniqueById(packs, (pack) => pack.content.eventIds, String)

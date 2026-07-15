@@ -22,7 +22,6 @@ export function AppShell() {
     vehicleState,
     healthState,
     universityState,
-    scheduledWaitState,
     performAction,
     moveToDistrict,
     moveToLocation,
@@ -112,7 +111,6 @@ export function AppShell() {
         socialState={socialState}
         housingState={housingState}
         businessState={businessState}
-        scheduledWaitState={scheduledWaitState}
         locationState={locationState}
         onApplyForJob={(jobId) => openPhone('jobs', jobId)}
         onBuyProduct={buyProduct}
@@ -144,9 +142,6 @@ export function AppShell() {
         onBuyBusinessEquipment={purchaseBusinessEquipment}
         onBuyBusinessUpgrade={purchaseBusinessUpgrade}
         onWorkBusinessOwnerShift={workBusinessOwnerShift}
-        onOpenPhone={() => openPhone('home')}
-        onWaitForScheduledEvent={(minutes) => skipGameTime(minutes, 30 * 24 * 60)}
-        phoneUnreadCount={phoneState.unreadCount}
       />
       <PhoneShell
         open={phoneOpen}

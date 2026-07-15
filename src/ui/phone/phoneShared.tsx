@@ -1,4 +1,5 @@
 import type { PhoneAppId, PhoneJobApplication } from '../../types/phone';
+import { formatGameDateShort, formatGameTime, fromTotalMinutes } from '../../core/time';
 import { Icon, type IconName } from '../icons';
 
 export const APPLICATION_LABELS: Record<PhoneJobApplication['status'], string> = {
@@ -29,12 +30,8 @@ export function formatRubles(value: number): string {
 }
 
 export function formatTotalMinutes(totalMinutes: number): string {
-  const safe = Math.max(0, Math.floor(totalMinutes));
-  const day = Math.floor(safe / 1440) + 1;
-  const insideDay = safe % 1440;
-  const hour = String(Math.floor(insideDay / 60)).padStart(2, '0');
-  const minute = String(insideDay % 60).padStart(2, '0');
-  return `День ${day} · ${hour}:${minute}`;
+  const time = fromTotalMinutes(totalMinutes);
+  return `${formatGameDateShort(time)} · ${formatGameTime(time)}`;
 }
 
 export function getApplicationTone(status?: PhoneJobApplication['status']): string {

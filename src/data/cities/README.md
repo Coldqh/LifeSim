@@ -40,6 +40,7 @@ export const newCityContentPack = defineCityContentPack({
     universitySubjects: newCityUniversitySubjects,
     medicalServices: newCityMedicalServices,
     boxingGyms: newCityBoxingGyms,
+    boxingTrainers: newCityBoxingTrainers,
     businessPremises: newCityBusinessPremises,
     eventIds: newCityEventIds
   })

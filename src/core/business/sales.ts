@@ -1,5 +1,5 @@
 import { getScheduleStatus } from '../schedule';
-import { addMinutes, getTotalMinutes } from '../time';
+import { fromTotalMinutes, getTotalMinutes } from '../time';
 import type {
   BusinessDailyReport,
   BusinessEquipmentDefinition,
@@ -44,7 +44,7 @@ function deterministicUnit(seed: number, key: string): number {
 }
 
 function timeFromTotalMinutes(totalMinutes: number): GameTime {
-  return addMinutes({ day: 1, hour: 0, minute: 0, weekday: 'monday' }, Math.max(0, totalMinutes));
+  return fromTotalMinutes(totalMinutes);
 }
 
 function getPeakMultiplier(time: GameTime): number {

@@ -9,6 +9,7 @@ import { basicJobs } from '../jobs/basicJobs';
 import { moscowLocations } from '../locations/moscowLocations';
 import { basicShops } from '../shops/basicShops';
 import { boxingGyms } from '../sports/boxingGyms';
+import { boxingTrainers } from '../sports/boxingTrainers';
 import { buildCityContent } from './contentPackBuilder';
 import { moscowCity } from './moscow';
 import { defineCityContentPack } from './registry';
@@ -31,6 +32,7 @@ export const moscowContentPack = defineCityContentPack({
     universitySubjects,
     medicalServices,
     boxingGyms,
+    boxingTrainers,
     businessPremises
   })
 });

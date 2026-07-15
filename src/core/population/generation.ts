@@ -2,7 +2,7 @@ import type { Location } from '../../types/location';
 import type { KnownNpcIdentity, Npc, NpcActivityProfile, NpcEmployment, NpcWorldState } from '../../types/npc';
 import type { PopulationDataSource, PopulationState } from '../../types/population';
 import type { DistrictId, NpcId } from '../../types/ids';
-import type { Weekday } from '../../types/time';
+import type { GameTime, Weekday } from '../../types/time';
 import { getTotalMinutes } from '../time';
 import { createNpcPersonality } from '../relationships';
 
@@ -139,7 +139,7 @@ export function createPopulationSeed(): number {
 export function generatePopulation(input: {
   seed: number;
   locations: Location[];
-  time: { day: number; hour: number; minute: number; weekday: Weekday };
+  time: GameTime;
   dataSource: PopulationDataSource;
 }): PopulationState {
   const { seed, locations, time, dataSource } = input;
