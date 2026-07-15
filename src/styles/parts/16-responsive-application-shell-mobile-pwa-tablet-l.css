@@ -1,0 +1,1117 @@
+/* ==========================================================================
+   Responsive application shell — mobile PWA, tablet, laptop and desktop
+   ========================================================================== */
+
+:root {
+  --app-page-gap: 16px;
+  --app-page-padding: 24px;
+  --mobile-header-height: 50px;
+  --mobile-dock-height: 52px;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+body {
+  min-height: 100dvh;
+}
+
+.top-bar-leading {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 10px;
+}
+
+.top-bar-app-icon,
+.app-version-badge,
+.mobile-navigation,
+.mobile-more-layer,
+.business-premises-card__summary,
+.business-premises-card__details > summary {
+  display: none;
+}
+
+.brand-block em,
+.app-version-badge {
+  color: var(--muted);
+  font-family: ui-monospace, "SFMono-Regular", Consolas, monospace;
+  font-style: normal;
+  font-weight: 800;
+  letter-spacing: .08em;
+}
+
+.brand-block em {
+  display: block;
+  margin-top: 5px;
+  font-size: 8px;
+}
+
+/* Laptop: preserve all sections without wasting a quarter of the screen. */
+@media (min-width: 901px) and (max-width: 1439px) {
+  :root {
+    --rail-width: 68px;
+  }
+
+  .brand-block {
+    justify-content: center;
+    padding: 0;
+  }
+
+  .brand-block > div,
+  .navigation-item > span:not(.navigation-item__icon),
+  .navigation-item__signal,
+  .navigation-motto,
+  .desktop-navigation__footer span {
+    display: none;
+  }
+
+  .primary-navigation {
+    gap: 6px;
+    padding: 12px 9px;
+  }
+
+  .navigation-item,
+  .utility-button {
+    justify-content: center;
+    padding: 0;
+  }
+
+  .navigation-item {
+    min-height: 44px;
+    border-radius: 12px !important;
+  }
+
+  .navigation-item::before,
+  .navigation-item::after {
+    display: none;
+  }
+
+  .navigation-item__icon {
+    display: grid;
+    width: 34px;
+    height: 34px;
+    place-items: center;
+  }
+
+  .desktop-navigation__footer {
+    padding: 10px 9px;
+  }
+
+  .utility-button {
+    min-height: 40px;
+    border-radius: 13px !important;
+  }
+
+  .top-status-bar {
+    padding-inline: 20px;
+  }
+
+  .global-status__item--location {
+    display: none;
+  }
+
+  .workspace-content {
+    padding: 14px 16px 28px;
+  }
+}
+
+@media (min-width: 1440px) {
+  .workspace-content {
+    padding-inline: clamp(22px, 2.4vw, 38px);
+  }
+}
+
+/* Native mobile/tablet web-app shell. Header, scroll surface and dock are rows,
+   not fixed overlays that need guessed padding compensation. */
+@media (max-width: 900px) {
+  html,
+  body,
+  #root {
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  body {
+    min-width: 320px;
+    overscroll-behavior: none;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  .app-frame {
+    position: relative;
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    grid-template-rows: minmax(0, 1fr) auto;
+    width: 100%;
+    height: 100dvh;
+    min-height: 0 !important;
+    overflow: hidden;
+  }
+
+  .ambient-canvas {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+  }
+
+  .desktop-navigation {
+    display: none !important;
+  }
+
+  .app-workspace {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    grid-row: 1;
+    grid-template-rows: auto minmax(0, 1fr);
+    min-width: 0;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .top-status-bar {
+    position: relative !important;
+    top: auto !important;
+    z-index: 40;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 8px;
+    width: 100%;
+    min-height: calc(var(--mobile-header-height) + env(safe-area-inset-top));
+    padding: env(safe-area-inset-top) 10px 0;
+    border-bottom: 1px solid var(--line);
+    background: color-mix(in srgb, var(--navigation) 97%, transparent);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, .18);
+    backdrop-filter: blur(22px) saturate(135%);
+    -webkit-backdrop-filter: blur(22px) saturate(135%);
+  }
+
+  .top-bar-leading {
+    min-width: 0;
+    gap: 8px;
+  }
+
+  .top-bar-app-icon {
+    display: block;
+    flex: 0 0 auto;
+    width: 36px;
+    height: 36px;
+    border: 1px solid rgba(98, 198, 255, .28);
+    border-radius: 11px !important;
+    object-fit: cover;
+  }
+
+  .page-identity {
+    min-width: 0;
+  }
+
+  .page-identity span {
+    display: none;
+  }
+
+  .page-identity h1 {
+    overflow: hidden;
+    margin: 0;
+    font-size: clamp(17px, 4.8vw, 21px);
+    line-height: 1.05;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+
+  .app-version-badge {
+    display: block;
+    align-self: center;
+    margin-left: auto;
+    font-size: 8px;
+    white-space: nowrap;
+  }
+
+  .global-status {
+    display: flex;
+    flex: 0 0 auto;
+    gap: 4px;
+    align-items: center;
+    border: 0;
+    background: transparent;
+  }
+
+  .global-status__item {
+    display: flex;
+    min-width: 0 !important;
+    height: 38px;
+    gap: 5px;
+    align-items: center;
+    padding: 0 8px !important;
+    border: 0 !important;
+    border-radius: 11px !important;
+    background: var(--panel-raised);
+  }
+
+  .global-status__item--location,
+  .global-status__item span,
+  .top-theme-toggle {
+    display: none !important;
+  }
+
+  .global-status__item svg {
+    flex: 0 0 auto;
+    width: 14px;
+    height: 14px;
+  }
+
+  .global-status__item strong {
+    max-width: 76px;
+    margin: 0;
+    overflow: hidden;
+    font-size: 11px;
+    line-height: 1;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+
+  .workspace-content {
+    width: 100%;
+    min-width: 0;
+    min-height: 0;
+    margin: 0;
+    padding: 10px 10px 18px;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior-y: contain;
+    scrollbar-width: thin;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .screen,
+  .workplace-screen,
+  .business-launch,
+  .housing-market-layout {
+    gap: 10px;
+  }
+
+  .narrow-screen,
+  .housing-market-screen {
+    width: 100%;
+  }
+
+  .panel,
+  .visual-panel,
+  .activity-notice,
+  .profile-command-panel,
+  .workplace-command-panel,
+  .location-scene,
+  .housing-scene,
+  .housing-listing-card,
+  .business-premises-card {
+    border-radius: 15px !important;
+    overflow: hidden;
+  }
+
+  .section-heading,
+  .section-heading--compact {
+    gap: 10px;
+    padding: 12px 13px;
+  }
+
+  .section-heading h2,
+  .section-heading h3 {
+    font-size: 17px;
+  }
+
+  .section-kicker {
+    font-size: 8px;
+  }
+
+  .activity-notice {
+    min-height: 0;
+    margin: 0 0 10px;
+    padding: 10px 11px;
+  }
+
+  /* Do not globally force every <button> to 44px: that created the white
+     116x44 home-indicator block. Only actual touch controls get the target. */
+  .mobile-navigation__item,
+  .mobile-more-grid button,
+  .mobile-more-sheet footer button,
+  .primary-action-button,
+  .row-action-button,
+  .action-row > button,
+  .commerce-row__action button,
+  .business-premises-card > button,
+  .housing-listing-card__body footer button {
+    min-height: 44px;
+  }
+
+  /* Main navigation is part of the app grid and never overlays content. */
+  .mobile-navigation {
+    position: relative !important;
+    inset: auto !important;
+    z-index: 300;
+    display: grid !important;
+    grid-row: 2;
+    grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
+    width: 100%;
+    min-height: calc(var(--mobile-dock-height) + env(safe-area-inset-bottom));
+    padding: 0 4px env(safe-area-inset-bottom);
+    border-top: 1px solid var(--line);
+    background: color-mix(in srgb, var(--navigation) 97%, transparent);
+    box-shadow: 0 -8px 26px rgba(0, 0, 0, .18);
+    backdrop-filter: blur(24px) saturate(140%);
+    -webkit-backdrop-filter: blur(24px) saturate(140%);
+  }
+
+  .mobile-navigation__item {
+    position: relative;
+    display: grid;
+    min-width: 0;
+    min-height: var(--mobile-dock-height);
+    place-content: center;
+    justify-items: center;
+    gap: 3px;
+    padding: 5px 1px 3px;
+    border: 0;
+    border-radius: 12px !important;
+    color: var(--muted-strong);
+    background: transparent;
+  }
+
+  .mobile-navigation__item::before,
+  .mobile-navigation__item::after {
+    display: none;
+  }
+
+  .mobile-navigation__item > span:last-child {
+    overflow: hidden;
+    max-width: 100%;
+    font-size: 9px;
+    font-weight: 760;
+    line-height: 1;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+
+  .mobile-navigation__item--active {
+    color: var(--accent);
+    background: var(--accent-soft);
+  }
+
+  .mobile-navigation__phone-icon {
+    position: relative;
+    display: grid;
+    height: 22px;
+    place-items: center;
+  }
+
+  .mobile-navigation__phone-icon i {
+    position: absolute;
+    top: -8px;
+    left: 12px;
+    min-width: 16px;
+    height: 16px;
+    padding: 0 4px;
+    border-radius: 9px !important;
+    color: #fff;
+    background: var(--negative);
+    font-size: 8px;
+    font-style: normal;
+    font-weight: 900;
+    line-height: 16px;
+  }
+
+  .mobile-navigation__dots {
+    display: flex;
+    height: 21px;
+    align-items: center;
+    gap: 3px;
+  }
+
+  .mobile-navigation__dots i {
+    width: 4px;
+    height: 4px;
+    border-radius: 50% !important;
+    background: currentColor;
+  }
+
+  .mobile-more-layer {
+    position: fixed;
+    inset: 0;
+    z-index: 950;
+    display: block;
+    visibility: hidden;
+    pointer-events: none;
+  }
+
+  .mobile-more-layer.is-open {
+    visibility: visible;
+    pointer-events: auto;
+  }
+
+  .mobile-more-backdrop {
+    position: absolute;
+    inset: 0;
+    min-height: 0 !important;
+    padding: 0;
+    border: 0;
+    opacity: 0;
+    background: rgba(0, 0, 0, .52);
+    backdrop-filter: blur(5px);
+    transition: opacity .18s ease;
+  }
+
+  .mobile-more-layer.is-open .mobile-more-backdrop {
+    opacity: 1;
+  }
+
+  .mobile-more-sheet {
+    position: absolute;
+    right: 8px;
+    bottom: calc(var(--mobile-dock-height) + env(safe-area-inset-bottom) + 8px);
+    left: 8px;
+    max-height: min(70dvh, 520px);
+    padding: 15px;
+    overflow: auto;
+    transform: translateY(24px) scale(.98);
+    opacity: 0;
+    border: 1px solid var(--line);
+    border-radius: 21px !important;
+    color: var(--text);
+    background: color-mix(in srgb, var(--navigation) 98%, transparent);
+    box-shadow: 0 28px 90px rgba(0, 0, 0, .5);
+    transition: transform .2s ease, opacity .16s ease;
+  }
+
+  .mobile-more-layer.is-open .mobile-more-sheet {
+    transform: none;
+    opacity: 1;
+  }
+
+  .mobile-more-sheet header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    padding: 0 2px 12px;
+  }
+
+  .mobile-more-sheet header div {
+    display: grid;
+    gap: 3px;
+  }
+
+  .mobile-more-sheet header span,
+  .mobile-more-sheet header small {
+    color: var(--muted);
+    font-size: 8px;
+    font-weight: 800;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+  }
+
+  .mobile-more-sheet header strong {
+    font-size: 19px;
+  }
+
+  .mobile-more-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 7px;
+  }
+
+  .mobile-more-grid button {
+    display: grid;
+    min-width: 0;
+    min-height: 70px;
+    place-content: center;
+    justify-items: center;
+    gap: 6px;
+    padding: 7px;
+    border: 1px solid var(--line);
+    border-radius: 14px !important;
+    color: var(--text-soft);
+    background: var(--panel-raised);
+  }
+
+  .mobile-more-grid button.is-active {
+    border-color: color-mix(in srgb, var(--accent) 45%, var(--line));
+    color: var(--accent);
+    background: var(--accent-soft);
+  }
+
+  .mobile-more-grid button span {
+    overflow: hidden;
+    max-width: 100%;
+    font-size: 10px;
+    font-weight: 760;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+
+  .mobile-more-sheet footer {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 7px;
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid var(--line);
+  }
+
+  .mobile-more-sheet footer button {
+    display: flex;
+    min-width: 0;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    padding: 0 8px;
+    border: 1px solid var(--line);
+    border-radius: 12px !important;
+    color: var(--text-soft);
+    background: var(--panel-raised);
+    font-size: 10px;
+    font-weight: 750;
+  }
+
+  .mobile-more-sheet footer .danger {
+    color: var(--negative);
+  }
+
+  /* Compact empty screens: no implicit grid rows spreading content over 420px. */
+  .empty-workplace-panel.cinematic-empty-state {
+    position: relative;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-rows: auto auto auto;
+    min-height: clamp(170px, 28dvh, 240px);
+    align-content: end;
+    justify-items: stretch;
+    gap: 2px 12px;
+    padding: 16px;
+  }
+
+  .empty-workplace-panel .cinematic-empty-state__visual {
+    position: absolute;
+    inset: 0;
+    opacity: .54;
+  }
+
+  .empty-workplace-panel__icon {
+    grid-row: 1 / span 3;
+    align-self: center;
+    margin: 0;
+  }
+
+  .empty-workplace-panel .section-kicker,
+  .empty-workplace-panel h2,
+  .empty-workplace-panel p {
+    grid-column: 2;
+    margin: 0;
+  }
+
+  .empty-workplace-panel h2 {
+    margin-top: 2px;
+    font-size: 22px;
+  }
+
+  .empty-workplace-panel p {
+    color: var(--muted-strong);
+    font-size: 12px;
+  }
+
+  /* Business launch cards expose only decision-making information first. */
+  .business-hero {
+    min-height: 0;
+    padding: 15px;
+  }
+
+  .business-hero h2 {
+    font-size: 23px;
+  }
+
+  .business-hero p {
+    max-width: 46ch;
+    font-size: 12px;
+  }
+
+  .business-hero__funds {
+    padding: 10px 12px;
+  }
+
+  .business-name-panel {
+    padding: 12px;
+  }
+
+  .business-premises-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 10px;
+  }
+
+  .business-premises-card {
+    gap: 11px;
+    padding: 14px;
+  }
+
+  .business-premises-card__head {
+    grid-template-columns: 42px minmax(0, 1fr);
+    gap: 10px;
+  }
+
+  .business-premises-card__icon {
+    width: 42px;
+    height: 42px;
+  }
+
+  .business-premises-card__head h3 {
+    margin-top: 2px;
+    font-size: 18px;
+    line-height: 1.12;
+  }
+
+  .business-premises-card__head p {
+    margin-top: 3px;
+    font-size: 11px;
+  }
+
+  .business-premises-card__summary {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1px;
+    overflow: hidden;
+    border: 1px solid var(--line);
+    border-radius: 12px !important;
+    background: var(--line);
+  }
+
+  .business-premises-card__summary > div {
+    min-width: 0;
+    padding: 10px;
+    background: var(--panel-raised);
+  }
+
+  .business-premises-card__summary span,
+  .business-premises-card__summary strong {
+    display: block;
+  }
+
+  .business-premises-card__summary span {
+    color: var(--muted);
+    font-size: 8px;
+    font-weight: 800;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+  }
+
+  .business-premises-card__summary strong {
+    margin-top: 4px;
+    overflow: hidden;
+    font-size: 15px;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+
+  .business-premises-card__summary small {
+    color: var(--muted);
+    font-size: 9px;
+  }
+
+  .business-premises-card__details {
+    border-top: 1px solid var(--line);
+  }
+
+  .business-premises-card__details > summary {
+    display: flex;
+    min-height: 40px;
+    align-items: center;
+    justify-content: space-between;
+    color: var(--muted-strong);
+    font-size: 11px;
+    font-weight: 760;
+    cursor: pointer;
+    list-style: none;
+  }
+
+  .business-premises-card__details > summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .business-premises-card__details[open] > summary svg {
+    transform: rotate(90deg);
+  }
+
+  .business-premises-card__metrics {
+    grid-template-columns: 1fr 1fr;
+    margin-top: 2px;
+  }
+
+  .business-premises-card__breakdown {
+    gap: 5px 10px;
+    padding-top: 10px;
+    font-size: 10px;
+  }
+
+  .business-premises-card > .primary-action-button {
+    width: 100%;
+    margin: 0;
+  }
+
+  .business-failure {
+    margin: -2px 0 0;
+    font-size: 11px;
+  }
+
+  /* Housing cards become compact horizontal rows; details already have a modal. */
+  .housing-market-panel {
+    padding: 10px;
+  }
+
+  .housing-filters {
+    gap: 7px;
+  }
+
+  .housing-listing-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 9px;
+  }
+
+  .housing-listing-card {
+    display: grid;
+    grid-template-columns: 112px minmax(0, 1fr);
+    min-height: 132px;
+  }
+
+  .housing-listing-card__image {
+    width: 100%;
+    height: 100% !important;
+    min-height: 132px;
+  }
+
+  .housing-listing-card__comfort {
+    right: 7px;
+    bottom: 7px;
+  }
+
+  .housing-listing-card__body {
+    min-width: 0;
+    padding: 11px;
+  }
+
+  .housing-listing-card__body h3 {
+    font-size: 15px;
+    line-height: 1.15;
+  }
+
+  .housing-listing-card__body p {
+    margin-top: 3px;
+    font-size: 10px;
+  }
+
+  .housing-listing-card__body dl {
+    display: none;
+  }
+
+  .housing-listing-card__body footer {
+    gap: 7px;
+    margin-top: 10px;
+    padding-top: 9px;
+  }
+
+  .housing-listing-card__body footer strong {
+    font-size: 14px;
+  }
+
+  .housing-listing-card__body footer button {
+    min-height: 38px;
+    padding: 0 9px;
+    font-size: 10px;
+  }
+
+  /* Large decorative panels are bounded on a phone. */
+  .profile-command-panel,
+  .profile-command-panel__overlay {
+    min-height: 230px !important;
+  }
+
+  .profile-command-panel__overlay {
+    padding: 16px 13px 13px !important;
+  }
+
+  .profile-command-panel__identity {
+    margin-left: 0 !important;
+    padding-left: 31% !important;
+  }
+
+  .profile-command-panel__identity h2 {
+    font-size: 24px !important;
+  }
+
+  .profile-command-panel__quick {
+    grid-template-columns: 1fr 1fr !important;
+    margin-top: 12px !important;
+  }
+
+  .profile-command-panel__quick div {
+    padding: 9px 10px !important;
+  }
+
+  .profile-command-panel__quick div:last-child {
+    display: none !important;
+  }
+
+  .workplace-command-panel,
+  .workplace-command-panel__overlay {
+    min-height: 220px !important;
+  }
+
+  .workplace-command-panel__overlay {
+    padding: 17px !important;
+  }
+
+  .workplace-command-panel h2 {
+    font-size: clamp(25px, 8vw, 35px) !important;
+  }
+
+  .vitals-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .vital-card {
+    min-height: 82px !important;
+    padding: 11px !important;
+  }
+
+  .character-data-grid,
+  .city-screen,
+  .context-column,
+  .travel-dialog__body,
+  .business-dashboard-grid,
+  .business-team-grid,
+  .business-growth-grid {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  /* Compact information density: mobile shows decisions first, details second. */
+  .section-kicker,
+  .decay-summary,
+  .profile-command-panel p,
+  .workplace-command-panel p,
+  .business-hero p,
+  .business-command__identity p,
+  .development-hero__mark,
+  .boxing-hero__glove,
+  .location-scene__radar,
+  .location-scene__signal,
+  .housing-hero > div > p,
+  .vital-card small,
+  .people-panel__footer small {
+    display: none !important;
+  }
+
+  .top-status-bar {
+    min-height: calc(50px + env(safe-area-inset-top));
+    padding-inline: 7px;
+  }
+
+  .top-bar-app-icon { width: 30px; height: 30px; border-radius: 9px !important; }
+  .top-bar-leading { gap: 6px; }
+  .page-identity h1 { font-size: clamp(15px, 4.2vw, 18px); }
+  .app-version-badge { font-size: 7px; }
+  .global-status { gap: 3px; }
+  .global-status__item { height: 32px; padding-inline: 6px !important; border-radius: 9px !important; }
+  .global-status__item strong { max-width: 68px; font-size: 10px; }
+
+  .workspace-content { padding: 6px 6px 10px; }
+  .screen,
+  .workplace-screen,
+  .business-launch,
+  .business-console,
+  .housing-market-layout,
+  .boxing-screen,
+  .development-screen { gap: 6px; }
+
+  .panel,
+  .visual-panel,
+  .profile-command-panel,
+  .workplace-command-panel,
+  .location-scene,
+  .housing-scene,
+  .housing-listing-card,
+  .business-premises-card { border-radius: 12px !important; }
+
+  .section-heading,
+  .section-heading--compact { gap: 7px; padding: 8px 10px; }
+  .section-heading h2,
+  .section-heading h3 { font-size: 14px; }
+  .section-counter { min-width: 26px; height: 20px; padding-inline: 6px; font-size: 9px; }
+
+  .activity-notice { grid-template-columns: auto minmax(0,1fr); gap: 7px; margin-bottom: 6px; padding: 7px 8px; }
+  .activity-notice__icon { width: 24px; height: 24px; }
+  .activity-notice > small,
+  .activity-notice span { display: none; }
+  .activity-notice strong { margin: 0; font-size: 11px; }
+
+  .primary-action-button,
+  .primary-command-button,
+  .secondary-command-button,
+  .row-action-button,
+  .mobile-more-sheet footer button { min-height: 38px; padding-inline: 11px; font-size: 10px; }
+
+  .mobile-navigation { min-height: calc(52px + env(safe-area-inset-bottom)); padding-inline: 2px; }
+  .mobile-navigation__item { min-height: 52px; gap: 2px; padding: 3px 1px 2px; border-radius: 10px !important; }
+  .mobile-navigation__item svg { width: 19px; height: 19px; }
+  .mobile-navigation__item > span:last-child { font-size: 8px; }
+  .mobile-navigation__phone-icon { height: 19px; }
+  .mobile-navigation__dots { height: 18px; }
+
+  .mobile-more-sheet { right: 6px; bottom: calc(52px + env(safe-area-inset-bottom) + 6px); left: 6px; padding: 11px; border-radius: 16px !important; }
+  .mobile-more-sheet header { padding-bottom: 8px; }
+  .mobile-more-sheet header strong { font-size: 16px; }
+  .mobile-more-grid { gap: 5px; }
+  .mobile-more-grid button { min-height: 54px; gap: 4px; padding: 5px; border-radius: 11px !important; }
+  .mobile-more-grid button span { font-size: 9px; }
+  .mobile-more-sheet footer { gap: 5px; margin-top: 7px; padding-top: 7px; }
+
+  .empty-workplace-panel.cinematic-empty-state { min-height: clamp(112px, 18dvh, 150px); gap: 1px 8px; padding: 10px 12px; }
+  .empty-workplace-panel__icon { width: 34px; height: 34px; }
+  .empty-workplace-panel h2 { font-size: 17px; }
+  .empty-workplace-panel p { display: none; }
+
+  .profile-command-panel,
+  .profile-command-panel__overlay { min-height: 162px !important; }
+  .profile-command-panel__overlay { padding: 11px 10px 9px !important; }
+  .profile-command-panel__identity { padding-left: 29% !important; }
+  .profile-command-panel__identity h2 { font-size: 20px !important; }
+  .profile-command-panel__quick { margin-top: 7px !important; }
+  .profile-command-panel__quick div { padding: 6px 8px !important; }
+  .profile-command-panel__quick span { font-size: 8px; }
+  .profile-command-panel__quick strong { margin-top: 3px; font-size: 11px; }
+
+  .vital-card { min-height: 60px !important; padding: 7px 8px !important; }
+  .vital-card__header span { font-size: 9px; }
+  .vital-card__header strong { font-size: 14px; }
+  .vital-card__track { height: 4px; margin-top: 7px; }
+
+  .workplace-command-panel,
+  .workplace-command-panel__overlay { min-height: 150px !important; }
+  .workplace-command-panel__overlay { padding: 12px !important; }
+  .workplace-command-panel h2 { font-size: clamp(20px, 6vw, 27px) !important; }
+  .workplace-mark { width: 38px; height: 38px; }
+
+  .location-scene,
+  .location-scene > img { min-height: 132px; }
+  .location-scene__content { left: 11px; bottom: 11px; gap: 8px; }
+  .location-scene__content span { display: none; }
+  .location-scene__content strong { font-size: 18px; }
+  .location-scene__icon { width: 34px; height: 34px; }
+  .city-browser-panel__content { margin-top: -22px; padding: 0 8px 8px; }
+  .city-command-header { padding: 9px 10px; }
+  .city-command-header__icon { width: 34px; height: 34px; }
+  .city-command-header__identity h2 { font-size: 16px; }
+  .city-command-header__identity p { display: none; }
+
+  .business-hero,
+  .business-command { min-height: 0; padding: 10px; }
+  .business-hero h2,
+  .business-command h2 { margin: 3px 0; font-size: 18px; }
+  .business-hero__funds { min-width: 0; padding: 7px 9px; }
+  .business-hero__funds span { display: none; }
+  .business-hero__funds strong { font-size: 17px; }
+  .business-name-panel { padding: 8px; }
+  .business-name-field { grid-template-columns: 1fr; gap: 5px; }
+  .business-name-field span { font-size: 9px; }
+  .business-name-field input { min-height: 36px; padding-inline: 9px; font-size: 12px; }
+  .business-premises-grid { gap: 6px; }
+  .business-premises-card { gap: 7px; padding: 9px; }
+  .business-premises-card__head { grid-template-columns: 34px minmax(0,1fr); gap: 8px; }
+  .business-premises-card__icon { width: 34px; height: 34px; }
+  .business-premises-card__head span { font-size: 9px; }
+  .business-premises-card__head h3 { margin: 1px 0; font-size: 14px; }
+  .business-premises-card__head p { display: none; }
+  .business-premises-card__summary > div { padding: 7px; }
+  .business-premises-card__summary span { font-size: 7px; }
+  .business-premises-card__summary strong { margin-top: 2px; font-size: 12px; }
+  .business-premises-card__details > summary { min-height: 32px; font-size: 9px; }
+  .business-premises-card__breakdown { padding-top: 7px; font-size: 9px; }
+  .business-premises-card > .primary-action-button { min-height: 36px; }
+  .business-failure { overflow: hidden; margin: 0; font-size: 9px; white-space: nowrap; text-overflow: ellipsis; }
+
+  .housing-market-panel { padding: 7px; }
+  .housing-filters { gap: 5px; }
+  .housing-listing-grid { gap: 6px; }
+  .housing-listing-card { grid-template-columns: 88px minmax(0,1fr); min-height: 100px; }
+  .housing-listing-card__image { min-height: 100px; }
+  .housing-listing-card__body { padding: 8px; }
+  .housing-listing-card__body h3 { font-size: 13px; }
+  .housing-listing-card__body p { display: none; }
+  .housing-listing-card__body footer { gap: 5px; margin-top: 6px; padding-top: 6px; }
+  .housing-listing-card__body footer strong { font-size: 12px; }
+  .housing-listing-card__body footer button { min-height: 32px; padding-inline: 7px; font-size: 9px; }
+
+  .development-hero { min-height: 118px; }
+  .development-hero__content { min-height: 118px; padding: 12px; }
+  .development-hero h2 { margin: 3px 0 8px; font-size: 20px; }
+  .development-hero__stats { gap: 12px; }
+  .development-hero__stats span { font-size: 7px; }
+  .development-hero__stats strong { font-size: 14px; }
+  .skills-grid { grid-template-columns: repeat(2, minmax(0,1fr)); }
+  .skill-card { gap: 8px; padding: 9px; }
+  .skill-card__icon { width: 30px; height: 30px; }
+  .skill-card__footer { display: none; }
+  .education-row { grid-template-columns: 34px minmax(0,1fr) auto; gap: 8px; padding: 9px; }
+  .education-row__icon { width: 34px; height: 34px; }
+  .education-row__body { gap: 4px; }
+  .education-row__title strong { font-size: 12px; }
+  .education-row__meta { gap: 4px 8px; font-size: 8px; }
+
+  .boxing-hero { grid-template-columns: 1fr; min-height: 150px; }
+  .boxing-hero__content { min-height: 150px; padding: 12px; }
+  .boxing-hero__content h2 { font-size: 22px; }
+  .boxing-hero__content > p { display: none; }
+  .boxing-hero__metrics { margin-top: 9px; }
+  .boxing-hero__metrics div { min-width: 78px; padding: 6px 8px; }
+  .boxing-hero__metrics span { font-size: 7px; }
+  .boxing-hero__metrics strong { font-size: 13px; }
+  .boxing-hero__records { display: none; }
+  .boxing-card-grid,
+  .boxing-card-grid--trainers { grid-template-columns: repeat(2, minmax(0,1fr)); gap: 6px; }
+  .boxing-card { gap: 8px; padding: 9px; }
+  .boxing-card__meta { display: none; }
+
+  .people-panel { padding: 10px; }
+  .people-panel__metrics { margin-bottom: 8px; }
+  .people-panel__metrics > div { padding: 7px; }
+  .people-panel__metrics span { font-size: 7px; }
+  .people-panel__metrics strong { font-size: 14px; }
+  .people-panel__groups { gap: 8px; }
+  .people-row { gap: 7px; padding: 7px; }
+  .people-row__avatar { width: 30px; height: 30px; }
+  .people-row__identity strong { font-size: 11px; }
+  .people-row__identity small { font-size: 9px; }
+  .people-panel__footer { margin-top: 8px; padding-top: 7px; }
+
+  .inventory-row,
+  .commerce-row,
+  .action-row,
+  .vacancy-row,
+  .destination-row,
+  .timeline-entry { gap: 8px; padding: 8px 9px; }
+  .inventory-row__icon,
+  .commerce-row__icon,
+  .action-row__icon,
+  .vacancy-row__icon { width: 32px; height: 32px; }
+  .inventory-row__content strong,
+  .commerce-row__content strong,
+  .action-row__content strong,
+  .vacancy-row__content strong { font-size: 11px; }
+  .inventory-row__content > span,
+  .action-row__content > span,
+  .vacancy-row__content > span,
+  .commerce-panel__address,
+  .vacancy-skill-requirements { display: none; }
+
+  .phone-launcher {
+    display: none !important;
+  }
+}

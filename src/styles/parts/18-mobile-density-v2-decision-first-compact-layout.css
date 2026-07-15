@@ -1,0 +1,558 @@
+/* ==========================================================================
+   Mobile density v2 — decision-first compact layout
+   Keeps desktop/tablet structure intact while removing oversized phone blocks.
+   ========================================================================== */
+@media (max-width: 900px) {
+  :root {
+    --mobile-header-height: 44px;
+    --mobile-dock-height: 46px;
+  }
+
+  .top-status-bar {
+    min-height: calc(var(--mobile-header-height) + env(safe-area-inset-top));
+    padding-right: 5px;
+    padding-left: 5px;
+    gap: 4px;
+  }
+
+  .top-bar-leading { gap: 5px; }
+  .top-bar-app-icon { width: 26px; height: 26px; border-radius: 8px !important; }
+  .page-identity h1 { font-size: clamp(14px, 3.9vw, 16px); }
+  .app-version-badge { font-size: 6px; letter-spacing: .04em; }
+  .global-status { gap: 2px; }
+  .global-status__item {
+    height: 28px;
+    gap: 3px;
+    padding-inline: 5px !important;
+    border-radius: 8px !important;
+  }
+  .global-status__item svg { width: 12px; height: 12px; }
+  .global-status__item strong { max-width: 62px; font-size: 9px; }
+
+  .workspace-content { padding: 4px 4px 7px; }
+  .screen,
+  .workplace-screen,
+  .business-launch,
+  .business-console,
+  .housing-market-layout,
+  .boxing-screen,
+  .development-screen,
+  .character-data-grid,
+  .context-column { gap: 4px !important; }
+
+  .panel,
+  .visual-panel,
+  .profile-command-panel,
+  .workplace-command-panel,
+  .location-scene,
+  .housing-scene,
+  .housing-listing-card,
+  .business-premises-card { border-radius: 10px !important; }
+
+  .section-heading,
+  .section-heading--compact {
+    gap: 5px;
+    min-height: 0;
+    padding: 6px 8px;
+  }
+  .section-heading h2,
+  .section-heading h3 { margin-top: 1px; font-size: 13px; line-height: 1.1; }
+  .section-counter { min-width: 22px; height: 17px; padding-inline: 5px; font-size: 8px; }
+
+  .activity-notice { gap: 5px; margin-bottom: 4px; padding: 5px 6px; }
+  .activity-notice__icon { width: 20px; height: 20px; }
+  .activity-notice strong { font-size: 10px; }
+
+  .primary-action-button,
+  .primary-command-button,
+  .secondary-command-button,
+  .row-action-button,
+  .mobile-more-sheet footer button {
+    min-height: 32px;
+    padding-inline: 9px;
+    font-size: 9px;
+  }
+
+  .mobile-navigation {
+    min-height: calc(var(--mobile-dock-height) + env(safe-area-inset-bottom));
+  }
+  .mobile-navigation__item {
+    min-height: var(--mobile-dock-height);
+    gap: 1px;
+    padding: 2px 1px 1px;
+    border-radius: 8px !important;
+  }
+  .mobile-navigation__item svg,
+  .mobile-navigation__dots,
+  .mobile-navigation__phone-icon { width: 17px; height: 17px; }
+  .mobile-navigation__item > span:last-child { font-size: 7px; }
+
+  .mobile-more-sheet {
+    bottom: calc(var(--mobile-dock-height) + env(safe-area-inset-bottom) + 4px);
+    padding: 8px;
+    border-radius: 13px !important;
+  }
+  .mobile-more-sheet header { padding-bottom: 5px; }
+  .mobile-more-sheet header strong { font-size: 14px; }
+  .mobile-more-grid { gap: 4px; }
+  .mobile-more-grid button { min-height: 46px; gap: 2px; padding: 4px; border-radius: 9px !important; }
+  .mobile-more-grid button span { font-size: 8px; }
+  .mobile-more-sheet footer { margin-top: 5px; padding-top: 5px; }
+
+  /* Current housing: no decorative hero image on a phone. Six facts fit in two rows. */
+  .housing-panel > .housing-scene,
+  .housing-contract-panel > .housing-scene {
+    display: none !important;
+  }
+
+  .housing-panel__content {
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  .housing-panel .housing-hero {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 4px 8px;
+    min-height: 0;
+    padding: 7px 8px;
+    border-bottom: 1px solid var(--line);
+    background: transparent;
+  }
+  .housing-panel .housing-hero__icon,
+  .housing-panel .housing-hero .section-kicker,
+  .housing-panel .housing-panel__address { display: none !important; }
+  .housing-panel .housing-hero > div:nth-child(2) { min-width: 0; }
+  .housing-panel .housing-hero h2 {
+    overflow: hidden;
+    margin: 0;
+    font-size: 13px;
+    line-height: 1.1;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+  .housing-panel .housing-hero .status-label {
+    margin: 0;
+    min-height: 21px;
+    padding-inline: 6px;
+    font-size: 7px;
+  }
+
+  .housing-panel .housing-ledger {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  }
+  .housing-panel .housing-ledger > div,
+  .housing-panel .housing-ledger > div:nth-child(even),
+  .housing-panel .housing-ledger > div:nth-last-child(-n + 2) {
+    min-width: 0;
+    padding: 7px 6px;
+    border-right: 1px solid var(--line);
+    border-bottom: 1px solid var(--line);
+  }
+  .housing-panel .housing-ledger > div:nth-child(3n) { border-right: 0; }
+  .housing-panel .housing-ledger > div:nth-last-child(-n + 3) { border-bottom: 0; }
+  .housing-panel .housing-ledger dt { font-size: 7px; letter-spacing: .04em; }
+  .housing-panel .housing-ledger dd {
+    margin-top: 3px;
+    overflow: hidden;
+    font-size: 14px;
+    line-height: 1.05;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+  .housing-panel .housing-ledger small { display: none !important; }
+
+  /* Housing tab contract: one compact card instead of a full-screen statistics column. */
+  .housing-contract-panel {
+    display: block !important;
+    min-height: 0 !important;
+  }
+  .housing-contract-panel__content {
+    display: block;
+    padding: 0 !important;
+  }
+  .housing-contract-panel__content > .section-heading {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    padding: 7px 8px;
+  }
+  .housing-contract-panel__content > .section-heading .section-kicker,
+  .housing-contract-panel__content > .section-heading p { display: none !important; }
+  .housing-contract-panel__content > .section-heading h2 {
+    overflow: hidden;
+    margin: 0;
+    font-size: 13px;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+  .housing-contract-panel__content > .section-heading .status-label {
+    min-height: 21px;
+    padding-inline: 6px;
+    font-size: 7px;
+  }
+  .housing-contract-panel .housing-market-ledger {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+  .housing-contract-panel .housing-market-ledger > div,
+  .housing-contract-panel .housing-market-ledger > div:nth-child(even),
+  .housing-contract-panel .housing-market-ledger > div:nth-last-child(-n + 2) {
+    min-width: 0;
+    padding: 7px 8px;
+    border-right: 1px solid var(--line);
+    border-bottom: 1px solid var(--line);
+  }
+  .housing-contract-panel .housing-market-ledger > div:nth-child(2n) { border-right: 0; }
+  .housing-contract-panel .housing-market-ledger > div:nth-last-child(-n + 2) { border-bottom: 0; }
+  .housing-contract-panel .housing-market-ledger dt { font-size: 7px; }
+  .housing-contract-panel .housing-market-ledger dd {
+    margin-top: 3px;
+    overflow: hidden;
+    font-size: 14px;
+    line-height: 1.05;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+  .housing-contract-panel .housing-market-ledger small { display: none !important; }
+
+  .housing-market-panel { padding: 5px; }
+  .housing-market-panel > .section-heading { padding: 6px; }
+  .housing-market-refresh { min-width: 0; padding-left: 8px; }
+  .housing-market-refresh span { display: none; }
+  .housing-market-refresh strong { font-size: 9px; }
+  .housing-filters { gap: 4px; }
+  .housing-filters label > span { font-size: 7px; }
+  .housing-filters select { min-height: 30px; padding-inline: 6px; font-size: 9px; }
+  .housing-rent-filter input { height: 20px; }
+
+  .housing-listing-grid { gap: 4px; }
+  .housing-listing-card { grid-template-columns: 72px minmax(0, 1fr); min-height: 84px; }
+  .housing-listing-card__image { min-height: 84px; }
+  .housing-listing-card__body { padding: 6px; }
+  .housing-listing-card__body > div:first-child > span { font-size: 7px; }
+  .housing-listing-card__body h3 { margin-top: 2px; font-size: 11px; }
+  .housing-listing-card__body footer { margin-top: 4px; padding-top: 4px; }
+  .housing-listing-card__body footer strong { font-size: 11px; }
+  .housing-listing-card__body footer span { display: none; }
+  .housing-listing-card__body footer button { min-height: 28px; padding-inline: 6px; font-size: 8px; }
+  .housing-listing-status { top: 4px; left: 4px; padding: 2px 4px; font-size: 6px; }
+  .housing-listing-card__comfort { right: 4px; bottom: 4px; padding: 2px 4px; font-size: 7px; }
+
+  /* General numeric ledgers and dashboard cards. */
+  .data-ledger div { padding: 8px; }
+  .data-ledger dt { font-size: 8px; }
+  .data-ledger dd { margin-top: 3px; font-size: 15px; }
+  .data-ledger small { margin-top: 2px; font-size: 8px; }
+
+  .vital-card { min-height: 52px !important; padding: 6px 7px !important; }
+  .vital-card__header span { font-size: 8px; }
+  .vital-card__header strong { font-size: 12px; }
+  .vital-card__track { margin-top: 5px; }
+
+  .profile-command-panel,
+  .profile-command-panel__overlay { min-height: 138px !important; }
+  .profile-command-panel__overlay { padding: 8px !important; }
+  .profile-command-panel__identity h2 { font-size: 17px !important; }
+  .profile-command-panel__quick { margin-top: 4px !important; }
+  .profile-command-panel__quick div { padding: 4px 6px !important; }
+
+  .workplace-command-panel,
+  .workplace-command-panel__overlay { min-height: 126px !important; }
+  .workplace-command-panel__overlay { padding: 9px !important; }
+  .workplace-command-panel h2 { font-size: clamp(18px, 5.5vw, 23px) !important; }
+
+  .location-scene,
+  .location-scene > img { min-height: 108px; }
+  .location-scene__content { left: 8px; bottom: 8px; gap: 5px; }
+  .location-scene__content strong { font-size: 15px; }
+  .location-scene__icon { width: 28px; height: 28px; }
+
+  .business-premises-card { gap: 5px; padding: 7px; }
+  .business-premises-card__head { grid-template-columns: 28px minmax(0, 1fr); gap: 6px; }
+  .business-premises-card__icon { width: 28px; height: 28px; }
+  .business-premises-card__head h3 { font-size: 12px; }
+  .business-premises-card__summary > div { padding: 5px 6px; }
+  .business-premises-card__summary strong { font-size: 11px; }
+  .business-premises-card__details > summary { min-height: 27px; }
+
+  .inventory-row,
+  .commerce-row,
+  .action-row,
+  .vacancy-row,
+  .destination-row,
+  .timeline-entry { gap: 6px; padding: 6px 7px; }
+  .inventory-row__icon,
+  .commerce-row__icon,
+  .action-row__icon,
+  .vacancy-row__icon { width: 27px; height: 27px; }
+  .inventory-row__content strong,
+  .commerce-row__content strong,
+  .action-row__content strong,
+  .vacancy-row__content strong { font-size: 10px; }
+}
+
+@media (max-width: 350px) {
+  .housing-panel .housing-ledger { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+  .housing-panel .housing-ledger > div:nth-child(3n) { border-right: 1px solid var(--line); }
+  .housing-panel .housing-ledger > div:nth-child(2n) { border-right: 0; }
+  .housing-panel .housing-ledger > div:nth-last-child(-n + 3) { border-bottom: 1px solid var(--line); }
+  .housing-panel .housing-ledger > div:nth-last-child(-n + 2) { border-bottom: 0; }
+}
+\n\n/* ==========================================================================
+   City mobile flow — portal dialogs, two-step travel and compact directory
+   ========================================================================== */
+
+.modal-backdrop--app {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 2200 !important;
+  display: grid !important;
+  place-items: center !important;
+  padding: 18px;
+  overflow: hidden;
+}
+
+.travel-dialog--step {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  width: min(100%, 520px);
+  max-height: min(720px, calc(100dvh - 36px));
+  border: 1px solid var(--line-strong);
+  border-radius: 16px !important;
+}
+
+.dialog-header--compact {
+  min-height: 52px;
+  padding: 0 12px;
+}
+
+.dialog-header__leading {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 8px;
+}
+
+.dialog-header--compact h3 {
+  overflow: hidden;
+  margin: 0;
+  font-size: 17px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.travel-step-panel {
+  min-width: 0;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  border: 0;
+  background: var(--panel-deep);
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+.travel-modal-search {
+  position: sticky !important;
+  top: 0;
+  z-index: 3;
+  margin: 8px !important;
+  background: color-mix(in srgb, var(--panel-deep) 96%, transparent) !important;
+}
+
+.destination-list--modal {
+  padding-bottom: 5px;
+}
+
+.destination-row--compact {
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  min-height: 50px;
+  padding: 6px 10px;
+}
+
+.destination-row__meta {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  white-space: nowrap;
+}
+
+.travel-route-summary {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+  padding: 9px 10px;
+  border-bottom: 1px solid var(--line);
+  background: var(--panel-raised);
+}
+
+.travel-route-summary__icon {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  border: 1px solid var(--line);
+  color: var(--accent);
+}
+
+.travel-route-summary strong,
+.travel-route-summary span {
+  display: block;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.travel-route-summary strong { font-size: 13px; }
+.travel-route-summary span { margin-top: 2px; color: var(--muted); font-size: 9px; }
+
+.transport-options--modal .transport-option {
+  min-height: 66px;
+  padding: 9px 11px;
+}
+
+@media (max-width: 900px) {
+  :root {
+    --mobile-header-height: 38px;
+    --mobile-dock-height: 40px;
+  }
+
+  .top-status-bar {
+    min-height: calc(var(--mobile-header-height) + env(safe-area-inset-top));
+    padding-right: 4px;
+    padding-left: 4px;
+  }
+
+  .top-bar-app-icon { width: 23px; height: 23px; }
+  .page-identity h1 { font-size: clamp(13px, 3.6vw, 15px); }
+  .app-version-badge { font-size: 5.5px; }
+  .global-status__item { height: 25px; padding-inline: 4px !important; }
+  .global-status__item strong { font-size: 8.5px; }
+
+  .mobile-navigation {
+    min-height: calc(var(--mobile-dock-height) + env(safe-area-inset-bottom));
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  .mobile-navigation__item {
+    min-height: var(--mobile-dock-height);
+    padding: 1px;
+  }
+
+  .mobile-navigation__item svg,
+  .mobile-navigation__phone-icon,
+  .mobile-navigation__dots { width: 16px; height: 16px; }
+  .mobile-navigation__item > span:last-child { font-size: 6.5px; }
+
+  .modal-backdrop--app {
+    align-items: center !important;
+    padding: max(8px, env(safe-area-inset-top)) 7px max(8px, env(safe-area-inset-bottom));
+  }
+
+  .travel-dialog--step {
+    width: 100%;
+    max-height: calc(100dvh - max(16px, env(safe-area-inset-top)) - max(16px, env(safe-area-inset-bottom)));
+    border: 1px solid var(--line-strong);
+    border-radius: 13px !important;
+  }
+
+  .dialog-header--compact { min-height: 40px; padding: 0 7px; }
+  .dialog-header--compact h3 { font-size: 13px; }
+  .dialog-header--compact .icon-button { width: 28px; height: 28px; }
+
+  .travel-modal-search { min-height: 31px; margin: 5px !important; padding-inline: 8px; }
+  .travel-modal-search input { font-size: 10px; }
+
+  .destination-row--compact {
+    min-height: 43px;
+    gap: 5px;
+    padding: 5px 7px;
+  }
+  .destination-row__identity span { font-size: 10px; }
+  .destination-row__identity small,
+  .destination-row__meta small { font-size: 7.5px; }
+  .destination-row__meta .schedule-inline { font-size: 7px; }
+
+  .travel-route-summary { grid-template-columns: 28px minmax(0,1fr) auto; gap: 6px; padding: 6px 7px; }
+  .travel-route-summary__icon { width: 28px; height: 28px; }
+  .travel-route-summary strong { font-size: 11px; }
+  .travel-route-summary span { font-size: 7.5px; }
+  .transport-options--modal .transport-option { min-height: 54px; padding: 6px 8px; }
+  .transport-options--modal .transport-option__icon { width: 28px; height: 28px; }
+  .transport-options--modal .transport-option__content strong { font-size: 10px; }
+
+  /* The city image is a compact backdrop only; details live below it and never overlap. */
+  .city-browser-panel > .location-scene,
+  .city-browser-panel > .location-scene > img {
+    min-height: 64px !important;
+    max-height: 64px;
+  }
+
+  .city-browser-panel > .location-scene .location-scene__content,
+  .city-browser-panel > .location-scene .location-scene__radar,
+  .city-browser-panel > .location-scene .location-scene__signal {
+    display: none !important;
+  }
+
+  .city-browser-panel__content {
+    margin-top: 0 !important;
+    padding: 0 3px 3px !important;
+  }
+
+  .city-command-header {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 4px;
+    min-height: 0;
+    padding: 5px 6px;
+  }
+
+  .city-command-header__identity { gap: 5px; }
+  .city-command-header__icon { width: 25px; height: 25px; }
+  .city-command-header__copy { min-width: 0; }
+  .city-command-header__headline { gap: 5px; }
+  .city-command-header__identity h2 { margin: 0; font-size: 12px; }
+  .city-command-header__identity p,
+  .city-command-header__copy > .section-kicker { display: none !important; }
+  .city-command-header__headline .schedule-badge { min-height: 17px; padding-inline: 5px; font-size: 6px; }
+  .city-command-header__actions { gap: 3px; }
+  .city-command-header__actions > button { min-height: 28px; padding-inline: 7px; font-size: 8px; }
+  .city-command-header__actions .secondary-command-button span { display: none; }
+
+  .location-toolbar { gap: 4px; padding: 4px 5px; }
+  .location-search-field { min-height: 29px; padding-inline: 8px; }
+  .location-search-field input { font-size: 10px; }
+  .segmented-filters { gap: 3px; }
+  .segmented-filter { min-height: 24px; padding-inline: 7px; font-size: 7px; }
+
+  .location-directory__head { display: none !important; }
+  .location-directory__row {
+    grid-template-columns: minmax(0, 1fr) 15px !important;
+    grid-template-rows: auto auto;
+    gap: 1px 5px !important;
+    min-height: 46px !important;
+    padding: 5px 6px !important;
+  }
+
+  .location-directory__name { grid-column: 1; grid-row: 1; gap: 6px; }
+  .location-directory__name i { width: 23px; height: 23px; }
+  .location-directory__title strong { font-size: 10px; }
+  .location-directory__title small { margin-top: 1px; font-size: 7.5px; }
+
+  .location-directory__meta-line {
+    grid-column: 1;
+    grid-row: 2;
+    gap: 4px;
+    padding-left: 29px;
+    font-size: 7px;
+    line-height: 1;
+  }
+  .location-directory__meta-line > * + *::before { margin-right: 4px; }
+  .location-directory__features { display: none; }
+  .location-directory__meta-line .schedule-inline { font-size: 7px; }
+  .location-directory__travel { font-size: 7px; }
+  .location-directory__chevron { grid-column: 2; grid-row: 1 / span 2; }
+
+  .vacancy-section { margin-top: 2px; }
+}

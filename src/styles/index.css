@@ -1,0 +1,21 @@
+/* LifeSim generated style entrypoint. Keep imports in this order. */
+@import './parts/00-tokens-base.css';
+@import './parts/01-character.css';
+@import './parts/02-city.css';
+@import './parts/03-job.css';
+@import './parts/04-status-bar.css';
+@import './parts/05-artsation-pinterest-visual-layer.css';
+@import './parts/06-housing.css';
+@import './parts/07-layout-stability-patch-preserves-premium-visuals.css';
+@import './parts/08-job-promotion-mvp.css';
+@import './parts/09-critical-needs-health-consequences.css';
+@import './parts/10-city-realism-product-art-progression-overlap-rep.css';
+@import './parts/11-persistent-population.css';
+@import './parts/12-social-relationships.css';
+@import './parts/13-housing-market-vertical-slice.css';
+@import './parts/14-business-ownership-vertical-slice.css';
+@import './parts/15-social-contact-action.css';
+@import './parts/16-responsive-application-shell-mobile-pwa-tablet-l.css';
+@import './parts/17-phone-landscape-short-pwa-window-reserve-most-he.css';
+@import './parts/18-mobile-density-v2-decision-first-compact-layout.css';
+@import './parts/19-city-task-tabs-contextual-waiting-and-sport-onbo.css';

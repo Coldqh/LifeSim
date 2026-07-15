@@ -1,0 +1,424 @@
+
+/* Business ownership vertical slice */
+.business-screen {
+  width: 100%;
+}
+
+.business-launch,
+.business-console {
+  display: grid;
+  gap: 18px;
+}
+
+.business-hero,
+.business-command {
+  position: relative;
+  overflow: hidden;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  min-height: 170px;
+  padding: 28px;
+  background:
+    radial-gradient(circle at 80% 20%, rgba(76, 231, 190, .18), transparent 34%),
+    linear-gradient(135deg, rgba(17, 31, 41, .98), rgba(6, 10, 15, .98));
+}
+
+.business-hero__glow {
+  position: absolute;
+  inset: auto -80px -130px auto;
+  width: 330px;
+  height: 330px;
+  border: 1px solid rgba(93, 240, 203, .18);
+  transform: rotate(24deg);
+  box-shadow: 0 0 90px rgba(75, 218, 190, .12);
+}
+
+.business-hero h2,
+.business-command h2 {
+  margin: 6px 0 10px;
+  font-size: clamp(26px, 3.5vw, 42px);
+  letter-spacing: -.04em;
+}
+
+.business-hero p,
+.business-command p,
+.business-funds-panel p {
+  max-width: 720px;
+  margin: 0;
+  color: var(--text-muted);
+}
+
+.business-hero__funds {
+  position: relative;
+  display: grid;
+  gap: 4px;
+  min-width: 180px;
+  padding: 13px;
+  border-left: 2px solid var(--accent);
+  background: rgba(5, 9, 13, .62);
+}
+
+.business-hero__funds span,
+.business-command__metrics span,
+.business-premises-card__metrics span,
+.business-owner-stats span {
+  color: var(--text-muted);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: .12em;
+}
+
+.business-hero__funds strong {
+  font-size: 23px;
+}
+
+.business-name-panel {
+  padding: 13px 16px;
+}
+
+.business-name-field {
+  display: grid;
+  grid-template-columns: 190px minmax(0, 1fr);
+  align-items: center;
+  gap: 16px;
+}
+
+.business-name-field span {
+  color: var(--text-muted);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: .1em;
+}
+
+.business-name-field input {
+  width: 100%;
+  min-height: 40px;
+  padding: 0 14px;
+  border: 1px solid var(--border);
+  border-radius: 0;
+  outline: none;
+  background: var(--surface-strong);
+  color: var(--text);
+  font: inherit;
+}
+
+.business-name-field input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px rgba(92, 229, 201, .2);
+}
+
+.business-premises-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.business-premises-card {
+  display: grid;
+  gap: 12px;
+  padding: 15px;
+}
+
+.business-premises-card__head {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr);
+  gap: 11px;
+  align-items: start;
+}
+
+.business-premises-card__icon {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border: 1px solid rgba(89, 229, 201, .35);
+  color: var(--accent);
+  background: rgba(89, 229, 201, .08);
+}
+
+.business-premises-card__head span,
+.business-premises-card__head p {
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.business-premises-card__head h3 {
+  margin: 3px 0;
+  font-size: 17px;
+}
+
+.business-premises-card__head p {
+  margin: 0;
+}
+
+.business-premises-card__metrics {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  border-top: 1px solid var(--border);
+  border-left: 1px solid var(--border);
+}
+
+.business-premises-card__metrics > div {
+  display: grid;
+  gap: 3px;
+  padding: 9px;
+  border-right: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+
+.business-premises-card__breakdown {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+  color: var(--text-muted);
+  font-size: 10px;
+}
+
+.business-failure {
+  margin: 0;
+  color: var(--danger, #ff6f78);
+  font-size: 12px;
+}
+
+.business-command {
+  grid-template-columns: minmax(0, 1fr) minmax(420px, .9fr);
+  align-items: center;
+}
+
+.business-command__visual {
+  position: absolute;
+  right: 41%;
+  top: 18px;
+  display: grid;
+  place-items: center;
+  width: 140px;
+  height: 140px;
+  color: rgba(91, 235, 203, .42);
+  border: 1px solid rgba(91, 235, 203, .14);
+  transform: rotate(-8deg);
+}
+
+.business-command__identity,
+.business-command__metrics {
+  position: relative;
+  z-index: 1;
+}
+
+.business-command__metrics {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  border-top: 1px solid rgba(255, 255, 255, .1);
+  border-left: 1px solid rgba(255, 255, 255, .1);
+}
+
+.business-command__metrics > div {
+  display: grid;
+  gap: 5px;
+  padding: 16px;
+  border-right: 1px solid rgba(255, 255, 255, .1);
+  border-bottom: 1px solid rgba(255, 255, 255, .1);
+  background: rgba(0, 0, 0, .18);
+}
+
+.business-command__metrics strong {
+  font-size: 21px;
+}
+
+.business-tabs {
+  display: flex;
+  gap: 0;
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.business-tab {
+  min-width: 130px;
+  min-height: 48px;
+  padding: 0 18px;
+  border: 0;
+  border-right: 1px solid var(--border);
+  border-radius: 0;
+  background: transparent;
+  color: var(--text-muted);
+  font: inherit;
+  cursor: pointer;
+}
+
+.business-tab--active {
+  color: var(--text);
+  background: linear-gradient(180deg, rgba(83, 230, 197, .13), rgba(83, 230, 197, .03));
+  box-shadow: inset 0 -2px 0 var(--accent);
+}
+
+.business-dashboard-grid,
+.business-team-grid,
+.business-growth-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.business-dashboard-grid > .panel,
+.business-team-grid > .panel,
+.business-growth-grid > .panel,
+.business-stock-panel,
+.business-reports-panel {
+  padding: 20px;
+}
+
+.business-span-two {
+  grid-column: 1 / -1;
+}
+
+.business-owner-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin: 18px 0;
+  border-top: 1px solid var(--border);
+  border-left: 1px solid var(--border);
+}
+
+.business-owner-stats > div {
+  display: grid;
+  gap: 5px;
+  padding: 12px;
+  border-right: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+
+.business-fund-buttons {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 18px;
+}
+
+.business-fund-buttons button,
+.business-stock-list button,
+.business-employee-list button,
+.business-candidate-actions button,
+.business-growth-list button,
+.business-price-control button {
+  min-height: 38px;
+  border: 1px solid var(--border);
+  border-radius: 0;
+  background: var(--surface-strong);
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
+}
+
+.business-fund-buttons button:hover:not(:disabled),
+.business-stock-list button:hover:not(:disabled),
+.business-candidate-actions button:hover:not(:disabled),
+.business-growth-list button:hover:not(:disabled),
+.business-price-control button:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.business-debt {
+  margin-top: 12px;
+  padding: 10px;
+  border-left: 2px solid var(--danger, #ff6f78);
+  background: rgba(255, 91, 103, .08);
+  color: var(--danger, #ff7b83);
+}
+
+.business-menu-table,
+.business-stock-list,
+.business-employee-list,
+.business-candidate-list,
+.business-growth-list {
+  display: grid;
+  gap: 0;
+  border-top: 1px solid var(--border);
+}
+
+.business-menu-row {
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) 190px 150px;
+  gap: 16px;
+  align-items: center;
+  min-height: 72px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.business-menu-row > div:first-child,
+.business-stock-list article > div:first-child,
+.business-employee-list article > div:first-child,
+.business-candidate-list article > div:first-child,
+.business-growth-list article > div:first-child {
+  display: grid;
+  gap: 4px;
+}
+
+.business-menu-row span,
+.business-menu-row small,
+.business-stock-list span,
+.business-employee-list span,
+.business-candidate-list span,
+.business-growth-list span {
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.business-price-control {
+  display: grid;
+  grid-template-columns: 38px 1fr 38px;
+  align-items: center;
+  text-align: center;
+  border: 1px solid var(--border);
+}
+
+.business-price-control button {
+  min-height: 36px;
+  border: 0;
+}
+
+.business-customer-list {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.business-customer-list > div {
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr);
+  grid-template-rows: auto auto;
+  column-gap: 10px;
+  align-items: center;
+  padding: 10px;
+  border: 1px solid var(--border);
+  background: var(--surface-strong);
+}
+
+.business-customer-list > div > span {
+  grid-row: 1 / 3;
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  background: rgba(86, 229, 198, .1);
+  color: var(--accent);
+}
+
+.business-customer-list small {
+  color: var(--text-muted);
+}
+
+.business-stock-list article,
+.business-employee-list article,
+.business-candidate-list article,
+.business-growth-list article {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(170px, auto) auto;
+  gap: 14px;
+  align-items: center;
+  min-height: 68px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+}

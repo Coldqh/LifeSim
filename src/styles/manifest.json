@@ -1,0 +1,170 @@
+{
+  "version": 1,
+  "sourceFile": "src/styles.css",
+  "originalSha256": "44b797147cb2988affb6413a9e8c98a88e7af685b8ba55c55ff5a7c3cbce1324",
+  "originalLines": 8404,
+  "targetLinesPerPart": 420,
+  "maxRecommendedLines": 1200,
+  "files": [
+    {
+      "order": 0,
+      "file": "parts/00-tokens-base.css",
+      "heading": "tokens-base",
+      "originalStartLine": 1,
+      "originalEndLine": 420,
+      "lines": 421
+    },
+    {
+      "order": 1,
+      "file": "parts/01-character.css",
+      "heading": "Character",
+      "originalStartLine": 421,
+      "originalEndLine": 845,
+      "lines": 426
+    },
+    {
+      "order": 2,
+      "file": "parts/02-city.css",
+      "heading": "City",
+      "originalStartLine": 846,
+      "originalEndLine": 1265,
+      "lines": 421
+    },
+    {
+      "order": 3,
+      "file": "parts/03-job.css",
+      "heading": "Job",
+      "originalStartLine": 1266,
+      "originalEndLine": 1771,
+      "lines": 507
+    },
+    {
+      "order": 4,
+      "file": "parts/04-status-bar.css",
+      "heading": "status-bar",
+      "originalStartLine": 1772,
+      "originalEndLine": 2029,
+      "lines": 259
+    },
+    {
+      "order": 5,
+      "file": "parts/05-artsation-pinterest-visual-layer.css",
+      "heading": "ARTSATION / PINTEREST VISUAL LAYER",
+      "originalStartLine": 2030,
+      "originalEndLine": 2450,
+      "lines": 422
+    },
+    {
+      "order": 6,
+      "file": "parts/06-housing.css",
+      "heading": "housing",
+      "originalStartLine": 2451,
+      "originalEndLine": 2739,
+      "lines": 290
+    },
+    {
+      "order": 7,
+      "file": "parts/07-layout-stability-patch-preserves-premium-visuals.css",
+      "heading": "Layout stability patch — preserves premium visuals without collapsing grids",
+      "originalStartLine": 2740,
+      "originalEndLine": 3136,
+      "lines": 398
+    },
+    {
+      "order": 8,
+      "file": "parts/08-job-promotion-mvp.css",
+      "heading": "Job Promotion MVP",
+      "originalStartLine": 3137,
+      "originalEndLine": 3557,
+      "lines": 422
+    },
+    {
+      "order": 9,
+      "file": "parts/09-critical-needs-health-consequences.css",
+      "heading": "Critical needs & health consequences",
+      "originalStartLine": 3558,
+      "originalEndLine": 3964,
+      "lines": 408
+    },
+    {
+      "order": 10,
+      "file": "parts/10-city-realism-product-art-progression-overlap-rep.css",
+      "heading": "City realism / product art / progression overlap repair",
+      "originalStartLine": 3965,
+      "originalEndLine": 4384,
+      "lines": 421
+    },
+    {
+      "order": 11,
+      "file": "parts/11-persistent-population.css",
+      "heading": "Persistent population",
+      "originalStartLine": 4385,
+      "originalEndLine": 4804,
+      "lines": 421
+    },
+    {
+      "order": 12,
+      "file": "parts/12-social-relationships.css",
+      "heading": "Social relationships",
+      "originalStartLine": 4805,
+      "originalEndLine": 5231,
+      "lines": 428
+    },
+    {
+      "order": 13,
+      "file": "parts/13-housing-market-vertical-slice.css",
+      "heading": "Housing market vertical slice",
+      "originalStartLine": 5232,
+      "originalEndLine": 5660,
+      "lines": 430
+    },
+    {
+      "order": 14,
+      "file": "parts/14-business-ownership-vertical-slice.css",
+      "heading": "Business ownership vertical slice",
+      "originalStartLine": 5661,
+      "originalEndLine": 6084,
+      "lines": 425
+    },
+    {
+      "order": 15,
+      "file": "parts/15-social-contact-action.css",
+      "heading": "Social contact action",
+      "originalStartLine": 6085,
+      "originalEndLine": 6253,
+      "lines": 170
+    },
+    {
+      "order": 16,
+      "file": "parts/16-responsive-application-shell-mobile-pwa-tablet-l.css",
+      "heading": "Responsive application shell — mobile PWA, tablet, laptop and desktop",
+      "originalStartLine": 6254,
+      "originalEndLine": 7370,
+      "lines": 1118
+    },
+    {
+      "order": 17,
+      "file": "parts/17-phone-landscape-short-pwa-window-reserve-most-he.css",
+      "heading": "Phone landscape / short PWA window: reserve most height for content.",
+      "originalStartLine": 7371,
+      "originalEndLine": 7537,
+      "lines": 168
+    },
+    {
+      "order": 18,
+      "file": "parts/18-mobile-density-v2-decision-first-compact-layout.css",
+      "heading": "Mobile density v2 — decision-first compact layout",
+      "originalStartLine": 7538,
+      "originalEndLine": 8095,
+      "lines": 559
+    },
+    {
+      "order": 19,
+      "file": "parts/19-city-task-tabs-contextual-waiting-and-sport-onbo.css",
+      "heading": "City task tabs, contextual waiting and sport onboarding",
+      "originalStartLine": 8096,
+      "originalEndLine": 8403,
+      "lines": 309
+    }
+  ]
+}

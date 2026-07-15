@@ -1,0 +1,420 @@
+/* ==========================================================================
+   City realism / product art / progression overlap repair
+   ========================================================================== */
+
+.career-progress-heading {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 18px;
+  align-items: start;
+  padding-right: 0;
+}
+
+.career-progress-summary {
+  display: grid;
+  grid-template-columns: auto auto;
+  gap: 10px;
+  align-items: baseline;
+  justify-content: end;
+  min-width: max-content;
+  font-family: ui-monospace, "SFMono-Regular", Consolas, monospace;
+}
+
+.career-progress-summary .progress-value {
+  position: static;
+  max-width: none;
+  white-space: nowrap;
+}
+
+.career-progress-summary > span {
+  color: var(--cyan);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.location-directory__title {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.location-directory__title small {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 500;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.destination-row__identity {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.destination-row__identity span,
+.destination-row__identity small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.destination-row__identity small {
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 500;
+}
+
+.commerce-panel__address {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.product-glyph--image {
+  width: 52px;
+  height: 52px;
+  padding: 4px;
+  border-color: rgba(110, 220, 248, .2);
+  background:
+    radial-gradient(circle at 50% 50%, rgba(255,255,255,.07), transparent 68%),
+    color-mix(in srgb, var(--panel-raised) 92%, transparent);
+}
+
+.product-glyph--image img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  filter: drop-shadow(0 8px 9px rgba(0,0,0,.34));
+}
+
+.housing-scene__image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  animation: hero-pan 16s ease-in-out infinite alternate;
+}
+
+.transport-option--bus .transport-option__icon {
+  color: #73d9ff;
+}
+
+@media (max-width: 760px) {
+  .career-progress-heading {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .career-progress-summary {
+    justify-content: start;
+  }
+
+  .product-glyph--image {
+    width: 52px;
+    height: 52px;
+  }
+}
+
+
+/* Real product packshots / modest housing photo patch */
+.product-glyph--image {
+  overflow: hidden;
+  padding: 2px;
+  background: radial-gradient(circle at 50% 45%, rgba(255,255,255,.08), rgba(255,255,255,.015) 62%, transparent 80%);
+}
+
+.product-glyph--image img {
+  transform: scale(1.08);
+  image-rendering: auto;
+}
+
+.housing-scene__image {
+  object-position: center 48%;
+  filter: saturate(.82) contrast(.98) brightness(.9);
+}
+
+/* Opening hours / schedule status */
+.schedule-badge,
+.schedule-inline {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  max-width: 100%;
+  font-style: normal;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  line-height: 1.25;
+}
+
+.schedule-badge {
+  margin-top: 8px;
+  padding: 6px 9px;
+  border: 1px solid var(--line-strong);
+  background: color-mix(in srgb, var(--panel-strong) 88%, transparent);
+  font-size: 11px;
+  text-transform: uppercase;
+}
+
+.schedule-inline {
+  margin-top: 4px;
+  font-size: 11px;
+}
+
+.schedule-badge--open,
+.schedule-inline--open {
+  color: var(--positive);
+}
+
+.schedule-badge--closed,
+.schedule-inline--closed {
+  color: var(--negative);
+}
+
+.location-directory__markers {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+}
+
+.location-directory__markers > span:first-child {
+  overflow: hidden;
+  max-width: 100%;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.destination-row__identity .schedule-inline {
+  margin-top: 3px;
+}
+
+.workplace-status-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
+
+.commerce-schedule-warning {
+  margin: 0 0 12px;
+}
+
+.commerce-row__action button:disabled {
+  cursor: not-allowed;
+  opacity: 0.46;
+}
+
+@media (max-width: 760px) {
+  .workplace-status-stack {
+    align-items: flex-start;
+  }
+
+  .schedule-badge,
+  .schedule-inline {
+    white-space: normal;
+  }
+}
+
+/* Boxing career vertical slice */
+.sport-screen,
+.boxing-screen {
+  width: 100%;
+}
+
+.boxing-screen {
+  display: grid;
+  gap: 18px;
+  max-width: 1440px;
+  margin: 0 auto;
+}
+
+.boxing-hero {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1.45fr) minmax(280px, .7fr);
+  min-height: 235px;
+  overflow: hidden;
+  border-color: color-mix(in srgb, var(--negative) 32%, var(--line));
+  background:
+    radial-gradient(circle at 76% 34%, rgba(255, 91, 95, .18), transparent 28%),
+    linear-gradient(135deg, #180f12 0%, var(--panel) 42%, #0c1118 100%);
+}
+
+.boxing-hero::before,
+.boxing-hero::after {
+  position: absolute;
+  content: "";
+  pointer-events: none;
+}
+
+.boxing-hero::before {
+  inset: 0;
+  background: linear-gradient(110deg, transparent 40%, rgba(255,255,255,.035) 40.5%, transparent 41%);
+  background-size: 54px 54px;
+  opacity: .45;
+}
+
+.boxing-hero::after {
+  right: -120px;
+  bottom: -150px;
+  width: 420px;
+  height: 420px;
+  border: 1px solid rgba(255, 99, 104, .18);
+  border-radius: 50% !important;
+  box-shadow: 0 0 0 42px rgba(255, 99, 104, .025), 0 0 0 92px rgba(255, 99, 104, .018);
+}
+
+.boxing-hero__grid {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(255,255,255,.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,.025) 1px, transparent 1px);
+  background-size: 38px 38px;
+  mask-image: linear-gradient(to right, #000, transparent 88%);
+}
+
+.boxing-hero__glove {
+  position: absolute;
+  right: 11%;
+  top: 36px;
+  display: grid;
+  place-items: center;
+  width: 122px;
+  height: 122px;
+  border: 1px solid rgba(255, 105, 110, .28);
+  color: #ff777b;
+  background: rgba(255, 95, 100, .08);
+  transform: rotate(-8deg);
+  filter: drop-shadow(0 0 30px rgba(255, 80, 88, .25));
+  animation: boxingPulse 4.2s ease-in-out infinite;
+}
+
+@keyframes boxingPulse {
+  0%, 100% { transform: rotate(-8deg) translateY(0); }
+  50% { transform: rotate(-5deg) translateY(-8px); }
+}
+
+.boxing-hero__content,
+.boxing-hero__records {
+  position: relative;
+  z-index: 2;
+}
+
+.boxing-hero__content {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  min-height: 235px;
+  padding: 26px;
+}
+
+.boxing-hero__content h2 {
+  max-width: 680px;
+  margin: 6px 0 6px;
+  font-size: clamp(30px, 3.5vw, 48px);
+  line-height: .95;
+  letter-spacing: -.045em;
+}
+
+.boxing-hero__content > p {
+  margin: 0;
+  color: var(--muted-strong);
+}
+
+.boxing-hero__metrics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1px;
+  margin-top: 18px;
+  border: 1px solid rgba(255,255,255,.08);
+  background: rgba(0,0,0,.18);
+  width: fit-content;
+}
+
+.boxing-hero__metrics div {
+  min-width: 100px;
+  padding: 9px 12px;
+  border-right: 1px solid rgba(255,255,255,.08);
+}
+
+.boxing-hero__metrics div:last-child { border-right: 0; }
+.boxing-hero__metrics span,
+.boxing-record-line span,
+.boxing-membership-status span,
+.boxing-card__meta span,
+.boxing-readiness-row > span {
+  display: block;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .09em;
+  text-transform: uppercase;
+}
+
+.boxing-hero__metrics strong {
+  display: block;
+  margin-top: 4px;
+  font-size: 20px;
+}
+
+.boxing-hero__records {
+  align-self: end;
+  margin: 24px;
+  padding: 13px;
+  border: 1px solid rgba(255,255,255,.1);
+  background: rgba(5, 8, 12, .72);
+  backdrop-filter: blur(16px);
+}
+
+.boxing-record-line,
+.boxing-level-progress > div,
+.boxing-card__meta,
+.boxing-membership-status,
+.boxing-readiness-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.boxing-record-line {
+  padding: 11px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.boxing-record-line strong { font-size: 18px; }
+.boxing-level-progress { margin-top: 16px; }
+.boxing-level-progress > div { margin-bottom: 8px; }
+
+.progress-track {
+  display: block;
+  overflow: hidden;
+  height: 6px;
+  background: var(--panel-deep);
+  border: 1px solid var(--line);
+}
+
+.progress-track i {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, #ff575d, #f2b45c);
+  box-shadow: 0 0 16px rgba(255, 87, 93, .38);
+}
+
+.boxing-overview-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(300px, .85fr);
+  gap: 18px;
+}
+
+.boxing-gym-panel,
+.boxing-readiness-panel,
+.boxing-stats-panel,
+.boxing-trainers-panel,
+.boxing-training-panel,
+.boxing-sparring-panel,

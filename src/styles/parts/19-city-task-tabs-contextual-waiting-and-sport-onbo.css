@@ -1,0 +1,308 @@
+
+/* ==========================================================================
+   City task tabs, contextual waiting and sport onboarding
+   ========================================================================== */
+
+.city-workspace-screen,
+.city-tab-stack,
+.sport-section-stack,
+.sport-catalog,
+.sport-gym-selection {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+
+.city-subtabs,
+.sport-career-tabs {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--panel-deep);
+}
+
+.city-subtabs button,
+.sport-career-tabs button {
+  display: flex;
+  min-width: 0;
+  min-height: 38px;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--muted-strong);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.city-subtabs button.is-active,
+.sport-career-tabs button.is-active {
+  background: var(--panel-raised);
+  color: var(--accent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 30%, transparent);
+}
+
+.city-current-location-strip,
+.scheduled-wait-card {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  padding: 10px 12px;
+}
+
+.city-current-location-strip__icon,
+.scheduled-wait-card__icon,
+.sport-discipline-card__icon,
+.sport-gym-card__icon {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  border: 1px solid color-mix(in srgb, var(--accent) 35%, var(--line));
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--accent) 9%, var(--panel-raised));
+  color: var(--accent);
+}
+
+.city-current-location-strip strong,
+.city-current-location-strip small,
+.scheduled-wait-card strong,
+.scheduled-wait-card small {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.city-current-location-strip strong,
+.scheduled-wait-card strong { font-size: 13px; }
+.city-current-location-strip small,
+.scheduled-wait-card small { margin-top: 2px; color: var(--muted); font-size: 10px; }
+
+.scheduled-wait-card {
+  border-color: color-mix(in srgb, var(--accent) 35%, var(--line));
+  background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 9%, var(--panel)), var(--panel));
+}
+
+.scheduled-wait-card button,
+.city-vacancies-list button {
+  min-height: 32px;
+  padding: 0 12px;
+  border: 1px solid color-mix(in srgb, var(--accent) 45%, var(--line));
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--accent) 14%, var(--panel-raised));
+  color: var(--accent);
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.city-vacancies-list {
+  display: grid;
+}
+
+.city-vacancies-list article {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  padding: 9px 12px;
+  border-top: 1px solid var(--line);
+}
+
+.city-vacancies-list article:first-child { border-top: 0; }
+.city-vacancies-list strong,
+.city-vacancies-list small { display: block; }
+.city-vacancies-list strong { font-size: 12px; }
+.city-vacancies-list small { margin-top: 2px; color: var(--muted); font-size: 9px; }
+
+.sport-catalog__header,
+.sport-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.sport-catalog__header h2,
+.sport-section-header h2 { margin: 2px 0 0; font-size: 22px; }
+.sport-catalog__header p { max-width: 430px; margin: 0; color: var(--muted); font-size: 12px; text-align: right; }
+.sport-section-header { justify-content: flex-start; }
+
+.sport-discipline-card {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 14px;
+  align-items: center;
+  padding: 16px;
+}
+
+.sport-discipline-card__icon { width: 48px; height: 48px; border-radius: 13px; }
+.sport-discipline-card__copy strong,
+.sport-discipline-card__copy span { display: block; }
+.sport-discipline-card__copy strong { font-size: 18px; }
+.sport-discipline-card__copy span { margin-top: 4px; color: var(--muted); font-size: 11px; }
+.sport-discipline-card .primary-action { min-width: 170px; }
+
+.sport-gym-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 10px;
+}
+
+.sport-gym-card {
+  display: grid;
+  gap: 10px;
+  padding: 13px;
+}
+
+.sport-gym-card__main {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 9px;
+  align-items: center;
+}
+
+.sport-gym-card__main strong,
+.sport-gym-card__main span { display: block; }
+.sport-gym-card__main strong { font-size: 13px; }
+.sport-gym-card__main span { margin-top: 2px; color: var(--muted); font-size: 9px; }
+.sport-gym-card__meta { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.sport-gym-card__meta strong { font-size: 11px; }
+.sport-gym-card .primary-action,
+.sport-gym-card .secondary-command-button { min-height: 36px; }
+
+.sport-career-summary {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 14px;
+  align-items: center;
+  padding: 12px 14px;
+}
+
+.sport-career-summary__identity {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 9px;
+  align-items: center;
+}
+
+.sport-career-summary__identity > span {
+  display: grid;
+  width: 38px;
+  height: 38px;
+  place-items: center;
+  border: 1px solid color-mix(in srgb, var(--accent) 35%, var(--line));
+  color: var(--accent);
+}
+
+.sport-career-summary__identity strong,
+.sport-career-summary__identity small { display: block; }
+.sport-career-summary__identity strong { font-size: 16px; }
+.sport-career-summary__identity small { margin-top: 2px; color: var(--muted); font-size: 9px; }
+
+.sport-career-summary__metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(62px, auto));
+  gap: 6px;
+}
+
+.sport-career-summary__metrics span {
+  padding: 6px 8px;
+  border-left: 1px solid var(--line);
+}
+.sport-career-summary__metrics small,
+.sport-career-summary__metrics strong { display: block; }
+.sport-career-summary__metrics small { color: var(--muted); font-size: 8px; text-transform: uppercase; }
+.sport-career-summary__metrics strong { margin-top: 2px; font-size: 13px; }
+
+.boxing-gym-panel--compact .secondary-command-button,
+.boxing-gym-panel--compact .primary-action { margin: 8px 12px 12px; }
+.boxing-stats-panel--compact .boxing-stats-grid { padding: 10px 12px 12px; }
+.boxing-tournament-panel--compact {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  padding: 12px 14px;
+}
+.boxing-tournament-panel--compact h2 { margin: 2px 0; font-size: 15px; }
+.boxing-tournament-panel--compact small { color: var(--muted); font-size: 9px; }
+.boxing-tournament-panel--compact button { min-height: 34px; padding-inline: 14px; }
+
+@media (max-width: 900px) {
+  .city-workspace-screen,
+  .city-tab-stack,
+  .sport-section-stack,
+  .sport-catalog,
+  .sport-gym-selection { gap: 5px; }
+
+  .city-subtabs,
+  .sport-career-tabs { gap: 2px; padding: 2px; border-radius: 8px; }
+  .city-subtabs button,
+  .sport-career-tabs button { min-height: 30px; gap: 4px; padding: 0 5px; font-size: 8px; border-radius: 6px; }
+  .city-subtabs button svg { width: 13px; height: 13px; }
+
+  .city-current-location-strip,
+  .scheduled-wait-card { gap: 6px; padding: 6px 7px; }
+  .city-current-location-strip__icon,
+  .scheduled-wait-card__icon { width: 26px; height: 26px; border-radius: 7px; }
+  .city-current-location-strip strong,
+  .scheduled-wait-card strong { font-size: 10px; }
+  .city-current-location-strip small,
+  .scheduled-wait-card small { font-size: 7px; }
+  .city-current-location-strip .schedule-inline { font-size: 6px; }
+  .scheduled-wait-card button,
+  .city-vacancies-list button { min-height: 26px; padding-inline: 8px; font-size: 8px; }
+
+  .city-vacancies-list article { gap: 6px; padding: 6px 8px; }
+  .city-vacancies-list strong { font-size: 9px; }
+  .city-vacancies-list small { font-size: 7px; }
+
+  .sport-catalog__header { display: block; padding: 2px 3px; }
+  .sport-catalog__header h2,
+  .sport-section-header h2 { font-size: 15px; }
+  .sport-catalog__header p { margin-top: 3px; font-size: 8px; text-align: left; }
+  .sport-section-header { gap: 6px; }
+  .sport-section-header .icon-button { width: 27px; height: 27px; }
+
+  .sport-discipline-card { grid-template-columns: auto minmax(0, 1fr); gap: 8px; padding: 9px; }
+  .sport-discipline-card__icon { width: 34px; height: 34px; border-radius: 9px; }
+  .sport-discipline-card__copy strong { font-size: 12px; }
+  .sport-discipline-card__copy span { margin-top: 2px; font-size: 8px; }
+  .sport-discipline-card .primary-action { grid-column: 1 / -1; min-width: 0; min-height: 30px; }
+
+  .sport-gym-list { grid-template-columns: minmax(0, 1fr); gap: 5px; }
+  .sport-gym-card { gap: 6px; padding: 8px; }
+  .sport-gym-card__icon { width: 28px; height: 28px; }
+  .sport-gym-card__main strong { font-size: 10px; }
+  .sport-gym-card__main span { font-size: 7px; }
+  .sport-gym-card__meta strong { font-size: 8px; }
+  .sport-gym-card .primary-action,
+  .sport-gym-card .secondary-command-button { min-height: 29px; font-size: 8px; }
+
+  .sport-career-summary { display: block; padding: 7px 8px; }
+  .sport-career-summary__identity > span { width: 29px; height: 29px; }
+  .sport-career-summary__identity strong { font-size: 11px; }
+  .sport-career-summary__identity small { font-size: 7px; }
+  .sport-career-summary__metrics { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0; margin-top: 6px; }
+  .sport-career-summary__metrics span { padding: 4px 5px; }
+  .sport-career-summary__metrics small { font-size: 6px; }
+  .sport-career-summary__metrics strong { font-size: 9px; }
+
+  .boxing-screen--compact .boxing-card-grid { grid-template-columns: minmax(0, 1fr); }
+  .boxing-screen--compact .boxing-card { padding: 8px; }
+  .boxing-screen--compact .boxing-card h3 { font-size: 10px; }
+  .boxing-screen--compact .boxing-opponent-row { grid-template-columns: 34px minmax(0, 1fr) auto; min-height: 45px; padding: 5px 7px; }
+  .boxing-screen--compact .boxing-opponent-row__style { display: none; }
+  .boxing-tournament-panel--compact { padding: 8px; }
+  .boxing-tournament-panel--compact h2 { font-size: 11px; }
+  .boxing-tournament-panel--compact button { min-height: 28px; padding-inline: 9px; font-size: 8px; }
+}
