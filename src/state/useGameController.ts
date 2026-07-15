@@ -16,8 +16,6 @@ import {
   simulateBusinessTime
 } from '../core/business';
 import {
-  applyHousingDayChanges,
-  applyHousingSleepRecovery,
   getHousingAffordability,
   HOUSING_MOVING_DURATION_MINUTES,
   HOUSING_VIEWING_DURATION_MINUTES,
@@ -25,7 +23,6 @@ import {
   isHousingViewed,
   markHousingViewed,
   moveIntoHousing,
-  refreshHousingMarket,
   scheduleHousingViewing
 } from '../core/housing';
 import { applyMoneyDelta, canAfford } from '../core/economy';
@@ -34,7 +31,6 @@ import {
   accrueSalary,
   createSavingsGoal,
   fundSavingsGoal,
-  processFinanceDay,
   reconcileExternalBankBalance,
   setFinanceAutoSave,
   transferFinanceFunds
@@ -58,7 +54,6 @@ import {
   getMedicalActivityFailure,
   getMedicalAppointmentFailure,
   issueSickLeave,
-  processMedicalTime,
   scheduleMedicalAppointment
 } from '../core/healthcare';
 import {
@@ -67,7 +62,6 @@ import {
   bookTemporaryAccommodation,
   getIntercityCarQuote,
   getTemporaryStayFailure,
-  processIntercityTime,
   useIntercityTicket
 } from '../core/intercity';
 import { applySkillExperience, getMissingSkillRequirements, getSkillProgress } from '../core/progression';
@@ -85,10 +79,7 @@ import {
 import {
   adjustActivityNeedsDelta,
   applyActivityNeedsDelta,
-  applyNeedsDecay,
   applyNeedsDelta,
-  describeNeedsDecay,
-  getConditionTransitionMessages,
   getNeedConditions,
   getNeedsConsequences,
   getNeedsRequirementFailure,
@@ -104,12 +95,11 @@ import {
   getPhoneUnreadCount,
   markPhoneMessageRead,
   markPhoneNotificationRead,
-  processPhoneTime,
   setPhoneMapTarget,
   submitPhoneJobApplication,
   toggleSavedPhoneJob
 } from '../core/phone';
-import { getLocationPopulationPresence, getPopulationSummary, simulatePopulation } from '../core/population';
+import { getLocationPopulationPresence, getPopulationSummary } from '../core/population';
 import {
   applyNpcInteraction,
   getInteractionFailure,
@@ -127,18 +117,15 @@ import {
   getNpcSocialCircles,
   getSocialMeetingFailure,
   getSocialQuickMessageFailure,
-  processSocialLifeTime,
   respondToSocialInvitation,
   sendSocialQuickMessage
 } from '../core/social-life';
 import {
   applySocialEventChoice,
   maybeActivateSocialEvent,
-  processScheduledSocialEvents
 } from '../core/events';
 import {
   applyBoxingMembership,
-  applyBoxingRecovery,
   applyBoxingSparring,
   applyBoxingTournament,
   applyBoxingTraining,
@@ -153,7 +140,7 @@ import {
   selectBoxingTrainer,
   type BoxingOperationOutput
 } from '../core/sport';
-import { addMinutes, fromTotalMinutes, getElapsedMinutes, getTotalMinutes } from '../core/time';
+import { addMinutes, getTotalMinutes } from '../core/time';
 import {
   attendEntranceExam,
   attendUniversityClass,
@@ -162,7 +149,6 @@ import {
   getEntranceExamFailure,
   getUniversityApplicationForProgram,
   getUniversityClasses,
-  processUniversityTime,
   submitUniversityApplication,
   takeUniversitySemesterExam
 } from '../core/university';
@@ -173,7 +159,6 @@ import {
   calculateVehicleTravelQuote,
   inspectUsedVehicle,
   refuelVehicle,
-  refreshVehicleMarket,
   scheduleUsedVehicleInspection,
   sellOwnedVehicle,
   serviceVehicle
@@ -187,7 +172,6 @@ import {
 } from '../core/travel';
 import { getLifeAction } from '../data';
 import { allLocations } from '../data/locations';
-import { populationDataSource } from '../data/population/config';
 import { getNpcRoleById, NPC_ROLE_IDS } from '../data/population/npcRoles';
 import { getNpcInteractionById, npcInteractionTemplates } from '../data/social/interactionTemplates';
 import { socialEventTemplates } from '../data/social/socialEventTemplates';
@@ -212,7 +196,6 @@ import { boxingTrainings, getBoxingTrainingById } from '../data/sports/boxingTra
 import { boxingOpponents, getBoxingOpponentById } from '../data/sports/boxingOpponents';
 import { boxingTournaments, getBoxingTournamentById } from '../data/sports/boxingTournaments';
 import { getVehicleModelById, newDealerVehicleModels } from '../data/vehicles/vehicleModels';
-import { usedVehicleListingTemplates } from '../data/vehicles/usedListingTemplates';
 import {
   getIntercityRoadConnection,
   getIntercityRouteById,
@@ -255,8 +238,8 @@ import type {
   IntercityTicketId,
   TemporaryAccommodationId
 } from '../types/ids';
-import type { HousingId, HousingMarketState } from '../types/housing';
-import type { BusinessEmployeeRole, BusinessWorldState } from '../types/business';
+import type { HousingId } from '../types/housing';
+import type { BusinessEmployeeRole } from '../types/business';
 import type { UpcomingPayment } from '../types/finance';
 import type { TravelModeId } from '../types/transport';
 import type { NeedsState } from '../types/needs';
@@ -264,10 +247,9 @@ import type { Player } from '../types/player';
 import type { GameTime } from '../types/time';
 import type { Npc } from '../types/npc';
 import type { SocialContext, SocialNpcView } from '../types/relationship';
-import type { SocialState } from '../types/socialEvent';
 import type { SocialMeetingSlot, SocialMessageActionId } from '../types/socialLife';
 import type { VehicleModel, VehicleOperationResult, VehicleWorldState } from '../types/vehicle';
-import type { MedicalState } from '../types/healthcare';
+
 import type { UniversityState } from '../types/university';
 import type { DistrictTravelOption, LocationTravelOption, TransportOption, TravelResult } from '../types/travel';
 import {
@@ -281,22 +263,8 @@ import {
 } from './gameState';
 import { selectIntercityState } from './selectors/intercityState';
 import { selectScheduledWaitState } from './selectors/scheduledWaitState';
+import { advanceWorldTime, mergeNeedsDelta } from './worldTimePipeline';
 
-
-function mergeNeedsDelta(first: Partial<NeedsState> = {}, second: Partial<NeedsState> = {}): Partial<NeedsState> | undefined {
-  const merged: Partial<NeedsState> = {
-    hunger: (first.hunger ?? 0) + (second.hunger ?? 0),
-    thirst: (first.thirst ?? 0) + (second.thirst ?? 0),
-    energy: (first.energy ?? 0) + (second.energy ?? 0),
-    health: (first.health ?? 0) + (second.health ?? 0),
-    mood: (first.mood ?? 0) + (second.mood ?? 0)
-  };
-
-  const visibleEntries = Object.entries(merged).filter(([, value]) => value !== 0);
-  if (visibleEntries.length === 0) return undefined;
-
-  return Object.fromEntries(visibleEntries) as Partial<NeedsState>;
-}
 
 function getNeedsDecayProfileForActionCategory(category?: string): NeedsDecayProfile {
   if (category === 'sleep') return 'sleeping';
@@ -305,162 +273,24 @@ function getNeedsDecayProfileForActionCategory(category?: string): NeedsDecayPro
   return 'active';
 }
 
+type ElapsedTimeOptions = Partial<GameState['world']> & { actionTitle?: string };
+
 function applyElapsedTimeConsequences(
   currentState: GameState,
   player: Player,
   nextTime: GameTime,
   decayProfile: NeedsDecayProfile = 'active',
-  socialOverride: SocialState = currentState.world.social,
-  housingMarketOverride: HousingMarketState = currentState.world.housingMarket,
-  businessOverride: BusinessWorldState = currentState.world.business,
-  medicalOverride: MedicalState = currentState.world.medical
-): { player: Player; population: GameState['world']['population']; social: SocialState; housingMarket: HousingMarketState; business: BusinessWorldState; medical: MedicalState; lifeLogEntries: LifeLogEntry[]; needsDelta?: Partial<NeedsState>; messages: string[] } {
-  const elapsedMinutes = getElapsedMinutes(currentState.time, nextTime);
-  const lifeLogEntries: LifeLogEntry[] = [];
-  const messages: string[] = [];
-  const decayApplied = applyNeedsDecay(player.needs, elapsedMinutes, decayProfile);
-  const decayMessage = describeNeedsDecay(decayApplied.delta);
-  let nextPlayer: Player = {
-    ...player,
-    needs: decayApplied.needs
-  };
-  let housingMarket = housingMarketOverride;
-  let comfortNeedsDelta: Partial<NeedsState> = {};
-
-  if (decayMessage) {
-    messages.push(decayMessage);
-    lifeLogEntries.push(createLifeLogEntry({ time: nextTime }, 'Время', decayMessage));
-  }
-
-
-  const conditionMessages = getConditionTransitionMessages(currentState.player.needs, decayApplied.needs);
-  if (conditionMessages.length > 0) {
-    messages.push(...conditionMessages);
-    lifeLogEntries.push(
-      ...conditionMessages.map((message) => createLifeLogEntry({ time: nextTime }, 'Состояние', message))
-    );
-  }
-
-  const elapsedDays = Math.max(0, nextTime.day - currentState.time.day);
-  if (elapsedDays > 0) {
-    const housing = getHousingById(nextPlayer.housingId);
-
-    if (housing) {
-      const applied = applyHousingDayChanges({
-        player: nextPlayer,
-        housing,
-        elapsedDays
-      });
-
-      nextPlayer = applied.player;
-      lifeLogEntries.push(...applied.events.map((event) => createLifeLogEntry({ time: nextTime }, event.title, event.text)));
-    }
-    housingMarket = refreshHousingMarket({
-      market: housingMarket,
-      day: nextTime.day,
-      currentHousingId: nextPlayer.housingId,
-      catalogue: basicHousing
-    });
-  }
-
-  nextPlayer = {
-    ...nextPlayer,
-    boxing: applyBoxingRecovery(nextPlayer.boxing, elapsedMinutes, decayProfile)
-  };
-  if (decayProfile === 'sleeping') {
-    const comfortApplied = applyHousingSleepRecovery({
-      player: nextPlayer,
-      housing: getHousingById(nextPlayer.housingId),
-      elapsedMinutes
-    });
-    nextPlayer = comfortApplied.player;
-    comfortNeedsDelta = comfortApplied.needsDelta;
-    if (Object.keys(comfortNeedsDelta).length > 0 || comfortApplied.fatigueDelta < 0) {
-      const parts = [
-        comfortNeedsDelta.energy ? `энергия +${comfortNeedsDelta.energy}` : undefined,
-        comfortNeedsDelta.mood ? `настроение +${comfortNeedsDelta.mood}` : undefined,
-        comfortApplied.fatigueDelta < 0 ? `спортивная усталость ${comfortApplied.fatigueDelta}` : undefined
-      ].filter((entry): entry is string => Boolean(entry));
-      if (parts.length > 0) messages.push(`Комфорт жилья: ${parts.join(', ')}.`);
-    }
-  }
-  const population = simulatePopulation({
-    population: currentState.world.population,
-    fromTime: currentState.time,
-    toTime: nextTime,
-    locations: allLocations,
-    getLocationProfile: populationDataSource.getLocationProfile
+  options: ElapsedTimeOptions = {}
+) {
+  const { actionTitle, ...worldOverride } = options;
+  return advanceWorldTime({
+    state: currentState,
+    player,
+    nextTime,
+    decayProfile,
+    worldOverride,
+    actionTitle
   });
-  const ownedBusiness = businessOverride.ownedBusiness;
-  const businessPremisesEntry = getBusinessPremisesById(ownedBusiness?.premisesId);
-  const businessTypeEntry = getBusinessTypeById(ownedBusiness?.typeId);
-  const businessApplied = simulateBusinessTime({
-    world: businessOverride,
-    fromTime: currentState.time,
-    toTime: nextTime,
-    population,
-    premises: businessPremisesEntry,
-    businessType: businessTypeEntry,
-    equipment: businessEquipment,
-    menuItems: businessMenuItems,
-    supplies: businessSupplies,
-    upgrades: businessUpgrades
-  });
-  if (businessApplied.events.length > 0) {
-    businessApplied.events.forEach((event) => {
-      messages.push(event.text);
-      lifeLogEntries.push(createLifeLogEntry({ time: nextTime }, event.title, event.text));
-    });
-  }
-
-  let social = processScheduledSocialEvents({
-    social: socialOverride,
-    currentDay: nextTime.day,
-    npcs: population.npcs,
-    templates: socialEventTemplates
-  });
-  const currentLocation = getLocationById(currentState.player.locationId);
-  if (!social.activeEvent && elapsedMinutes >= 60 && currentLocation?.type === 'home') {
-    const neighbors = population.npcs.filter((npc) =>
-      npc.homeDistrictId === currentState.player.districtId && npc.activationDay <= nextTime.day
-    );
-    const neighbor = neighbors[(nextTime.day + population.seed) % Math.max(1, neighbors.length)];
-    if (neighbor) {
-      social = maybeActivateSocialEvent({
-        social,
-        npc: neighbor,
-        context: 'home',
-        day: nextTime.day,
-        eventWeight: 1,
-        templates: socialEventTemplates
-      });
-    }
-  }
-
-  const medicalApplied = processMedicalTime({
-    state: medicalOverride,
-    player: nextPlayer,
-    fromTime: currentState.time,
-    toTime: nextTime,
-    profile: decayProfile
-  });
-  nextPlayer = medicalApplied.player;
-  if (medicalApplied.messages.length > 0) {
-    messages.push(...medicalApplied.messages);
-    lifeLogEntries.push(...medicalApplied.messages.map((message) => createLifeLogEntry({ time: nextTime }, 'Здоровье', message)));
-  }
-
-  return {
-    player: nextPlayer,
-    population,
-    social,
-    housingMarket,
-    business: businessApplied.world,
-    medical: medicalApplied.state,
-    lifeLogEntries,
-    needsDelta: mergeNeedsDelta(decayApplied.delta, comfortNeedsDelta),
-    messages
-  };
 }
 
 function applyBoxingOperationState(
@@ -482,7 +312,7 @@ function applyBoxingOperationState(
     };
   }
 
-  const elapsedApplied = applyElapsedTimeConsequences(currentState, applied.player, applied.time, 'active');
+  const elapsedApplied = applyElapsedTimeConsequences(currentState, applied.player, applied.time, 'active', { actionTitle: applied.result.actionName });
   const combatKind = logTitle === 'Спарринг' ? 'sparring' : logTitle === 'Турнир' ? 'tournament' : undefined;
   const riskApplied = combatKind
     ? applyBoxingMedicalRisk({
@@ -499,7 +329,7 @@ function applyBoxingOperationState(
   return {
     ...currentState,
     player: riskApplied.player,
-    world: { ...currentState.world, population: elapsedApplied.population, social: elapsedApplied.social, housingMarket: elapsedApplied.housingMarket, business: elapsedApplied.business, medical: riskApplied.state },
+    world: { ...elapsedApplied.world, medical: riskApplied.state },
     time: applied.time,
     lastResult: {
       ok: true,
@@ -691,21 +521,13 @@ function applyVehicleOperationState(
     money: applyMoneyDelta(currentState.player.money, result.moneyDelta ?? 0)
   };
   const nextTime = addMinutes(currentState.time, result.timeDeltaMinutes);
-  const elapsedApplied = applyElapsedTimeConsequences(currentState, chargedPlayer, nextTime, 'active');
+  const elapsedApplied = applyElapsedTimeConsequences(currentState, chargedPlayer, nextTime, 'active', { vehicles, actionTitle: result.title });
   const messages = [result.message, ...elapsedApplied.messages];
   return {
     ...currentState,
     time: nextTime,
     player: elapsedApplied.player,
-    world: {
-      ...currentState.world,
-      population: elapsedApplied.population,
-      social: elapsedApplied.social,
-      housingMarket: elapsedApplied.housingMarket,
-      business: elapsedApplied.business,
-          medical: elapsedApplied.medical,
-      vehicles
-    },
+    world: elapsedApplied.world,
     lastResult: {
       ok: true,
       actionName: result.title,
@@ -728,239 +550,6 @@ export function useGameController() {
     saveGameState(gameState);
   }, [gameState]);
 
-  useEffect(() => {
-    setGameState((currentState) => {
-      const currentTotalMinutes = getTotalMinutes(currentState.time);
-      if (currentState.world.phone.lastProcessedTotalMinutes >= currentTotalMinutes) return currentState;
-      const phone = processPhoneTime({
-        state: currentState.world.phone,
-        currentTotalMinutes,
-        jobs: basicJobs,
-        getEmployerName: (job) => getLocationById(job.locationId)?.name ?? 'Работодатель'
-      });
-      if (phone === currentState.world.phone) return currentState;
-      return { ...currentState, world: { ...currentState.world, phone } };
-    });
-  }, [gameState.time.day, gameState.time.hour, gameState.time.minute]);
-
-
-  useEffect(() => {
-    setGameState((currentState) => {
-      const currentTotalMinutes = getTotalMinutes(currentState.time);
-      if (currentState.world.social.lastProcessedTotalMinutes >= currentTotalMinutes) return currentState;
-      const processed = processSocialLifeTime({
-        social: currentState.world.social,
-        phone: currentState.world.phone,
-        currentTotalMinutes,
-        npcs: currentState.world.population.npcs,
-        locations: allLocations,
-        meetingTypes: socialMeetingTypes
-      });
-      const changed = processed.social !== currentState.world.social || processed.phone !== currentState.world.phone;
-      if (!changed && processed.messages.length === 0) return currentState;
-      const entries = processed.messages.map((entry) => createLifeLogEntry(currentState, entry.title, entry.text));
-      return {
-        ...currentState,
-        world: { ...currentState.world, social: processed.social, phone: processed.phone },
-        lifeLog: mergeLifeLog(entries, currentState.lifeLog)
-      };
-    });
-  }, [gameState.time.day, gameState.time.hour, gameState.time.minute]);
-
-
-  useEffect(() => {
-    setGameState((currentState) => {
-      const currentTotalMinutes = getTotalMinutes(currentState.time);
-      const previous = currentState.world.university;
-      if (previous.lastProcessedTotalMinutes >= currentTotalMinutes) return currentState;
-      const enrollmentProgram = getDegreeProgramById(previous.enrollment?.programId);
-      const processed = processUniversityTime({
-        state: previous,
-        fromTime: fromTotalMinutes(previous.lastProcessedTotalMinutes),
-        toTime: currentState.time,
-        program: enrollmentProgram,
-        subjects: universitySubjects
-      });
-      if (processed.state === previous && processed.messages.length === 0) return currentState;
-      const entries = processed.messages.map((message) => createLifeLogEntry(currentState, 'Учёба', message));
-      return {
-        ...currentState,
-        world: { ...currentState.world, university: processed.state },
-        lifeLog: mergeLifeLog(entries, currentState.lifeLog)
-      };
-    });
-  }, [gameState.time.day, gameState.time.hour, gameState.time.minute]);
-
-
-  useEffect(() => {
-    setGameState((currentState) => {
-      const now = getTotalMinutes(currentState.time);
-      const previous = currentState.world.intercity;
-      let intercity = processIntercityTime(previous, now);
-      let phone = currentState.world.phone;
-      let changed = intercity !== previous;
-
-      const reminderIds = intercity.tickets
-        .filter((ticket) => (
-          ticket.status === 'booked'
-          && !ticket.reminderSent
-          && now >= ticket.departureTotalMinutes - 90
-          && now < ticket.departureTotalMinutes
-        ))
-        .map((ticket) => ticket.id);
-
-      if (reminderIds.length > 0) {
-        intercity = {
-          ...intercity,
-          tickets: intercity.tickets.map((ticket) => reminderIds.includes(ticket.id)
-            ? { ...ticket, reminderSent: true }
-            : ticket)
-        };
-        reminderIds.forEach((id) => {
-          const ticket = intercity.tickets.find((entry) => entry.id === id);
-          const route = getIntercityRouteById(ticket?.routeId);
-          const notificationId = (`notification_trip_reminder_${String(id)}`) as PhoneNotificationId;
-          if (!phone.notifications.some((entry) => entry.id === notificationId)) {
-            phone = {
-              ...phone,
-              notifications: [{
-                id: notificationId,
-                appId: 'trips' as const,
-                title: 'Скоро отправление',
-                body: `${route?.title ?? 'Междугородняя поездка'} · через ${Math.max(1, Math.ceil(((ticket?.departureTotalMinutes ?? now) - now) / 60))} ч.`,
-                createdAtTotalMinutes: now,
-                read: false,
-                locationId: route?.originTerminalLocationId,
-                intercityRouteId: route?.id,
-                intercityTicketId: id
-              }, ...phone.notifications].slice(0, 80)
-            };
-          }
-        });
-        changed = true;
-      }
-
-      const missedIds = intercity.tickets
-        .filter((ticket) => ticket.status === 'missed' && previous.tickets.find((old) => old.id === ticket.id)?.status === 'booked')
-        .map((ticket) => ticket.id);
-      missedIds.forEach((id) => {
-        const ticket = intercity.tickets.find((entry) => entry.id === id);
-        const route = getIntercityRouteById(ticket?.routeId);
-        const notificationId = (`notification_trip_missed_${String(id)}`) as PhoneNotificationId;
-        if (!phone.notifications.some((entry) => entry.id === notificationId)) {
-          phone = {
-            ...phone,
-            notifications: [{
-              id: notificationId,
-              appId: 'trips' as const,
-              title: 'Отправление пропущено',
-              body: route?.title ?? 'Междугородняя поездка',
-              createdAtTotalMinutes: now,
-              read: false,
-              locationId: route?.originTerminalLocationId,
-              intercityRouteId: route?.id,
-              intercityTicketId: id
-            }, ...phone.notifications].slice(0, 80),
-            calendarEvents: phone.calendarEvents.map((event) => event.intercityTicketId === id && event.status === 'scheduled'
-              ? { ...event, status: 'missed' as const }
-              : event)
-          };
-        }
-        changed = true;
-      });
-
-      return changed
-        ? { ...currentState, world: { ...currentState.world, intercity, phone } }
-        : currentState;
-    });
-  }, [gameState.time.day, gameState.time.hour, gameState.time.minute]);
-
-
-  useEffect(() => {
-    setGameState((currentState) => {
-      const now = getTotalMinutes(currentState.time);
-      let changed = false;
-      let phone = currentState.world.phone;
-      const appointmentsById = new Map(currentState.world.medical.appointments.map((entry) => [String(entry.id), entry]));
-      const calendarEvents = phone.calendarEvents.map((event) => {
-        if (!event.medicalAppointmentId) return event;
-        const appointment = appointmentsById.get(String(event.medicalAppointmentId));
-        if (!appointment || appointment.status === event.status) return event;
-        changed = true;
-        return { ...event, status: appointment.status === 'cancelled' ? 'missed' as const : appointment.status };
-      });
-      if (calendarEvents !== phone.calendarEvents) phone = { ...phone, calendarEvents };
-
-      for (const appointment of currentState.world.medical.appointments) {
-        if (appointment.status !== 'scheduled') continue;
-        const reminderId = (`notification_medical_reminder_${appointment.id}`) as PhoneNotificationId;
-        const dueSoon = now >= appointment.startsAtTotalMinutes - 90 && now <= appointment.startsAtTotalMinutes;
-        if (!dueSoon || phone.notifications.some((entry) => entry.id === reminderId)) continue;
-        const service = getMedicalServiceById(appointment.serviceId);
-        phone = {
-          ...phone,
-          notifications: [{
-            id: reminderId,
-            appId: 'health' as const,
-            title: 'Скоро приём',
-            body: `${service?.name ?? 'Медицинский приём'} начнётся в ближайшие 90 минут.`,
-            createdAtTotalMinutes: now,
-            read: false,
-            locationId: appointment.clinicLocationId,
-            medicalServiceId: appointment.serviceId,
-            medicalAppointmentId: appointment.id
-          }, ...phone.notifications].slice(0, 80)
-        };
-        changed = true;
-      }
-
-      if (!changed) return currentState;
-      return { ...currentState, world: { ...currentState.world, phone } };
-    });
-  }, [gameState.time.day, gameState.time.hour, gameState.time.minute, gameState.world.medical.appointments]);
-
-  useEffect(() => {
-    setGameState((currentState) => {
-      const totalMinutes = getTotalMinutes(currentState.time);
-      const crossedDayWithExpense = currentState.time.day > currentState.world.finance.lastProcessedDay
-        && currentState.player.money < currentState.world.finance.lastObservedBankBalance;
-      const reconciled = reconcileExternalBankBalance({
-        state: currentState.world.finance,
-        bankBalance: currentState.player.money,
-        totalMinutes,
-        actionTitle: crossedDayWithExpense ? 'Жильё и регулярные платежи' : currentState.lastResult?.actionName
-      });
-      const processed = processFinanceDay({
-        state: reconciled,
-        player: currentState.player,
-        currentDay: currentState.time.day,
-        totalMinutes
-      });
-      const financeChanged = processed.state !== currentState.world.finance;
-      const playerChanged = processed.player !== currentState.player;
-      if (!financeChanged && !playerChanged && processed.messages.length === 0) return currentState;
-      const entries = processed.messages.map((message) => createLifeLogEntry(currentState, 'Банк', message));
-      return {
-        ...currentState,
-        player: processed.player,
-        world: { ...currentState.world, finance: processed.state },
-        lifeLog: entries.length ? mergeLifeLog(entries, currentState.lifeLog) : currentState.lifeLog
-      };
-    });
-  }, [gameState.player.money, gameState.time.day, gameState.time.hour, gameState.time.minute]);
-
-
-  useEffect(() => {
-    setGameState((currentState) => {
-      const vehicles = refreshVehicleMarket({
-        world: currentState.world.vehicles,
-        day: currentState.time.day,
-        templates: usedVehicleListingTemplates
-      });
-      if (vehicles === currentState.world.vehicles) return currentState;
-      return { ...currentState, world: { ...currentState.world, vehicles } };
-    });
-  }, [gameState.time.day]);
 
   const locationState = useMemo(() => {
     const city = getCityById(gameState.player.cityId);
@@ -1824,7 +1413,8 @@ export function useGameController() {
         currentState,
         applied.player,
         applied.time,
-        getNeedsDecayProfileForActionCategory(action.category)
+        getNeedsDecayProfileForActionCategory(action.category),
+        { actionTitle: action.name }
       );
       const resultMessages = [...applied.result.messages, ...elapsedApplied.messages];
       const logEntry = createLifeLogEntry(
@@ -1836,7 +1426,7 @@ export function useGameController() {
       return {
         ...currentState,
         player: elapsedApplied.player,
-        world: { ...currentState.world, population: elapsedApplied.population, social: elapsedApplied.social, housingMarket: elapsedApplied.housingMarket, business: elapsedApplied.business, medical: elapsedApplied.medical },
+        world: elapsedApplied.world,
         time: applied.time,
         lastResult: {
           ...applied.result,
@@ -1905,7 +1495,6 @@ export function useGameController() {
         districtId: district.id,
         locationId: defaultLocation.id
       };
-      const elapsedApplied = applyElapsedTimeConsequences(currentState, movedPlayer, nextTime, 'active');
       const vehicleQuote = modeId === 'car'
         ? calculateVehicleTravelQuote({
             vehicle: currentState.world.vehicles.ownedVehicle,
@@ -1920,6 +1509,13 @@ export function useGameController() {
       const vehicles = vehicleQuote?.available
         ? applyVehicleTravel(currentState.world.vehicles, vehicleQuote, defaultLocation.id)
         : currentState.world.vehicles;
+      const elapsedApplied = applyElapsedTimeConsequences(
+        currentState,
+        movedPlayer,
+        nextTime,
+        'active',
+        { vehicles, actionTitle: 'Перемещение' }
+      );
       const resultMessages = [...messages, ...elapsedApplied.messages];
       const logEntry = createLifeLogEntry({ time: nextTime }, 'Перемещение', resultMessages.join(' '));
 
@@ -1927,7 +1523,7 @@ export function useGameController() {
         ...currentState,
         time: nextTime,
         player: elapsedApplied.player,
-        world: { ...currentState.world, population: elapsedApplied.population, social: elapsedApplied.social, housingMarket: elapsedApplied.housingMarket, business: elapsedApplied.business, medical: elapsedApplied.medical, vehicles },
+        world: elapsedApplied.world,
         lastResult: {
           ok: true,
           timeDeltaMinutes: travel.durationMinutes,
@@ -1996,7 +1592,6 @@ export function useGameController() {
         districtId: location.districtId,
         locationId: location.id
       };
-      const elapsedApplied = applyElapsedTimeConsequences(currentState, movedPlayer, nextTime, 'active');
       const vehicleQuote = modeId === 'car'
         ? calculateVehicleTravelQuote({
             vehicle: currentState.world.vehicles.ownedVehicle,
@@ -2011,6 +1606,13 @@ export function useGameController() {
       const vehicles = vehicleQuote?.available
         ? applyVehicleTravel(currentState.world.vehicles, vehicleQuote, location.id)
         : currentState.world.vehicles;
+      const elapsedApplied = applyElapsedTimeConsequences(
+        currentState,
+        movedPlayer,
+        nextTime,
+        'active',
+        { vehicles, actionTitle: 'Перемещение' }
+      );
       const resultMessages = [...messages, ...elapsedApplied.messages];
       const logEntry = createLifeLogEntry({ time: nextTime }, 'Перемещение', resultMessages.join(' '));
 
@@ -2018,7 +1620,7 @@ export function useGameController() {
         ...currentState,
         time: nextTime,
         player: elapsedApplied.player,
-        world: { ...currentState.world, population: elapsedApplied.population, social: elapsedApplied.social, housingMarket: elapsedApplied.housingMarket, business: elapsedApplied.business, medical: elapsedApplied.medical, vehicles },
+        world: elapsedApplied.world,
         lastResult: {
           ok: true,
           timeDeltaMinutes: travel.durationMinutes,
@@ -2159,10 +1761,7 @@ export function useGameController() {
         productRisk.player,
         nextTime,
         'active',
-        currentState.world.social,
-        currentState.world.housingMarket,
-        currentState.world.business,
-        productRisk.state
+        { medical: productRisk.state, actionTitle: product.name }
       );
       const warning = getNeedWarning(elapsedApplied.player.needs);
       const message = `Использовано: ${product.name}. Потрачено ${product.useDurationMinutes} мин.`;
@@ -2174,7 +1773,7 @@ export function useGameController() {
         ...currentState,
         time: nextTime,
         player: elapsedApplied.player,
-        world: { ...currentState.world, population: elapsedApplied.population, social: elapsedApplied.social, housingMarket: elapsedApplied.housingMarket, business: elapsedApplied.business, medical: elapsedApplied.medical },
+        world: elapsedApplied.world,
         lastResult: {
           ok: true,
           timeDeltaMinutes: product.useDurationMinutes,
@@ -2270,7 +1869,7 @@ export function useGameController() {
       const finance = earnedSalary > 0
         ? accrueSalary(currentState.world.finance, earnedSalary, getTotalMinutes(applied.time), applied.result.jobTitle)
         : currentState.world.finance;
-      const elapsedApplied = applyElapsedTimeConsequences(currentState, deferredPlayer, applied.time, 'active');
+      const elapsedApplied = applyElapsedTimeConsequences(currentState, deferredPlayer, applied.time, 'active', { finance, actionTitle: applied.result.jobTitle });
       const sicknessApplied = applied.result.ok
         ? applyWorkWhileSick(elapsedApplied.medical, elapsedApplied.player, getTotalMinutes(applied.time))
         : { state: elapsedApplied.medical, player: elapsedApplied.player, message: undefined };
@@ -2291,7 +1890,7 @@ export function useGameController() {
       return {
         ...currentState,
         player: sicknessApplied.player,
-        world: { ...currentState.world, population: elapsedApplied.population, social: elapsedApplied.social, housingMarket: elapsedApplied.housingMarket, business: elapsedApplied.business, medical: sicknessApplied.state, finance },
+        world: { ...elapsedApplied.world, medical: sicknessApplied.state },
         time: applied.time,
         lastResult: {
           ok: applied.result.ok,
@@ -2332,7 +1931,7 @@ export function useGameController() {
         };
       }
 
-      const elapsedApplied = applyElapsedTimeConsequences(currentState, applied.player, applied.time, 'active');
+      const elapsedApplied = applyElapsedTimeConsequences(currentState, applied.player, applied.time, 'active', { actionTitle: program.title });
       const skill = getSkillById(program.skillId);
       const levelMessage = applied.result.skillProgress?.leveledUp
         ? `Навык «${skill?.name ?? 'Навык'}» повышен до уровня ${applied.result.skillProgress.nextLevel}.`
@@ -2347,7 +1946,7 @@ export function useGameController() {
       return {
         ...currentState,
         player: elapsedApplied.player,
-        world: { ...currentState.world, population: elapsedApplied.population, social: elapsedApplied.social, housingMarket: elapsedApplied.housingMarket, business: elapsedApplied.business, medical: elapsedApplied.medical },
+        world: elapsedApplied.world,
         time: applied.time,
         lastResult: {
           ok: true,
@@ -2523,8 +2122,7 @@ export function useGameController() {
         currentState.player,
         nextTime,
         'active',
-        currentState.world.social,
-        market
+        { housingMarket: market, actionTitle: 'Просмотр жилья' }
       );
       const message = `Жильё осмотрено: ${housing.name}. Характеристики объявления подтверждены.`;
       const messages = [message, ...elapsedApplied.messages];
@@ -2533,14 +2131,7 @@ export function useGameController() {
         ...currentState,
         time: nextTime,
         player: elapsedApplied.player,
-        world: {
-          ...currentState.world,
-          population: elapsedApplied.population,
-          social: elapsedApplied.social,
-          housingMarket: elapsedApplied.housingMarket,
-          business: elapsedApplied.business,
-          medical: elapsedApplied.medical
-        },
+        world: elapsedApplied.world,
         lastResult: {
           ok: true,
           actionName: 'Просмотр жилья',
@@ -2583,8 +2174,7 @@ export function useGameController() {
         moved.player,
         nextTime,
         'active',
-        currentState.world.social,
-        moved.market
+        { housingMarket: moved.market, actionTitle: moved.result.actionName }
       );
       const messages = [...moved.result.messages, ...elapsedApplied.messages];
       const logEntry = createLifeLogEntry({ time: nextTime }, 'Новое жильё', messages.join(' '));
@@ -2592,14 +2182,7 @@ export function useGameController() {
         ...currentState,
         time: nextTime,
         player: elapsedApplied.player,
-        world: {
-          ...currentState.world,
-          population: elapsedApplied.population,
-          social: elapsedApplied.social,
-          housingMarket: elapsedApplied.housingMarket,
-          business: elapsedApplied.business,
-          medical: elapsedApplied.medical
-        },
+        world: elapsedApplied.world,
         lastResult: {
           ok: true,
           actionName: moved.result.actionName,
@@ -2655,7 +2238,7 @@ export function useGameController() {
         applied.player,
         applied.time,
         'active',
-        applied.social
+        { social: applied.social, actionTitle: applied.result.actionName }
       );
       const nextSocial = maybeActivateSocialEvent({
         social: elapsedApplied.social,
@@ -2672,14 +2255,7 @@ export function useGameController() {
         ...currentState,
         player: elapsedApplied.player,
         time: applied.time,
-        world: {
-          ...currentState.world,
-          population: elapsedApplied.population,
-          social: nextSocial,
-          housingMarket: elapsedApplied.housingMarket,
-          business: elapsedApplied.business,
-          medical: elapsedApplied.medical
-        },
+        world: { ...elapsedApplied.world, social: nextSocial },
         lastResult: {
           ok: true,
           actionName: applied.result.actionName,
@@ -2713,21 +2289,13 @@ export function useGameController() {
           lastResult: { ok: false, actionName: 'Обмен контактами', timeDeltaMinutes: 0, messages: [applied.message] }
         };
       }
-      const elapsedApplied = applyElapsedTimeConsequences(currentState, currentState.player, applied.time, 'active', applied.social);
+      const elapsedApplied = applyElapsedTimeConsequences(currentState, currentState.player, applied.time, 'active', { social: applied.social, phone: applied.phone, actionTitle: 'Обмен контактами' });
       const messages = [applied.message, ...elapsedApplied.messages];
       return {
         ...currentState,
         player: elapsedApplied.player,
         time: applied.time,
-        world: {
-          ...currentState.world,
-          population: elapsedApplied.population,
-          social: elapsedApplied.social,
-          phone: applied.phone,
-          housingMarket: elapsedApplied.housingMarket,
-          business: elapsedApplied.business,
-          medical: elapsedApplied.medical
-        },
+        world: elapsedApplied.world,
         lastResult: { ok: true, actionName: 'Обмен контактами', timeDeltaMinutes: 2, needsDelta: elapsedApplied.needsDelta, messages },
         lifeLog: mergeLifeLog([createLifeLogEntry({ time: applied.time }, 'Контакты', applied.message), ...elapsedApplied.lifeLogEntries], currentState.lifeLog)
       };
@@ -2750,20 +2318,12 @@ export function useGameController() {
       if (!applied.ok) {
         return { ...currentState, lastResult: { ok: false, actionName: 'Сообщение', timeDeltaMinutes: 0, messages: [applied.message] } };
       }
-      const elapsedApplied = applyElapsedTimeConsequences(currentState, currentState.player, applied.time, 'active', applied.social);
+      const elapsedApplied = applyElapsedTimeConsequences(currentState, currentState.player, applied.time, 'active', { social: applied.social, phone: applied.phone, actionTitle: 'Сообщение' });
       return {
         ...currentState,
         player: elapsedApplied.player,
         time: applied.time,
-        world: {
-          ...currentState.world,
-          population: elapsedApplied.population,
-          social: elapsedApplied.social,
-          phone: applied.phone,
-          housingMarket: elapsedApplied.housingMarket,
-          business: elapsedApplied.business,
-          medical: elapsedApplied.medical
-        },
+        world: elapsedApplied.world,
         lastResult: { ok: true, actionName: 'Сообщение', timeDeltaMinutes: 5, needsDelta: elapsedApplied.needsDelta, messages: [applied.message, ...elapsedApplied.messages] },
         lifeLog: mergeLifeLog([createLifeLogEntry({ time: applied.time }, 'Переписка', applied.message), ...elapsedApplied.lifeLogEntries], currentState.lifeLog)
       };
@@ -2836,21 +2396,13 @@ export function useGameController() {
       if (!applied.ok) {
         return { ...currentState, lastResult: { ok: false, actionName: definition.shortTitle, timeDeltaMinutes: 0, messages: [applied.message] } };
       }
-      const elapsedApplied = applyElapsedTimeConsequences(currentState, applied.player, applied.time, 'active', applied.social);
+      const elapsedApplied = applyElapsedTimeConsequences(currentState, applied.player, applied.time, 'active', { social: applied.social, phone: applied.phone, actionTitle: definition.shortTitle });
       const messages = [applied.message, ...elapsedApplied.messages];
       return {
         ...currentState,
         player: elapsedApplied.player,
         time: applied.time,
-        world: {
-          ...currentState.world,
-          population: elapsedApplied.population,
-          social: elapsedApplied.social,
-          phone: applied.phone,
-          housingMarket: elapsedApplied.housingMarket,
-          business: elapsedApplied.business,
-          medical: elapsedApplied.medical
-        },
+        world: elapsedApplied.world,
         lastResult: {
           ok: true,
           actionName: definition.shortTitle,
@@ -2921,7 +2473,7 @@ export function useGameController() {
         applied.player,
         applied.time,
         'active',
-        applied.social
+        { social: applied.social, actionTitle: applied.result.actionName }
       );
       const messages = [...applied.result.messages, ...elapsedApplied.messages];
       const logEntry = createLifeLogEntry({ time: applied.time }, 'Социальное событие', messages.join(' '));
@@ -2930,14 +2482,7 @@ export function useGameController() {
         ...currentState,
         player: elapsedApplied.player,
         time: applied.time,
-        world: {
-          ...currentState.world,
-          population: elapsedApplied.population,
-          social: elapsedApplied.social,
-          housingMarket: elapsedApplied.housingMarket,
-          business: elapsedApplied.business,
-          medical: elapsedApplied.medical
-        },
+        world: elapsedApplied.world,
         lastResult: {
           ok: true,
           actionName: applied.result.actionName,
@@ -3148,9 +2693,7 @@ export function useGameController() {
         ownerPlayer,
         nextTime,
         'active',
-        currentState.world.social,
-        currentState.world.housingMarket,
-        simulated.world
+        { business: simulated.world, actionTitle: 'Смена владельца' }
       );
       const sicknessApplied = applyWorkWhileSick(elapsedApplied.medical, elapsedApplied.player, getTotalMinutes(nextTime));
       const balanceAfter = elapsedApplied.business.ownedBusiness?.balance ?? balanceBefore;
@@ -3163,14 +2706,7 @@ export function useGameController() {
         ...currentState,
         time: nextTime,
         player: sicknessApplied.player,
-        world: {
-          ...currentState.world,
-          population: elapsedApplied.population,
-          social: elapsedApplied.social,
-          housingMarket: elapsedApplied.housingMarket,
-          business: elapsedApplied.business,
-          medical: sicknessApplied.state
-        },
+        world: { ...elapsedApplied.world, medical: sicknessApplied.state },
         lastResult: {
           ok: true,
           actionName: 'Смена владельца',
@@ -3285,9 +2821,7 @@ export function useGameController() {
         hired.player,
         nextTime,
         'active',
-        currentState.world.social,
-        currentState.world.housingMarket,
-        currentState.world.business
+        { phone: interview.state, actionTitle: 'Собеседование' }
       );
       const messages = [interview.result.message, ...elapsedApplied.messages];
       const logEntry = createLifeLogEntry({ time: nextTime }, 'Собеседование', messages.join(' '));
@@ -3295,15 +2829,7 @@ export function useGameController() {
         ...currentState,
         time: nextTime,
         player: elapsedApplied.player,
-        world: {
-          ...currentState.world,
-          population: elapsedApplied.population,
-          social: elapsedApplied.social,
-          housingMarket: elapsedApplied.housingMarket,
-          business: elapsedApplied.business,
-          medical: elapsedApplied.medical,
-          phone: interview.state
-        },
+        world: elapsedApplied.world,
         lastResult: {
           ok: true,
           actionName: 'Собеседование',
@@ -3387,16 +2913,6 @@ export function useGameController() {
           lifeLog: mergeLifeLog([entry], currentState.lifeLog)
         };
       }
-      const elapsedApplied = applyElapsedTimeConsequences(
-        currentState,
-        applied.player,
-        applied.time,
-        'active',
-        currentState.world.social,
-        currentState.world.housingMarket,
-        currentState.world.business,
-        applied.state
-      );
       const completedAppointment = applied.state.appointments.find((entry) => entry.serviceId === service.id && entry.status === 'completed');
       const phone = {
         ...currentState.world.phone,
@@ -3415,21 +2931,20 @@ export function useGameController() {
           medicalAppointmentId: completedAppointment?.id
         }, ...currentState.world.phone.notifications].slice(0, 80)
       };
+      const elapsedApplied = applyElapsedTimeConsequences(
+        currentState,
+        applied.player,
+        applied.time,
+        'active',
+        { medical: applied.state, phone, actionTitle: applied.result.title }
+      );
       const messages = [applied.result.message, ...elapsedApplied.messages];
       const entry = createLifeLogEntry({ time: applied.time }, 'Медицина', messages.join(' '));
       return {
         ...currentState,
         time: applied.time,
         player: elapsedApplied.player,
-        world: {
-          ...currentState.world,
-          population: elapsedApplied.population,
-          social: elapsedApplied.social,
-          housingMarket: elapsedApplied.housingMarket,
-          business: elapsedApplied.business,
-          medical: elapsedApplied.medical,
-          phone
-        },
+        world: elapsedApplied.world,
         lastResult: {
           ok: true,
           actionName: applied.result.title,
@@ -3648,7 +3163,6 @@ export function useGameController() {
         locationId: destination.id,
         needs: applyNeedsDelta(currentState.player.needs, applied.result.needsDelta)
       };
-      const elapsedApplied = applyElapsedTimeConsequences(currentState, movedPlayer, nextTime, 'resting');
       const notificationId = (`notification_trip_arrived_${String(ticketId)}`) as PhoneNotificationId;
       const phone = {
         ...currentState.world.phone,
@@ -3667,21 +3181,19 @@ export function useGameController() {
           intercityTicketId: ticketId
         }, ...currentState.world.phone.notifications].slice(0, 80)
       };
+      const elapsedApplied = applyElapsedTimeConsequences(
+        currentState,
+        movedPlayer,
+        nextTime,
+        'resting',
+        { intercity: applied.state, phone, actionTitle: applied.result.title }
+      );
       const messages = [applied.result.message, ...elapsedApplied.messages];
       return {
         ...currentState,
         time: nextTime,
         player: elapsedApplied.player,
-        world: {
-          ...currentState.world,
-          population: elapsedApplied.population,
-          social: elapsedApplied.social,
-          housingMarket: elapsedApplied.housingMarket,
-          business: elapsedApplied.business,
-          medical: elapsedApplied.medical,
-          intercity: applied.state,
-          phone
-        },
+        world: elapsedApplied.world,
         lastResult: {
           ok: true,
           actionName: applied.result.title,
@@ -3777,7 +3289,6 @@ export function useGameController() {
         locationId: destination.id,
         needs: applyNeedsDelta(currentState.player.needs, applied.result.needsDelta)
       };
-      const elapsedApplied = applyElapsedTimeConsequences(currentState, chargedPlayer, nextTime, 'active');
       const owned = currentState.world.vehicles.ownedVehicle;
       const vehicles: VehicleWorldState = {
         ...currentState.world.vehicles,
@@ -3790,28 +3301,23 @@ export function useGameController() {
           parkedLocationId: destination.id
         }
       };
-      const finance = reconcileExternalBankBalance({
-        state: currentState.world.finance,
-        bankBalance: elapsedApplied.player.money,
-        totalMinutes: getTotalMinutes(nextTime),
-        actionTitle: 'Междугородняя поездка на автомобиле'
-      });
+      const elapsedApplied = applyElapsedTimeConsequences(
+        currentState,
+        chargedPlayer,
+        nextTime,
+        'active',
+        {
+          intercity: applied.state,
+          vehicles,
+          actionTitle: 'Междугородняя поездка на автомобиле'
+        }
+      );
       const messages = [applied.result.message, ...elapsedApplied.messages];
       return {
         ...currentState,
         time: nextTime,
         player: elapsedApplied.player,
-        world: {
-          ...currentState.world,
-          population: elapsedApplied.population,
-          social: elapsedApplied.social,
-          housingMarket: elapsedApplied.housingMarket,
-          business: elapsedApplied.business,
-          medical: elapsedApplied.medical,
-          intercity: applied.state,
-          vehicles,
-          finance
-        },
+        world: elapsedApplied.world,
         lastResult: {
           ok: true,
           actionName: applied.result.title,
@@ -3940,7 +3446,6 @@ export function useGameController() {
       if (!applied.result.ok) {
         return { ...currentState, lastResult: { ok: false, actionName: applied.result.title, timeDeltaMinutes: 0, messages: [applied.result.message] } };
       }
-      const elapsedApplied = applyElapsedTimeConsequences(currentState, applied.player, applied.time, 'active');
       const phone = {
         ...currentState.world.phone,
         calendarEvents: currentState.world.phone.calendarEvents.map((event) => event.type === 'university_entrance_exam' && event.degreeProgramId === program.id
@@ -3957,20 +3462,18 @@ export function useGameController() {
           locationId: university.locationId
         }, ...currentState.world.phone.notifications].slice(0, 80)
       };
+      const elapsedApplied = applyElapsedTimeConsequences(
+        currentState,
+        applied.player,
+        applied.time,
+        'active',
+        { university: applied.state, phone, actionTitle: applied.result.title }
+      );
       return {
         ...currentState,
         player: elapsedApplied.player,
         time: applied.time,
-        world: {
-          ...currentState.world,
-          university: applied.state,
-          phone,
-          population: elapsedApplied.population,
-          social: elapsedApplied.social,
-          housingMarket: elapsedApplied.housingMarket,
-          business: elapsedApplied.business,
-          medical: elapsedApplied.medical
-        },
+        world: elapsedApplied.world,
         lastResult: { ok: true, actionName: applied.result.title, timeDeltaMinutes: applied.result.timeDeltaMinutes, needsDelta: elapsedApplied.needsDelta, messages: [applied.result.message, ...elapsedApplied.messages] },
         lifeLog: mergeLifeLog([createLifeLogEntry({ time: applied.time }, applied.result.title, applied.result.message), ...elapsedApplied.lifeLogEntries], currentState.lifeLog)
       };
@@ -4001,12 +3504,12 @@ export function useGameController() {
       if (!program || !university) return currentState;
       const applied = attendUniversityClass({ state: currentState.world.university, player: currentState.player, time: currentState.time, subject, startsAtTotalMinutes, university });
       if (!applied.result.ok) return { ...currentState, lastResult: { ok: false, actionName: applied.result.title, timeDeltaMinutes: 0, messages: [applied.result.message] } };
-      const elapsedApplied = applyElapsedTimeConsequences(currentState, applied.player, applied.time, 'active');
+      const elapsedApplied = applyElapsedTimeConsequences(currentState, applied.player, applied.time, 'active', { university: applied.state, actionTitle: applied.result.title });
       return {
         ...currentState,
         player: elapsedApplied.player,
         time: applied.time,
-        world: { ...currentState.world, university: applied.state, population: elapsedApplied.population, social: elapsedApplied.social, housingMarket: elapsedApplied.housingMarket, business: elapsedApplied.business, medical: elapsedApplied.medical },
+        world: elapsedApplied.world,
         lastResult: { ok: true, actionName: applied.result.title, timeDeltaMinutes: applied.result.timeDeltaMinutes, needsDelta: elapsedApplied.needsDelta, messages: [applied.result.message, ...elapsedApplied.messages] },
         lifeLog: mergeLifeLog([createLifeLogEntry({ time: applied.time }, applied.result.title, applied.result.message), ...elapsedApplied.lifeLogEntries], currentState.lifeLog)
       };
@@ -4018,12 +3521,12 @@ export function useGameController() {
       const currentLocation = getLocationById(currentState.player.locationId);
       const applied = completeUniversityAssignment({ state: currentState.world.university, player: currentState.player, time: currentState.time, assignmentId, currentLocationType: currentLocation?.type });
       if (!applied.result.ok) return { ...currentState, lastResult: { ok: false, actionName: applied.result.title, timeDeltaMinutes: 0, messages: [applied.result.message] } };
-      const elapsedApplied = applyElapsedTimeConsequences(currentState, applied.player, applied.time, 'active');
+      const elapsedApplied = applyElapsedTimeConsequences(currentState, applied.player, applied.time, 'active', { university: applied.state, actionTitle: applied.result.title });
       return {
         ...currentState,
         player: elapsedApplied.player,
         time: applied.time,
-        world: { ...currentState.world, university: applied.state, population: elapsedApplied.population, social: elapsedApplied.social, housingMarket: elapsedApplied.housingMarket, business: elapsedApplied.business, medical: elapsedApplied.medical },
+        world: elapsedApplied.world,
         lastResult: { ok: true, actionName: applied.result.title, timeDeltaMinutes: applied.result.timeDeltaMinutes, needsDelta: elapsedApplied.needsDelta, messages: [applied.result.message, ...elapsedApplied.messages] },
         lifeLog: mergeLifeLog([createLifeLogEntry({ time: applied.time }, applied.result.title, applied.result.message), ...elapsedApplied.lifeLogEntries], currentState.lifeLog)
       };
@@ -4037,12 +3540,12 @@ export function useGameController() {
       if (!program || !university) return currentState;
       const applied = takeUniversitySemesterExam({ state: currentState.world.university, player: currentState.player, time: currentState.time, program, university });
       if (!applied.result.ok) return { ...currentState, lastResult: { ok: false, actionName: applied.result.title, timeDeltaMinutes: 0, messages: [applied.result.message] } };
-      const elapsedApplied = applyElapsedTimeConsequences(currentState, applied.player, applied.time, 'active');
+      const elapsedApplied = applyElapsedTimeConsequences(currentState, applied.player, applied.time, 'active', { university: applied.state, actionTitle: applied.result.title });
       return {
         ...currentState,
         player: elapsedApplied.player,
         time: applied.time,
-        world: { ...currentState.world, university: applied.state, population: elapsedApplied.population, social: elapsedApplied.social, housingMarket: elapsedApplied.housingMarket, business: elapsedApplied.business, medical: elapsedApplied.medical },
+        world: elapsedApplied.world,
         lastResult: { ok: true, actionName: applied.result.title, timeDeltaMinutes: applied.result.timeDeltaMinutes, needsDelta: elapsedApplied.needsDelta, messages: [applied.result.message, ...elapsedApplied.messages] },
         lifeLog: mergeLifeLog([createLifeLogEntry({ time: applied.time }, applied.result.title, applied.result.message), ...elapsedApplied.lifeLogEntries], currentState.lifeLog)
       };
@@ -4053,13 +3556,13 @@ export function useGameController() {
     const safeMinutes = Math.max(1, Math.min(maxMinutes, Math.floor(minutes)));
     setGameState((currentState) => {
       const nextTime = addMinutes(currentState.time, safeMinutes);
-      const elapsedApplied = applyElapsedTimeConsequences(currentState, currentState.player, nextTime, 'resting');
+      const elapsedApplied = applyElapsedTimeConsequences(currentState, currentState.player, nextTime, 'resting', { actionTitle: 'Ожидание' });
       const message = `Прошло ${Math.floor(safeMinutes / 60)} ч ${safeMinutes % 60} мин.`;
       return {
         ...currentState,
         player: elapsedApplied.player,
         time: nextTime,
-        world: { ...currentState.world, population: elapsedApplied.population, social: elapsedApplied.social, housingMarket: elapsedApplied.housingMarket, business: elapsedApplied.business, medical: elapsedApplied.medical },
+        world: elapsedApplied.world,
         lastResult: { ok: true, actionName: 'Ожидание', timeDeltaMinutes: safeMinutes, needsDelta: elapsedApplied.needsDelta, messages: [message, ...elapsedApplied.messages] },
         lifeLog: mergeLifeLog([createLifeLogEntry({ time: nextTime }, 'Ожидание', message), ...elapsedApplied.lifeLogEntries], currentState.lifeLog)
       };
