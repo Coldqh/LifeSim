@@ -42,6 +42,21 @@ describe('save migrations', () => {
     ]);
   });
 
+  it('adds a normalized atlas placeholder when migrating v24 to v25', () => {
+    const migrated = migrateSaveState({
+      player: { cityId: 'yaroslavl' },
+      time: { day: 8, hour: 13, minute: 15 },
+      world: { population: { seed: 42 } }
+    }, 24).state as {
+      world: { atlas: { activeCityId: string; seed: number; cityStates: Record<string, unknown>; lastProcessedTotalMinutes: number } };
+    };
+
+    expect(migrated.world.atlas.activeCityId).toBe('yaroslavl');
+    expect(migrated.world.atlas.seed).toBe(42);
+    expect(migrated.world.atlas.cityStates).toEqual({});
+    expect(migrated.world.atlas.lastProcessedTotalMinutes).toBe((8 - 1) * 24 * 60 + 13 * 60 + 15);
+  });
+
   it('decodes both legacy raw states and the current versioned envelope', () => {
     const legacy = decodeSavePayload(JSON.stringify({ player: { inventory: [] } }), 23);
     const encoded = encodeSavePayload({ marker: 'current' });
@@ -60,7 +75,7 @@ describe('save migrations', () => {
   it('uses a new current key, a dedicated backup key and descending legacy keys', () => {
     expect(GAME_STATE_STORAGE_KEY).toBe(`lifesim.gameState.v${CURRENT_SAVE_VERSION}`);
     expect(GAME_STATE_BACKUP_STORAGE_KEY).toBe(`${GAME_STATE_STORAGE_KEY}.backup`);
-    expect(LEGACY_GAME_STATE_STORAGE_KEYS[0]).toBe('lifesim.gameState.v23');
+    expect(LEGACY_GAME_STATE_STORAGE_KEYS[0]).toBe('lifesim.gameState.v24');
     expect(LEGACY_GAME_STATE_STORAGE_KEYS[LEGACY_GAME_STATE_STORAGE_KEYS.length - 1]).toBe('lifesim.gameState.v7');
   });
 });

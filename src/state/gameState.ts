@@ -11,6 +11,7 @@ import type { VehicleWorldState } from '../types/vehicle';
 import type { MedicalState } from '../types/healthcare';
 import type { IntercityTravelState } from '../types/intercity';
 import type { UniversityState } from '../types/university';
+import type { WorldAtlasState } from '../types/worldAtlas';
 import { createInitialTime, formatGameTime, getTotalMinutes } from '../core/time';
 import { createInitialBoxingProfile } from '../core/sport';
 import type { BoxingProfile } from '../types/boxing';
@@ -18,7 +19,6 @@ import type { PopulationState } from '../types/population';
 import { createPopulationSeed, generatePopulation, simulatePopulation } from '../core/population';
 import { createInitialSocialState, createNpcPersonality } from '../core/relationships';
 import type { SocialState } from '../types/socialEvent';
-import { allLocations } from '../data/locations';
 import { populationDataSource } from '../data/population/config';
 import { basicHousing } from '../data/housing/basicHousing';
 import { createHousingMarket } from '../core/housing';
@@ -29,8 +29,11 @@ import { createInitialVehicleWorld } from '../core/vehicles';
 import { createInitialMedicalState } from '../core/healthcare';
 import { createInitialIntercityState } from '../core/intercity';
 import { createInitialUniversityState } from '../core/university';
+import { createInitialWorldAtlasState, getRegionalCityIds, normalizeWorldAtlasState } from '../core/world-atlas';
 import { businessPremises } from '../data/business/premises';
 import { usedVehicleListingTemplates } from '../data/vehicles/usedListingTemplates';
+import { cityRegistry } from '../data/cities';
+import { intercityNetwork } from '../data/intercity/routes';
 import {
   CURRENT_SAVE_VERSION,
   GAME_STATE_BACKUP_STORAGE_KEY,
@@ -64,6 +67,7 @@ export type WorldState = {
   medical: MedicalState;
   intercity: IntercityTravelState;
   university: UniversityState;
+  atlas: WorldAtlasState;
 };
 
 export type GameState = {
@@ -208,9 +212,17 @@ export function createInitialPlayer(): Player {
 
 export function createInitialGameState(): GameState {
   const time = createInitialTime();
+  const player = createInitialPlayer();
+  const regionalCityIds = getRegionalCityIds({
+    activeCityId: player.cityId,
+    routes: intercityNetwork.routes,
+    roadConnections: intercityNetwork.roadConnections
+  });
+  const detailedCityIds = [player.cityId, ...regionalCityIds];
+  const detailedLocations = cityRegistry.locations.filter((location) => detailedCityIds.includes(location.cityId));
   const generatedPopulation = generatePopulation({
     seed: createPopulationSeed(),
-    locations: allLocations,
+    locations: detailedLocations,
     time,
     dataSource: populationDataSource
   });
@@ -218,12 +230,22 @@ export function createInitialGameState(): GameState {
     population: generatedPopulation,
     fromTime: time,
     toTime: time,
-    locations: allLocations,
+    locations: detailedLocations,
     getLocationProfile: populationDataSource.getLocationProfile
   });
 
+  const atlas = createInitialWorldAtlasState({
+    cities: cityRegistry.cities,
+    districts: cityRegistry.districts,
+    locations: cityRegistry.locations,
+    population,
+    activeCityId: player.cityId,
+    regionalCityIds,
+    time
+  });
+
   return {
-    player: createInitialPlayer(),
+    player,
     time,
     world: {
       population,
@@ -240,7 +262,8 @@ export function createInitialGameState(): GameState {
       vehicles: createInitialVehicleWorld(population.seed, time.day, usedVehicleListingTemplates),
       medical: createInitialMedicalState(getTotalMinutes(time)),
       intercity: createInitialIntercityState(getTotalMinutes(time)),
-      university: createInitialUniversityState(getTotalMinutes(time))
+      university: createInitialUniversityState(getTotalMinutes(time)),
+      atlas
     },
     lifeLog: [
       {
@@ -264,10 +287,21 @@ export function createLifeLogEntry(state: Pick<GameState, 'time'>, title: string
   };
 }
 
-function createPopulationForTime(time: GameTime): PopulationState {
+function getDetailedPopulationLocations(cityIds: readonly CityId[]) {
+  const included = new Set(cityIds.map(String));
+  return cityRegistry.locations.filter((location) => included.has(String(location.cityId)));
+}
+
+function getNpcCityId(npc: PopulationState['npcs'][number]): CityId | undefined {
+  return cityRegistry.getDistrict(npc.homeDistrictId)?.cityId
+    ?? cityRegistry.getLocation(npc.employment?.locationId)?.cityId;
+}
+
+function createPopulationForTime(time: GameTime, detailedCityIds: readonly CityId[]): PopulationState {
+  const locations = getDetailedPopulationLocations(detailedCityIds);
   const generated = generatePopulation({
     seed: createPopulationSeed(),
-    locations: allLocations,
+    locations,
     time,
     dataSource: populationDataSource
   });
@@ -275,51 +309,64 @@ function createPopulationForTime(time: GameTime): PopulationState {
     population: generated,
     fromTime: time,
     toTime: time,
-    locations: allLocations,
+    locations,
     getLocationProfile: populationDataSource.getLocationProfile
   });
 }
 
-function normalizePopulation(value: unknown, time: GameTime): PopulationState {
-  if (!value || typeof value !== 'object') return createPopulationForTime(time);
+function normalizePopulation(
+  value: unknown,
+  time: GameTime,
+  detailedCityIds: readonly CityId[]
+): PopulationState {
+  if (!value || typeof value !== 'object') return createPopulationForTime(time, detailedCityIds);
   const candidate = value as Partial<PopulationState>;
-  if (!Array.isArray(candidate.npcs) || typeof candidate.seed !== 'number') return createPopulationForTime(time);
+  if (!Array.isArray(candidate.npcs) || typeof candidate.seed !== 'number') {
+    return createPopulationForTime(time, detailedCityIds);
+  }
 
   const normalizedNpcs = candidate.npcs.map((npc) => ({
     ...npc,
     personality: npc.personality ?? createNpcPersonality(String(npc.id), npc.activityProfile)
   }));
-  const hasYaroslavlResidents = normalizedNpcs.some((npc) => (
-    String(npc.homeDistrictId).startsWith('yar_')
-    || String(npc.employment?.locationId ?? '').startsWith('yar_')
-  ));
+  const presentCityIds = new Set(normalizedNpcs.map(getNpcCityId).filter((cityId): cityId is CityId => Boolean(cityId)).map(String));
+  const missingCityIds = detailedCityIds.filter((cityId) => !presentCityIds.has(String(cityId)));
 
-  if (!hasYaroslavlResidents) {
+  if (missingCityIds.length > 0) {
     const generated = generatePopulation({
       seed: candidate.seed,
-      locations: allLocations,
+      locations: getDetailedPopulationLocations(detailedCityIds),
       time,
       dataSource: populationDataSource
     });
-    const yaroslavlNpcs = generated.npcs
-      .filter((npc) => (
-        String(npc.homeDistrictId).startsWith('yar_')
-        || String(npc.employment?.locationId ?? '').startsWith('yar_')
-      ))
-      .map((npc, index) => ({
-        ...npc,
-        id: (`npc_yar_${String(index + 1).padStart(4, '0')}`) as NpcId,
-        personality: createNpcPersonality(`npc_yar_${String(index + 1).padStart(4, '0')}`, npc.activityProfile)
-      }));
-    normalizedNpcs.push(...yaroslavlNpcs);
+    const usedIds = new Set(normalizedNpcs.map((npc) => String(npc.id)));
+
+    for (const missingCityId of missingCityIds) {
+      const generatedCityNpcs = generated.npcs.filter((npc) => getNpcCityId(npc) === missingCityId);
+      generatedCityNpcs.forEach((npc, index) => {
+        const prefix = String(missingCityId).replace(/[^a-z0-9]+/gi, '_');
+        let rawId = `npc_${prefix}_${String(index + 1).padStart(4, '0')}`;
+        let suffix = 1;
+        while (usedIds.has(rawId)) {
+          rawId = `npc_${prefix}_${String(index + 1).padStart(4, '0')}_${suffix}`;
+          suffix += 1;
+        }
+        usedIds.add(rawId);
+        normalizedNpcs.push({
+          ...npc,
+          id: rawId as NpcId,
+          personality: createNpcPersonality(rawId, npc.activityProfile)
+        });
+      });
+    }
   }
 
   return {
     seed: candidate.seed,
     generatedAtDay: typeof candidate.generatedAtDay === 'number' ? candidate.generatedAtDay : time.day,
     lastSimulatedTotalMinutes: typeof candidate.lastSimulatedTotalMinutes === 'number'
-      ? candidate.lastSimulatedTotalMinutes
-      : 0,
+      ? Math.min(getTotalMinutes(time), Math.max(0, candidate.lastSimulatedTotalMinutes))
+      : getTotalMinutes(time),
     npcs: normalizedNpcs
   };
 }
@@ -601,7 +648,23 @@ function normalizeLoadedGameState(value: unknown): GameState | undefined {
 
   const inventory = Array.isArray(parsed.player.inventory) ? parsed.player.inventory : [];
   const sanitizedInventory = inventory.filter((item) => !REMOVED_PRODUCT_IDS.has(String(item.productId)));
-  const population = normalizePopulation(parsed.world?.population, parsed.time);
+  const activeCityId = parsed.player.cityId ?? cityId('moscow');
+  const regionalCityIds = getRegionalCityIds({
+    activeCityId,
+    routes: intercityNetwork.routes,
+    roadConnections: intercityNetwork.roadConnections
+  });
+  const detailedCityIds = [activeCityId, ...regionalCityIds];
+  const population = normalizePopulation(parsed.world?.population, parsed.time, detailedCityIds);
+  const atlas = normalizeWorldAtlasState(parsed.world?.atlas, {
+    cities: cityRegistry.cities,
+    districts: cityRegistry.districts,
+    locations: cityRegistry.locations,
+    population,
+    activeCityId,
+    regionalCityIds,
+    time: parsed.time
+  });
   const playerHousingId = parsed.player.housingId ?? housingId('housing_room_danilovsky');
   const daysUntilRent = parsed.player.daysUntilRent ?? 7;
 
@@ -617,10 +680,12 @@ function normalizeLoadedGameState(value: unknown): GameState | undefined {
       vehicles: normalizeVehicleWorld(parsed.world?.vehicles, population.seed, parsed.time),
       medical: normalizeMedicalState(parsed.world?.medical, parsed.time),
       intercity: normalizeIntercityState(parsed.world?.intercity, parsed.time),
-      university: normalizeUniversityState(parsed.world?.university, parsed.time)
+      university: normalizeUniversityState(parsed.world?.university, parsed.time),
+      atlas
     },
     player: {
       ...parsed.player,
+      cityId: activeCityId,
       housingId: playerHousingId,
       inventory: sanitizedInventory,
       completedShifts: parsed.player.completedShifts ?? {},

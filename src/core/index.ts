@@ -30,3 +30,5 @@ export * from './intercity';
 export * as university from './university';
 
 export * from './social-life';
+
+export * as worldAtlas from './world-atlas';

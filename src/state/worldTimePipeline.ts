@@ -11,13 +11,13 @@ import {
   type NeedsDecayProfile
 } from '../core/needs';
 import { processPhoneTime } from '../core/phone';
-import { simulatePopulation } from '../core/population';
 import { processSocialLifeTime } from '../core/social-life';
 import { maybeActivateSocialEvent, processScheduledSocialEvents } from '../core/events';
 import { applyBoxingRecovery } from '../core/sport';
 import { fromTotalMinutes, getElapsedMinutes, getTotalMinutes } from '../core/time';
 import { processUniversityTime } from '../core/university';
 import { refreshVehicleMarket } from '../core/vehicles';
+import { getRegionalCityIds, processWorldAtlasTime, simulateActiveCityPopulation } from '../core/world-atlas';
 import { businessEquipment } from '../data/business/equipment';
 import { businessMenuItems } from '../data/business/menu';
 import { getBusinessPremisesById } from '../data/business/premises';
@@ -26,9 +26,10 @@ import { getBusinessTypeById } from '../data/business/businessTypes';
 import { businessUpgrades } from '../data/business/upgrades';
 import { getDegreeProgramById, universitySubjects } from '../data/education/universities';
 import { basicHousing, getHousingById } from '../data/housing/basicHousing';
-import { getIntercityRouteById } from '../data/intercity/routes';
+import { getIntercityRouteById, intercityNetwork } from '../data/intercity/routes';
 import { basicJobs } from '../data/jobs/basicJobs';
 import { allLocations } from '../data/locations';
+import { cityRegistry } from '../data/cities';
 import { populationDataSource } from '../data/population/config';
 import { socialMeetingTypes } from '../data/social/meetingTypes';
 import { socialEventTemplates } from '../data/social/socialEventTemplates';
@@ -63,6 +64,7 @@ export type AdvanceWorldTimeResult = {
   medical: WorldState['medical'];
   intercity: WorldState['intercity'];
   university: WorldState['university'];
+  atlas: WorldState['atlas'];
   lifeLogEntries: LifeLogEntry[];
   needsDelta?: Partial<NeedsState>;
   messages: string[];
@@ -284,12 +286,31 @@ export function advanceWorldTime(input: AdvanceWorldTimeInput): AdvanceWorldTime
     }
   }
 
-  const population = simulatePopulation({
+  const activeCityId = nextPlayer.cityId;
+  const population = simulateActiveCityPopulation({
     population: sourceWorld.population,
     fromTime: state.time,
     toTime: nextTime,
-    locations: allLocations,
-    getLocationProfile: populationDataSource.getLocationProfile
+    activeCityId,
+    cityLocations: cityRegistry.getLocationsForCity(activeCityId),
+    getLocationProfile: populationDataSource.getLocationProfile,
+    getCityIdForDistrict: (districtId) => cityRegistry.getDistrict(districtId)?.cityId,
+    getCityIdForLocation: (locationId) => cityRegistry.getLocation(locationId)?.cityId
+  });
+  const regionalCityIds = getRegionalCityIds({
+    activeCityId,
+    routes: intercityNetwork.routes,
+    roadConnections: intercityNetwork.roadConnections
+  });
+  const atlasApplied = processWorldAtlasTime({
+    atlas: sourceWorld.atlas,
+    cities: cityRegistry.cities,
+    districts: cityRegistry.districts,
+    locations: cityRegistry.locations,
+    population,
+    activeCityId,
+    regionalCityIds,
+    toTime: nextTime
   });
 
   const ownedBusiness = sourceWorld.business.ownedBusiness;
@@ -431,7 +452,8 @@ export function advanceWorldTime(input: AdvanceWorldTimeInput): AdvanceWorldTime
     vehicles,
     medical: medicalApplied.state,
     intercity: intercityApplied.intercity,
-    university: universityApplied.state
+    university: universityApplied.state,
+    atlas: atlasApplied.atlas
   };
 
   return {
@@ -447,6 +469,7 @@ export function advanceWorldTime(input: AdvanceWorldTimeInput): AdvanceWorldTime
     medical: world.medical,
     intercity: world.intercity,
     university: world.university,
+    atlas: world.atlas,
     lifeLogEntries,
     needsDelta: mergeNeedsDelta(decayApplied.delta, comfortNeedsDelta),
     messages

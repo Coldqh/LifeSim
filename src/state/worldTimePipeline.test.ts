@@ -22,6 +22,9 @@ describe('advanceWorldTime', () => {
     expect(result.world.university.lastProcessedTotalMinutes).toBe(currentTotalMinutes);
     expect(result.world.medical.lastProcessedTotalMinutes).toBe(currentTotalMinutes);
     expect(result.world.intercity.lastProcessedTotalMinutes).toBe(currentTotalMinutes);
+    expect(result.world.atlas.lastProcessedTotalMinutes).toBe(currentTotalMinutes);
+    expect(result.world.atlas.cityStates.moscow.tier).toBe('active');
+    expect(result.world.atlas.cityStates.yaroslavl.tier).toBe('regional');
     expect(result.player.needs.hunger).toBeLessThan(state.player.needs.hunger);
   });
 
@@ -61,4 +64,22 @@ describe('advanceWorldTime', () => {
     expect(second.world.finance.transactions).toHaveLength(first.world.finance.transactions.length);
     expect(second.world.phone.lastProcessedTotalMinutes).toBe(getTotalMinutes(nextTime));
   });
+  it('keeps remote city NPC details frozen while the active city advances', () => {
+    const state = createInitialGameState();
+    const remoteNpc = state.world.population.npcs.find((npc) => String(npc.homeDistrictId).startsWith('yar_'));
+    expect(remoteNpc).toBeDefined();
+
+    const result = advanceWorldTime({
+      state,
+      player: state.player,
+      nextTime: addMinutes(state.time, 180),
+      decayProfile: 'active',
+      actionTitle: 'Ожидание'
+    });
+    const remoteAfter = result.world.population.npcs.find((npc) => npc.id === remoteNpc?.id);
+
+    expect(remoteAfter).toBe(remoteNpc);
+    expect(result.world.atlas.cityStates.yaroslavl.lastProcessedDay).toBe(state.time.day);
+  });
+
 });

@@ -40,3 +40,4 @@ export * from './intercity';
 export * from './university';
 
 export * from './socialLife';
+export * from './worldAtlas';

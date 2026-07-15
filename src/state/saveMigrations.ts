@@ -1,5 +1,5 @@
 export const MIN_SUPPORTED_SAVE_VERSION = 7;
-export const CURRENT_SAVE_VERSION = 24;
+export const CURRENT_SAVE_VERSION = 25;
 export const SAVE_ENVELOPE_FORMAT = 'lifesim-save';
 
 export const getGameStateStorageKey = (version: number): string => `lifesim.gameState.v${version}`;
@@ -74,6 +74,39 @@ function migrateV9ToV10(state: unknown): unknown {
   };
 }
 
+
+function migrateV24ToV25(state: unknown): unknown {
+  const root = asRecord(state);
+  const world = asRecord(root?.world);
+  if (!root || !world || asRecord(world.atlas)) return state;
+
+  const player = asRecord(root.player);
+  const time = asRecord(root.time);
+  const population = asRecord(world.population);
+  const day = typeof time?.day === 'number' ? Math.max(1, Math.floor(time.day)) : 1;
+  const hour = typeof time?.hour === 'number' ? Math.max(0, Math.floor(time.hour)) : 0;
+  const minute = typeof time?.minute === 'number' ? Math.max(0, Math.floor(time.minute)) : 0;
+  const totalMinutes = (day - 1) * 24 * 60 + hour * 60 + minute;
+  const activeCityId = typeof player?.cityId === 'string' ? player.cityId : 'moscow';
+  const seed = typeof population?.seed === 'number' ? Math.max(1, Math.floor(population.seed)) : 1;
+
+  return {
+    ...root,
+    world: {
+      ...world,
+      atlas: {
+        version: 1,
+        seed,
+        activeCityId,
+        regionalCityIds: [],
+        cityStates: {},
+        lastRebalancedDay: day,
+        lastProcessedTotalMinutes: totalMinutes
+      }
+    }
+  };
+}
+
 const SAVE_MIGRATIONS = new Map<number, SaveMigration>([
   [7, identityMigration],
   [8, identityMigration],
@@ -91,7 +124,8 @@ const SAVE_MIGRATIONS = new Map<number, SaveMigration>([
   [20, identityMigration],
   [21, identityMigration],
   [22, identityMigration],
-  [23, identityMigration]
+  [23, identityMigration],
+  [24, migrateV24ToV25]
 ]);
 
 function assertSupportedVersion(version: number): void {

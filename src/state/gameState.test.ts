@@ -78,6 +78,20 @@ describe('game state storage', () => {
     });
   });
 
+  it('hydrates the world atlas when loading a v24 save without atlas data', () => {
+    withMemoryStorage(() => {
+      const state = createInitialGameState();
+      const { atlas: _atlas, ...legacyWorld } = state.world;
+      const legacyState = { ...state, world: legacyWorld };
+      localStorage.setItem('lifesim.gameState.v24', JSON.stringify(legacyState));
+
+      const loaded = loadGameState();
+
+      expect(loaded?.world.atlas.activeCityId).toBe(state.player.cityId);
+      expect(Object.keys(loaded?.world.atlas.cityStates ?? {})).toEqual(['moscow', 'yaroslavl']);
+    });
+  });
+
   it('rotates the previous valid current save into the backup slot', () => {
     withMemoryStorage(() => {
       const first = createInitialGameState();
