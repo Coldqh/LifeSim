@@ -1,3 +1,57 @@
+
+
+.vital-card--critical .vital-card__track > span {
+  background: linear-gradient(90deg, #ff3452, #ff795b);
+  box-shadow: 0 0 16px rgba(255, 63, 87, 0.55);
+}
+
+.action-row--disabled {
+  opacity: 0.72;
+}
+
+.action-row__failure {
+  display: block;
+  margin-top: 7px;
+  color: #ff8874;
+  font-size: 0.74rem;
+  font-weight: 700;
+}
+
+@keyframes condition-pulse {
+  0%, 100% { opacity: 0.65; transform: scaleY(0.84); }
+  50% { opacity: 1; transform: scaleY(1); }
+}
+
+@media (max-width: 760px) {
+  .condition-strip,
+  .condition-panel__header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .condition-strip {
+    justify-content: flex-start;
+  }
+
+  .condition-row {
+    grid-template-columns: 4px 1fr;
+  }
+
+  .condition-row small {
+    grid-column: 2;
+  }
+
+  .condition-panel__cost {
+    align-self: flex-start;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .condition-row--emergency .condition-row__signal {
+    animation: none;
+  }
+}
+
 /* ==========================================================================
    City realism / product art / progression overlap repair
    ========================================================================== */
@@ -370,51 +424,3 @@
   background: rgba(5, 8, 12, .72);
   backdrop-filter: blur(16px);
 }
-
-.boxing-record-line,
-.boxing-level-progress > div,
-.boxing-card__meta,
-.boxing-membership-status,
-.boxing-readiness-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.boxing-record-line {
-  padding: 11px 0;
-  border-bottom: 1px solid var(--line);
-}
-
-.boxing-record-line strong { font-size: 18px; }
-.boxing-level-progress { margin-top: 16px; }
-.boxing-level-progress > div { margin-bottom: 8px; }
-
-.progress-track {
-  display: block;
-  overflow: hidden;
-  height: 6px;
-  background: var(--panel-deep);
-  border: 1px solid var(--line);
-}
-
-.progress-track i {
-  display: block;
-  height: 100%;
-  background: linear-gradient(90deg, #ff575d, #f2b45c);
-  box-shadow: 0 0 16px rgba(255, 87, 93, .38);
-}
-
-.boxing-overview-grid {
-  display: grid;
-  grid-template-columns: minmax(0, 1.15fr) minmax(300px, .85fr);
-  gap: 18px;
-}
-
-.boxing-gym-panel,
-.boxing-readiness-panel,
-.boxing-stats-panel,
-.boxing-trainers-panel,
-.boxing-training-panel,
-.boxing-sparring-panel,

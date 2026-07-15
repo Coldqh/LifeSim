@@ -1,3 +1,222 @@
+
+
+.business-price-control button {
+  min-height: 36px;
+  border: 0;
+}
+
+.business-customer-list {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.business-customer-list > div {
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr);
+  grid-template-rows: auto auto;
+  column-gap: 10px;
+  align-items: center;
+  padding: 10px;
+  border: 1px solid var(--border);
+  background: var(--surface-strong);
+}
+
+.business-customer-list > div > span {
+  grid-row: 1 / 3;
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  background: rgba(86, 229, 198, .1);
+  color: var(--accent);
+}
+
+.business-customer-list small {
+  color: var(--text-muted);
+}
+
+.business-stock-list article,
+.business-employee-list article,
+.business-candidate-list article,
+.business-growth-list article {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(170px, auto) auto;
+  gap: 14px;
+  align-items: center;
+  min-height: 68px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.business-stock-list article > div:nth-child(2),
+.business-employee-list article > div:nth-child(2) {
+  display: grid;
+  gap: 4px;
+  text-align: right;
+}
+
+.business-stock-list button,
+.business-growth-list button {
+  min-width: 100px;
+  padding: 0 12px;
+}
+
+.business-employee-list article {
+  grid-template-columns: minmax(0, 1fr) 160px 190px;
+}
+
+.business-employee-list article > div:last-child {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 10px;
+}
+
+.business-employee-list article > div:last-child button {
+  padding: 0 12px;
+}
+
+.business-candidate-list article {
+  grid-template-columns: minmax(0, 1fr) minmax(260px, auto);
+}
+
+.business-candidate-actions {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+
+.business-candidate-actions button {
+  padding: 0 10px;
+}
+
+.business-growth-list article {
+  grid-template-columns: minmax(0, 1fr) 190px;
+}
+
+.business-growth-list article > div:last-child {
+  display: grid;
+  grid-template-columns: 1fr 90px;
+  gap: 8px;
+  align-items: center;
+  text-align: right;
+}
+
+.business-report-table {
+  display: grid;
+  grid-template-columns: 1.2fr repeat(5, minmax(90px, 1fr));
+  gap: 12px;
+  align-items: center;
+  min-height: 52px;
+  padding: 0 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+.business-report-table--head {
+  min-height: 40px;
+  color: var(--text-muted);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  background: var(--surface-strong);
+}
+
+.positive-text {
+  color: var(--success, #61e4ad) !important;
+}
+
+.negative-text {
+  color: var(--danger, #ff747d) !important;
+}
+
+@media (max-width: 1180px) {
+  .business-command {
+    grid-template-columns: 1fr;
+  }
+
+  .business-command__visual {
+    right: 40px;
+  }
+
+  .business-premises-grid,
+  .business-dashboard-grid,
+  .business-team-grid,
+  .business-growth-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .business-span-two {
+    grid-column: auto;
+  }
+}
+
+@media (max-width: 760px) {
+  .business-hero,
+  .business-command {
+    grid-template-columns: 1fr;
+    min-height: 0;
+    padding: 20px;
+  }
+
+  .business-hero__funds {
+    margin-top: 22px;
+  }
+
+  .business-name-field {
+    grid-template-columns: 1fr;
+  }
+
+  .business-command__metrics,
+  .business-premises-card__metrics,
+  .business-owner-stats {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .business-menu-row,
+  .business-stock-list article,
+  .business-employee-list article,
+  .business-candidate-list article,
+  .business-growth-list article {
+    grid-template-columns: 1fr;
+    gap: 10px;
+    padding: 14px 0;
+  }
+
+  .business-stock-list article > div:nth-child(2),
+  .business-employee-list article > div:nth-child(2),
+  .business-growth-list article > div:last-child {
+    text-align: left;
+  }
+
+  .business-employee-list article > div:last-child {
+    justify-content: space-between;
+  }
+
+  .business-customer-list {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .business-report-table {
+    grid-template-columns: 1fr 1fr;
+    padding: 10px 0;
+  }
+
+  .business-report-table--head {
+    display: none;
+  }
+}
+
+/* Social contact action */
+.npc-contact-action {
+  border-left: 3px solid var(--accent, #7c6cff) !important;
+}
+
+.npc-contact-action--saved {
+  border-left-color: #25b77d !important;
+  opacity: .76;
+}
+
 /* ==========================================================================
    Responsive application shell — mobile PWA, tablet, laptop and desktop
    ========================================================================== */

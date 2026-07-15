@@ -1,3 +1,52 @@
+
+
+.boxing-record-line,
+.boxing-level-progress > div,
+.boxing-card__meta,
+.boxing-membership-status,
+.boxing-readiness-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.boxing-record-line {
+  padding: 11px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.boxing-record-line strong { font-size: 18px; }
+.boxing-level-progress { margin-top: 16px; }
+.boxing-level-progress > div { margin-bottom: 8px; }
+
+.progress-track {
+  display: block;
+  overflow: hidden;
+  height: 6px;
+  background: var(--panel-deep);
+  border: 1px solid var(--line);
+}
+
+.progress-track i {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, #ff575d, #f2b45c);
+  box-shadow: 0 0 16px rgba(255, 87, 93, .38);
+}
+
+.boxing-overview-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(300px, .85fr);
+  gap: 18px;
+}
+
+.boxing-gym-panel,
+.boxing-readiness-panel,
+.boxing-stats-panel,
+.boxing-trainers-panel,
+.boxing-training-panel,
+.boxing-sparring-panel,
 .boxing-history-panel {
   padding: 22px;
 }
@@ -372,49 +421,3 @@
   gap: 3px;
   min-width: 0;
 }
-
-.people-row__identity strong,
-.people-row__identity small {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.people-row__identity strong { font-size: 13px; }
-.people-row__identity small { color: var(--text-muted); font-size: 11px; }
-
-.people-row__status {
-  padding: 4px 6px;
-  border: 1px solid var(--line-soft);
-  color: var(--text-muted);
-  font-size: 9px;
-  text-transform: uppercase;
-  letter-spacing: .05em;
-}
-
-.people-row__status--staff {
-  border-color: rgba(104, 246, 207, .28);
-  color: var(--positive);
-}
-
-.people-panel__empty {
-  display: grid;
-  place-items: center;
-  gap: 8px;
-  min-height: 120px;
-  color: var(--text-muted);
-  text-align: center;
-}
-
-.people-panel__footer {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 4px 12px;
-  margin-top: 16px;
-  padding-top: 12px;
-  border-top: 1px solid var(--line-soft);
-}
-
-.people-panel__footer span,
-.people-panel__footer small { color: var(--text-muted); font-size: 11px; }
-.people-panel__footer strong { font-size: 16px; }

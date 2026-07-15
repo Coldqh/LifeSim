@@ -1,4 +1,72 @@
 
+
+.skill-card {
+  display: grid;
+  gap: 11px;
+  min-width: 0;
+  padding: 13px;
+  border-right: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--panel) 96%, transparent), transparent);
+}
+
+.skill-card:nth-child(3n) {
+  border-right: 0;
+}
+
+.skill-card:nth-last-child(-n + 3) {
+  border-bottom: 0;
+}
+
+.skill-card__header {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+}
+
+.skill-card__icon {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border: 1px solid var(--line-strong);
+  color: var(--cyan);
+  background: rgba(82, 213, 255, .05);
+}
+
+.skill-card__header div {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.skill-card__header span {
+  color: var(--muted);
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: .1em;
+}
+
+.skill-card__header strong {
+  overflow: hidden;
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.skill-card__header b {
+  color: var(--cyan);
+  font-family: ui-monospace, "SFMono-Regular", Consolas, monospace;
+  font-size: 12px;
+}
+
+.skill-card__progress {
+  height: 4px;
+  overflow: hidden;
+  background: var(--line);
+}
+
 .skill-card__progress span {
   display: block;
   height: 100%;
@@ -352,56 +420,3 @@
 .vital-card--critical .vital-card__header > strong {
   color: #ff7286;
 }
-
-.vital-card--critical .vital-card__track > span {
-  background: linear-gradient(90deg, #ff3452, #ff795b);
-  box-shadow: 0 0 16px rgba(255, 63, 87, 0.55);
-}
-
-.action-row--disabled {
-  opacity: 0.72;
-}
-
-.action-row__failure {
-  display: block;
-  margin-top: 7px;
-  color: #ff8874;
-  font-size: 0.74rem;
-  font-weight: 700;
-}
-
-@keyframes condition-pulse {
-  0%, 100% { opacity: 0.65; transform: scaleY(0.84); }
-  50% { opacity: 1; transform: scaleY(1); }
-}
-
-@media (max-width: 760px) {
-  .condition-strip,
-  .condition-panel__header {
-    align-items: flex-start;
-    flex-direction: column;
-  }
-
-  .condition-strip {
-    justify-content: flex-start;
-  }
-
-  .condition-row {
-    grid-template-columns: 4px 1fr;
-  }
-
-  .condition-row small {
-    grid-column: 2;
-  }
-
-  .condition-panel__cost {
-    align-self: flex-start;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .condition-row--emergency .condition-row__signal {
-    animation: none;
-  }
-}
-

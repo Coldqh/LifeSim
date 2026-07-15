@@ -1,3 +1,70 @@
+
+
+@media (max-width: 520px) {
+  .workspace-content {
+    padding: 12px 10px calc(90px + env(safe-area-inset-bottom));
+  }
+
+  .global-status__item:first-of-type {
+    display: none;
+  }
+
+  .activity-notice {
+    align-items: flex-start;
+  }
+
+  .location-scene {
+    min-height: 164px;
+  }
+
+  .location-scene__icon {
+    width: 42px;
+    height: 42px;
+  }
+
+  .location-scene__radar,
+  .location-scene__signal {
+    display: none;
+  }
+
+  .city-command-header__icon {
+    width: 40px;
+    height: 40px;
+  }
+
+  .city-command-header__identity h2 {
+    font-size: 20px;
+    white-space: normal;
+  }
+
+  .segmented-filters {
+    margin-inline: -2px;
+  }
+
+  .commerce-row,
+  .action-row,
+  .vacancy-row {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .commerce-row__action,
+  .action-row > .row-action-button,
+  .vacancy-row > .row-action-button {
+    grid-column: 1 / -1;
+    width: 100%;
+  }
+
+  .commerce-row__action {
+    grid-template-columns: 1fr auto;
+    align-items: center;
+    justify-items: start;
+  }
+
+  .commerce-row__action button {
+    justify-self: end;
+  }
+}
+
 /* ==========================================================================
    Job Promotion MVP
    ========================================================================== */
@@ -351,71 +418,4 @@
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   border-top: 1px solid var(--line);
-}
-
-.skill-card {
-  display: grid;
-  gap: 11px;
-  min-width: 0;
-  padding: 13px;
-  border-right: 1px solid var(--line);
-  border-bottom: 1px solid var(--line);
-  background: linear-gradient(180deg, color-mix(in srgb, var(--panel) 96%, transparent), transparent);
-}
-
-.skill-card:nth-child(3n) {
-  border-right: 0;
-}
-
-.skill-card:nth-last-child(-n + 3) {
-  border-bottom: 0;
-}
-
-.skill-card__header {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  gap: 12px;
-  align-items: center;
-}
-
-.skill-card__icon {
-  display: grid;
-  place-items: center;
-  width: 38px;
-  height: 38px;
-  border: 1px solid var(--line-strong);
-  color: var(--cyan);
-  background: rgba(82, 213, 255, .05);
-}
-
-.skill-card__header div {
-  display: grid;
-  gap: 3px;
-  min-width: 0;
-}
-
-.skill-card__header span {
-  color: var(--muted);
-  font-size: 9px;
-  text-transform: uppercase;
-  letter-spacing: .1em;
-}
-
-.skill-card__header strong {
-  overflow: hidden;
-  font-size: 13px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.skill-card__header b {
-  color: var(--cyan);
-  font-family: ui-monospace, "SFMono-Regular", Consolas, monospace;
-  font-size: 12px;
-}
-
-.skill-card__progress {
-  height: 4px;
-  overflow: hidden;
-  background: var(--line);
 }

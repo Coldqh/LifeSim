@@ -9,12 +9,15 @@
     "npm": ">=10 <12"
   },
   "scripts": {
+    "predev": "npm run styles:repair",
     "dev": "vite --host 0.0.0.0",
+    "prebuild": "npm run styles:repair",
     "build": "vite build",
     "preview": "vite preview --host 0.0.0.0",
     "typecheck": "tsc --noEmit",
     "verify:lock": "node scripts/verify-lockfile.mjs",
     "test": "vitest run",
+    "styles:repair": "node scripts/refactor-styles.mjs repair",
     "styles:verify": "node scripts/refactor-styles.mjs verify"
   },
   "dependencies": {

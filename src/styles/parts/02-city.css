@@ -1,9 +1,4 @@
 
-.commerce-row__action {
-  display: grid;
-  gap: 7px;
-  justify-items: end;
-}
 
 .commerce-row__action span {
   font-family: ui-monospace, "SFMono-Regular", Consolas, monospace;
@@ -417,4 +412,12 @@
 
 .effect-line--positive {
   color: var(--positive);
+}
+
+.effect-line--negative {
+  color: var(--negative);
+}
+
+.effect-line--neutral {
+  color: var(--muted-strong);
 }

@@ -1,11 +1,4 @@
 
-.effect-line--negative {
-  color: var(--negative);
-}
-
-.effect-line--neutral {
-  color: var(--muted-strong);
-}
 
 /* Job */
 .workplace-screen {

@@ -418,3 +418,13 @@ input:focus-visible {
 
 .section-heading h2,
 .section-heading h3,
+.housing-hero h2,
+.workplace-command-panel h2,
+.transport-column__heading h4,
+.dialog-header h3,
+.empty-workplace-panel h2 {
+  margin: 4px 0 0;
+  font-size: 18px;
+  font-weight: 780;
+  letter-spacing: -0.035em;
+}
