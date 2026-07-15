@@ -31,10 +31,18 @@ import { createInitialIntercityState } from '../core/intercity';
 import { createInitialUniversityState } from '../core/university';
 import { businessPremises } from '../data/business/premises';
 import { usedVehicleListingTemplates } from '../data/vehicles/usedListingTemplates';
+import {
+  CURRENT_SAVE_VERSION,
+  GAME_STATE_BACKUP_STORAGE_KEY,
+  GAME_STATE_STORAGE_KEY,
+  canDecodeSavePayload,
+  decodeSavePayload,
+  encodeSavePayload,
+  getAllSaveStorageKeys,
+  getSaveStorageCandidates
+} from './saveMigrations';
 
-export const GAME_STATE_STORAGE_KEY = 'lifesim.gameState.v23';
-const LEGACY_GAME_STATE_STORAGE_KEYS = ['lifesim.gameState.v22', 'lifesim.gameState.v21', 'lifesim.gameState.v20', 'lifesim.gameState.v19', 'lifesim.gameState.v18', 'lifesim.gameState.v17', 'lifesim.gameState.v16', 'lifesim.gameState.v15', 'lifesim.gameState.v14', 'lifesim.gameState.v13', 'lifesim.gameState.v12', 'lifesim.gameState.v11', 'lifesim.gameState.v10', 'lifesim.gameState.v9', 'lifesim.gameState.v8', 'lifesim.gameState.v7'];
-const STARTER_INVENTORY_BACKFILL_KEYS = new Set(['lifesim.gameState.v9', 'lifesim.gameState.v8', 'lifesim.gameState.v7']);
+export { CURRENT_SAVE_VERSION, GAME_STATE_BACKUP_STORAGE_KEY, GAME_STATE_STORAGE_KEY } from './saveMigrations';
 const REMOVED_PRODUCT_IDS = new Set(['hygiene_kit', 'toothpaste', 'laundry_powder']);
 
 export type LifeLogEntry = {
@@ -586,62 +594,75 @@ function normalizeFinanceState(value: unknown, bankBalance: number, time: GameTi
   };
 }
 
-export function loadGameState(): GameState | undefined {
-  try {
-    const storageKeys = [GAME_STATE_STORAGE_KEY, ...LEGACY_GAME_STATE_STORAGE_KEYS];
+function normalizeLoadedGameState(value: unknown): GameState | undefined {
+  if (!value || typeof value !== 'object') return undefined;
+  const parsed = value as GameState;
+  if (!parsed.player || !parsed.time || !Array.isArray(parsed.lifeLog)) return undefined;
 
-    for (const storageKey of storageKeys) {
-      const raw = localStorage.getItem(storageKey);
-      if (!raw) continue;
+  const inventory = Array.isArray(parsed.player.inventory) ? parsed.player.inventory : [];
+  const sanitizedInventory = inventory.filter((item) => !REMOVED_PRODUCT_IDS.has(String(item.productId)));
+  const population = normalizePopulation(parsed.world?.population, parsed.time);
+  const playerHousingId = parsed.player.housingId ?? housingId('housing_room_danilovsky');
+  const daysUntilRent = parsed.player.daysUntilRent ?? 7;
 
-      const parsed = JSON.parse(raw) as GameState;
-      if (!parsed.player || !parsed.time || !Array.isArray(parsed.lifeLog)) continue;
-
-      const inventory = Array.isArray(parsed.player.inventory) ? parsed.player.inventory : [];
-      const sanitizedInventory = inventory.filter((item) => !REMOVED_PRODUCT_IDS.has(String(item.productId)));
-      const shouldBackfillStarterInventory = STARTER_INVENTORY_BACKFILL_KEYS.has(storageKey) && sanitizedInventory.length === 0;
-
-      const population = normalizePopulation(parsed.world?.population, parsed.time);
-      const playerHousingId = parsed.player.housingId ?? housingId('housing_room_danilovsky');
-      const daysUntilRent = parsed.player.daysUntilRent ?? 7;
-      return {
-        ...parsed,
-        world: {
-          population,
-          social: normalizeSocialState(parsed.world?.social, parsed.time),
-          housingMarket: normalizeHousingMarket(parsed.world?.housingMarket, parsed.time, population.seed, playerHousingId),
-          business: normalizeBusinessWorld(parsed.world?.business, parsed.time, population.seed),
-          phone: normalizePhoneState(parsed.world?.phone, parsed.time),
-          finance: normalizeFinanceState(parsed.world?.finance, parsed.player.money ?? 0, parsed.time),
-          vehicles: normalizeVehicleWorld(parsed.world?.vehicles, population.seed, parsed.time),
-          medical: normalizeMedicalState(parsed.world?.medical, parsed.time),
-          intercity: normalizeIntercityState(parsed.world?.intercity, parsed.time),
-          university: normalizeUniversityState(parsed.world?.university, parsed.time)
-        },
-        player: {
-          ...parsed.player,
-          housingId: playerHousingId,
-          inventory: shouldBackfillStarterInventory ? createStarterInventory() : sanitizedInventory,
-          completedShifts: parsed.player.completedShifts ?? {},
-          jobExperience: parsed.player.jobExperience ?? {},
-          jobLevels: parsed.player.jobLevels ?? {},
-          skills: normalizePlayerSkills(parsed.player.skills),
-          daysUntilRent,
-          rentalContract: normalizeRentalContract(parsed.player.rentalContract, playerHousingId, parsed.time, daysUntilRent),
-          boxing: normalizeBoxingProfile(parsed.player.boxing)
-        }
-      };
+  return {
+    ...parsed,
+    world: {
+      population,
+      social: normalizeSocialState(parsed.world?.social, parsed.time),
+      housingMarket: normalizeHousingMarket(parsed.world?.housingMarket, parsed.time, population.seed, playerHousingId),
+      business: normalizeBusinessWorld(parsed.world?.business, parsed.time, population.seed),
+      phone: normalizePhoneState(parsed.world?.phone, parsed.time),
+      finance: normalizeFinanceState(parsed.world?.finance, parsed.player.money ?? 0, parsed.time),
+      vehicles: normalizeVehicleWorld(parsed.world?.vehicles, population.seed, parsed.time),
+      medical: normalizeMedicalState(parsed.world?.medical, parsed.time),
+      intercity: normalizeIntercityState(parsed.world?.intercity, parsed.time),
+      university: normalizeUniversityState(parsed.world?.university, parsed.time)
+    },
+    player: {
+      ...parsed.player,
+      housingId: playerHousingId,
+      inventory: sanitizedInventory,
+      completedShifts: parsed.player.completedShifts ?? {},
+      jobExperience: parsed.player.jobExperience ?? {},
+      jobLevels: parsed.player.jobLevels ?? {},
+      skills: normalizePlayerSkills(parsed.player.skills),
+      daysUntilRent,
+      rentalContract: normalizeRentalContract(parsed.player.rentalContract, playerHousingId, parsed.time, daysUntilRent),
+      boxing: normalizeBoxingProfile(parsed.player.boxing)
     }
+  };
+}
 
-    return undefined;
-  } catch {
-    return undefined;
+export function loadGameState(): GameState | undefined {
+  for (const candidate of getSaveStorageCandidates()) {
+    let raw: string | null;
+    try {
+      raw = localStorage.getItem(candidate.key);
+    } catch {
+      return undefined;
+    }
+    if (!raw) continue;
+
+    try {
+      const decoded = decodeSavePayload(raw, candidate.assumedVersion);
+      const normalized = normalizeLoadedGameState(decoded.state);
+      if (normalized) return normalized;
+    } catch {
+      // A broken or unsupported candidate must not block fallback to the next save.
+    }
   }
+
+  return undefined;
 }
 
 export function saveGameState(state: GameState): void {
   try {
-    localStorage.setItem(GAME_STATE_STORAGE_KEY, JSON.stringify(state));
+    const currentRaw = localStorage.getItem(GAME_STATE_STORAGE_KEY);
+    if (currentRaw && canDecodeSavePayload(currentRaw, CURRENT_SAVE_VERSION)) {
+      localStorage.setItem(GAME_STATE_BACKUP_STORAGE_KEY, currentRaw);
+    }
+    localStorage.setItem(GAME_STATE_STORAGE_KEY, encodeSavePayload(state));
   } catch {
     // localStorage can fail in private mode or restricted browsers. Gameplay should continue in memory.
   }
@@ -649,8 +670,7 @@ export function saveGameState(state: GameState): void {
 
 export function clearSavedGameState(): void {
   try {
-    localStorage.removeItem(GAME_STATE_STORAGE_KEY);
-    LEGACY_GAME_STATE_STORAGE_KEYS.forEach((storageKey) => localStorage.removeItem(storageKey));
+    getAllSaveStorageKeys().forEach((storageKey) => localStorage.removeItem(storageKey));
   } catch {
     // Ignore storage failures during reset.
   }
