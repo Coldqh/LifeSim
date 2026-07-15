@@ -1,11 +1,13 @@
 import type { BoxingGym, BoxingTrainer } from '../../types/boxing';
 import type { BusinessPremises } from '../../types/business';
+import type { CareerCompany } from '../../types/career';
 import type { EducationProgram } from '../../types/education';
 import type { MedicalService } from '../../types/healthcare';
 import type {
   BoxingGymId,
   BoxingTrainerId,
   BusinessPremisesId,
+  CareerCompanyId,
   CityId,
   DegreeProgramId,
   EducationProgramId,
@@ -45,6 +47,7 @@ const medicalServicesById = createIdIndex(cityRegistry.content.medicalServices, 
 const boxingGymsById = createIdIndex(cityRegistry.content.boxingGyms, (entry) => String(entry.id));
 const boxingTrainersById = createIdIndex(cityRegistry.content.boxingTrainers, (entry) => String(entry.id));
 const businessPremisesById = createIdIndex(cityRegistry.content.businessPremises, (entry) => String(entry.id));
+const careerCompaniesById = createIdIndex(cityRegistry.content.careerCompanies, (entry) => String(entry.id));
 
 export function getCityContentBundle(cityId: CityId) {
   const pack = cityRegistry.getPack(cityId);
@@ -67,6 +70,7 @@ export function getCityContentBundle(cityId: CityId) {
     boxingGyms: copy(pack.content.boxingGyms),
     boxingTrainers: copy(pack.content.boxingTrainers),
     businessPremises: copy(pack.content.businessPremises),
+    careerCompanies: copy(pack.content.careerCompanies),
     transportNodes: pack.content.transportNodeLocationIds
       .map((locationId) => cityRegistry.getLocation(locationId))
       .filter((entry): entry is NonNullable<typeof entry> => Boolean(entry)),
@@ -151,4 +155,11 @@ export const getAllBusinessPremises = (): BusinessPremises[] => copy(cityRegistr
 export const getBusinessPremisesForCity = (cityId: CityId): BusinessPremises[] => copy(cityRegistry.getContentForCity(cityId)?.businessPremises ?? []);
 export const getBusinessPremisesById = (premisesId: BusinessPremisesId | undefined): BusinessPremises | undefined => premisesId
   ? businessPremisesById.get(String(premisesId))
+  : undefined;
+
+
+export const getAllCareerCompanies = (): CareerCompany[] => copy(cityRegistry.content.careerCompanies);
+export const getCareerCompaniesForCity = (cityId: CityId): CareerCompany[] => copy(cityRegistry.getContentForCity(cityId)?.careerCompanies ?? []);
+export const getCareerCompanyById = (companyId: CareerCompanyId | undefined): CareerCompany | undefined => companyId
+  ? careerCompaniesById.get(String(companyId))
   : undefined;

@@ -1,13 +1,17 @@
-import type { JobId, LocationId } from './ids';
+import type { CareerEmploymentType } from './career';
+import type { CareerCompanyId, DegreeProgramId, JobId, LocationId } from './ids';
 import type { NeedsState } from './needs';
 import type { SkillProgressUpdate, SkillRequirement, SkillReward } from './skill';
 import type { WeeklySchedule } from './schedule';
 
 export type JobCategory = 'service' | 'office' | 'assistant' | 'retail' | 'warehouse' | 'fitness';
+export type JobApplicationMode = 'direct' | 'interview';
 
 export type JobRequirements = {
   minEnergy?: number;
   skills?: SkillRequirement[];
+  acceptedDegreeProgramIds?: DegreeProgramId[];
+  requiredCareerTags?: string[];
 };
 
 export type JobShiftEffects = {
@@ -38,6 +42,10 @@ export type Job = {
   effects: JobShiftEffects;
   levels: JobLevel[];
   shiftSchedule?: WeeklySchedule;
+  companyId?: CareerCompanyId;
+  employmentType?: CareerEmploymentType;
+  applicationMode?: JobApplicationMode;
+  probationDays?: number;
 };
 
 export type JobApplicationResult = {

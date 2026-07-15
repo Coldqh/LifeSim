@@ -1,3 +1,4 @@
+import { issueDegreeQualification } from '../../core/career';
 import { getLocationById } from '../../core/location';
 import { getTotalMinutes } from '../../core/time';
 import { attendEntranceExam, attendUniversityClass, completeUniversityAssignment, enrollUniversityProgram, submitUniversityApplication, takeUniversitySemesterExam } from '../../core/university';
@@ -158,16 +159,46 @@ export function createUniversityCommands(setGameState: GameStateSetter) {
       const program = getDegreeProgramById(currentState.world.university.enrollment?.programId);
       const university = getUniversityById(program?.universityId);
       if (!program || !university) return currentState;
+      const wasCompleted = Boolean(currentState.world.university.enrollment?.completed);
       const applied = takeUniversitySemesterExam({ state: currentState.world.university, player: currentState.player, time: currentState.time, program, university });
       if (!applied.result.ok) return { ...currentState, lastResult: { ok: false, actionName: applied.result.title, timeDeltaMinutes: 0, messages: [applied.result.message] } };
-      const elapsedApplied = applyElapsedTimeConsequences(currentState, applied.player, applied.time, 'active', { university: applied.state, actionTitle: applied.result.title });
+
+      const completedNow = !wasCompleted && Boolean(applied.state.enrollment?.completed);
+      const qualificationApplied = completedNow
+        ? issueDegreeQualification({ player: applied.player, program, university, time: applied.time })
+        : { player: applied.player, qualification: undefined, created: false };
+      const diplomaMessage = qualificationApplied.created && qualificationApplied.qualification
+        ? `Выдан диплом: ${qualificationApplied.qualification.title}.`
+        : undefined;
+      const phone = diplomaMessage ? {
+        ...currentState.world.phone,
+        notifications: [{
+          id: (`notification_degree_awarded_${String(program.id)}_${getTotalMinutes(applied.time)}`) as PhoneNotificationId,
+          appId: 'education' as const,
+          title: 'Диплом получен',
+          body: `${university.shortName}: ${program.title}`,
+          createdAtTotalMinutes: getTotalMinutes(applied.time),
+          read: false,
+          degreeProgramId: program.id,
+          locationId: university.locationId
+        }, ...currentState.world.phone.notifications].slice(0, 80)
+      } : currentState.world.phone;
+      const elapsedApplied = applyElapsedTimeConsequences(
+        currentState,
+        qualificationApplied.player,
+        applied.time,
+        'active',
+        { university: applied.state, phone, actionTitle: applied.result.title }
+      );
+      const messages = [applied.result.message, diplomaMessage, ...elapsedApplied.messages].filter((message): message is string => Boolean(message));
+      const diplomaLog = diplomaMessage ? [createLifeLogEntry({ time: applied.time }, 'Диплом', diplomaMessage)] : [];
       return {
         ...currentState,
         player: elapsedApplied.player,
         time: applied.time,
         world: elapsedApplied.world,
-        lastResult: { ok: true, actionName: applied.result.title, timeDeltaMinutes: applied.result.timeDeltaMinutes, needsDelta: elapsedApplied.needsDelta, messages: [applied.result.message, ...elapsedApplied.messages] },
-        lifeLog: mergeLifeLog([createLifeLogEntry({ time: applied.time }, applied.result.title, applied.result.message), ...elapsedApplied.lifeLogEntries], currentState.lifeLog)
+        lastResult: { ok: true, actionName: applied.result.title, timeDeltaMinutes: applied.result.timeDeltaMinutes, needsDelta: elapsedApplied.needsDelta, messages },
+        lifeLog: mergeLifeLog([createLifeLogEntry({ time: applied.time }, applied.result.title, applied.result.message), ...diplomaLog, ...elapsedApplied.lifeLogEntries], currentState.lifeLog)
       };
     });
   }

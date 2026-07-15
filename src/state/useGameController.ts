@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { getCareerApplicationFailure, getCareerResume } from '../core/career';
 import { getBusinessHireCandidates, getBusinessLaunchFailure, getBusinessStartupCost, isBusinessEmployeeOnShift } from '../core/business';
 import { getHousingAffordability, isHousingViewed, scheduleHousingViewing } from '../core/housing';
 import { canAfford } from '../core/economy';
@@ -33,6 +34,7 @@ import {
   getBoxingGymByLocationId,
   getBoxingTrainerById,
   getBusinessPremisesById,
+  getCareerCompanyById,
   getDegreeProgramById,
   getHousingById,
   getJobById,
@@ -166,6 +168,7 @@ export function useGameController() {
     applyForJob,
     promoteJob,
     workShift,
+    resignCurrentJob,
     studyProgram,
     buyBoxingMembership,
     chooseBoxingTrainer,
@@ -300,7 +303,8 @@ export function useGameController() {
     function buildJobView(job: import('../types/job').Job) {
       const location = getLocationById(job.locationId);
       const district = location ? getDistrictById(location.districtId) : undefined;
-      const applicationFailure = getJobApplicationFailure(gameState.player, job);
+      const applicationFailure = getJobApplicationFailure(gameState.player, job)
+        ?? getCareerApplicationFailure(gameState.player, job, 'direct');
       const shiftFailure = getMedicalActivityFailure(gameState.world.medical, 'work')
         ?? getJobShiftFailure(gameState.player, job, gameState.time);
       const promotionFailure = getJobPromotionFailure(gameState.player, job);
@@ -314,11 +318,21 @@ export function useGameController() {
         job.effects.needsDelta,
         { scaleEnergyCost: true }
       );
+      const company = getCareerCompanyById(job.companyId);
+      const activeEmployment = gameState.player.career?.activeEmployment?.jobId === job.id
+        ? gameState.player.career.activeEmployment
+        : undefined;
+      const probationDaysRemaining = activeEmployment?.status === 'probation' && activeEmployment.probationEndsDay
+        ? Math.max(0, activeEmployment.probationEndsDay - gameState.time.day)
+        : 0;
 
       return {
         job,
         location,
         district,
+        company,
+        employmentStatus: activeEmployment?.status,
+        probationDaysRemaining,
         jobLevel: progress.currentLevel,
         nextJobLevel: progress.nextLevel,
         currentLevel: progress.currentLevel.level,
@@ -512,7 +526,8 @@ export function useGameController() {
       const location = getLocationById(job.locationId);
       const district = location ? getDistrictById(location.districtId) : undefined;
       const application = getJobApplicationForJob(phone, job.id);
-      const applicationFailure = getJobApplicationFailure(gameState.player, job);
+      const degreeFailure = getCareerApplicationFailure(gameState.player, job, 'phone');
+      const applicationFailure = getJobApplicationFailure(gameState.player, job) ?? degreeFailure;
       const missingSkillRequirements = getMissingSkillRequirements(gameState.player, job.requirements?.skills).map((requirement) => ({
         ...requirement,
         name: getSkillById(requirement.skillId)?.name ?? String(requirement.skillId)
@@ -523,10 +538,17 @@ export function useGameController() {
         currentLocationId: gameState.player.locationId,
         currentTotalMinutes: getTotalMinutes(gameState.time)
       });
+      const company = getCareerCompanyById(job.companyId);
+      const requiredDegreeTitles = (job.requirements?.acceptedDegreeProgramIds ?? []).map((programId) => (
+        getDegreeProgramById(programId)?.title ?? String(programId)
+      ));
       return {
         job,
         location,
         district,
+        company,
+        requiredDegreeTitles,
+        hasRequiredDegree: !degreeFailure,
         application,
         applicationFailure,
         missingSkillRequirements,
@@ -628,6 +650,7 @@ export function useGameController() {
     return {
       phone,
       jobs,
+      career: getCareerResume(gameState.player),
       unreadCount: getPhoneUnreadCount(phone),
       unreadMessages: phone.messages.filter((entry) => !entry.read).length,
       unreadNotifications: phone.notifications.filter((entry) => !entry.read).length,
@@ -1055,6 +1078,7 @@ export function useGameController() {
     applyForJob,
     promoteJob,
     workShift,
+    resignCurrentJob,
     studyProgram,
     buyBoxingMembership,
     chooseBoxingTrainer,

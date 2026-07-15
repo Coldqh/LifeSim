@@ -1,6 +1,6 @@
 import { getCalendarDateForDay } from '../core/time';
 export const MIN_SUPPORTED_SAVE_VERSION = 7;
-export const CURRENT_SAVE_VERSION = 26;
+export const CURRENT_SAVE_VERSION = 27;
 export const SAVE_ENVELOPE_FORMAT = 'lifesim-save';
 
 export const getGameStateStorageKey = (version: number): string => `lifesim.gameState.v${version}`;
@@ -142,6 +142,46 @@ function migrateV25ToV26(state: unknown): unknown {
   };
 }
 
+
+
+function migrateV26ToV27(state: unknown): unknown {
+  const root = asRecord(state);
+  const player = asRecord(root?.player);
+  const time = asRecord(root?.time);
+  if (!root || !player) return state;
+
+  const day = typeof time?.day === 'number' ? Math.max(1, Math.floor(time.day)) : 1;
+  const currentJobId = typeof player.currentJobId === 'string' ? player.currentJobId : undefined;
+  const existingCareer = asRecord(player.career);
+  const qualifications = Array.isArray(player.qualifications) ? player.qualifications : [];
+
+  const career = existingCareer ?? {
+    activeEmployment: currentJobId ? {
+      id: `employment_legacy_${currentJobId}_${day}`,
+      jobId: currentJobId,
+      employmentType: 'casual',
+      status: 'active',
+      startedDay: day
+    } : undefined,
+    employmentHistory: currentJobId ? [{
+      id: `employment_legacy_${currentJobId}_${day}`,
+      jobId: currentJobId,
+      employmentType: 'casual',
+      status: 'active',
+      startedDay: day
+    }] : []
+  };
+
+  return {
+    ...root,
+    player: {
+      ...player,
+      qualifications,
+      career
+    }
+  };
+}
+
 const SAVE_MIGRATIONS = new Map<number, SaveMigration>([
   [7, identityMigration],
   [8, identityMigration],
@@ -161,7 +201,8 @@ const SAVE_MIGRATIONS = new Map<number, SaveMigration>([
   [22, identityMigration],
   [23, identityMigration],
   [24, migrateV24ToV25],
-  [25, migrateV25ToV26]
+  [25, migrateV25ToV26],
+  [26, migrateV26ToV27]
 ]);
 
 function assertSupportedVersion(version: number): void {

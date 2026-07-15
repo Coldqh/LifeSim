@@ -15,6 +15,7 @@ describe('registered city content packs', () => {
     expect(bundle?.sportFacilities.length).toBeGreaterThan(0);
     expect(bundle?.boxingGyms.length).toBeGreaterThan(0);
     expect(bundle?.businessPremises.length).toBeGreaterThan(0);
+    expect(bundle?.careerCompanies.length).toBeGreaterThan(0);
     expect(bundle?.transportNodes.length).toBeGreaterThan(0);
     expect(bundle?.completeness?.missingCategories).toEqual([]);
   });
@@ -28,6 +29,7 @@ describe('registered city content packs', () => {
     expect(bundle?.universities.length).toBeGreaterThan(0);
     expect(bundle?.degreePrograms.length).toBeGreaterThan(0);
     expect(bundle?.universitySubjects.length).toBeGreaterThan(0);
+    expect(bundle?.careerCompanies.length).toBeGreaterThan(0);
     expect(bundle?.transportNodes.length).toBeGreaterThan(0);
     expect(bundle?.completeness?.missingCategories).toContain('healthcare');
     expect(bundle?.completeness?.missingCategories).toContain('business');
@@ -44,6 +46,7 @@ describe('registered city content packs', () => {
     expect(bundle?.medicalServices.length).toBeGreaterThan(0);
     expect(bundle?.boxingGyms.length).toBeGreaterThan(0);
     expect(bundle?.businessPremises.length).toBeGreaterThan(0);
+    expect(bundle?.careerCompanies.length).toBeGreaterThan(0);
     expect(bundle?.transportNodes.length).toBeGreaterThanOrEqual(2);
     expect(bundle?.completeness?.missingCategories).toEqual([]);
   });

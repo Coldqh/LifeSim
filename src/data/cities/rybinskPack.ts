@@ -1,4 +1,5 @@
 import type { LocationId } from '../../types/ids';
+import { careerCompanies, professionalJobs } from '../career';
 import { rybinskBusinessPremises } from '../business/rybinskPremises';
 import { rybinskDistricts } from '../districts/rybinskDistricts';
 import {
@@ -26,7 +27,7 @@ export const rybinskContentPack = defineCityContentPack({
     cityId: rybinskCity.id,
     districts: rybinskDistricts,
     locations: rybinskLocations,
-    jobs: rybinskJobs,
+    jobs: [...rybinskJobs, ...professionalJobs],
     housing: rybinskHousing,
     shops: basicShops,
     educationPrograms: rybinskEducationPrograms,
@@ -36,6 +37,7 @@ export const rybinskContentPack = defineCityContentPack({
     medicalServices: rybinskMedicalServices,
     boxingGyms: rybinskBoxingGyms,
     boxingTrainers: rybinskBoxingTrainers,
-    businessPremises: rybinskBusinessPremises
+    businessPremises: rybinskBusinessPremises,
+    careerCompanies
   })
 });

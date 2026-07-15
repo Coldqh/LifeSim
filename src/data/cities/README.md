@@ -13,6 +13,7 @@ Create the city, districts, locations and domain data in their existing folders:
 - medical services;
 - sport facilities;
 - business premises;
+- career companies and professional vacancies;
 - city events when available.
 
 Reusable definitions such as products, shop templates, skills and generic sport rules remain shared global catalogues.
@@ -42,6 +43,7 @@ export const newCityContentPack = defineCityContentPack({
     boxingGyms: newCityBoxingGyms,
     boxingTrainers: newCityBoxingTrainers,
     businessPremises: newCityBusinessPremises,
+    careerCompanies: newCityCareerCompanies,
     eventIds: newCityEventIds
   })
 });
@@ -78,6 +80,7 @@ The report covers:
 - healthcare;
 - sports;
 - business;
+- career;
 - transport.
 
 A missing category is allowed for a deliberately limited city, but it is visible in tests and development tools.
@@ -90,7 +93,7 @@ In `src/data/intercity/routes.ts`:
 - use `createBidirectionalRoadConnections(...)` for car travel;
 - add temporary accommodation only when the city needs it.
 
-Use `getCityContentBundle(cityId)` for a complete city view, or the focused selectors such as `getJobsForCity`, `getHousingForCity`, `getMedicalServicesForCity` and `getBoxingGymsForCity`.
+Use `getCityContentBundle(cityId)` for a complete city view, or the focused selectors such as `getJobsForCity`, `getHousingForCity`, `getMedicalServicesForCity`, `getCareerCompaniesForCity` and `getBoxingGymsForCity`.
 
 ## Runtime access rule
 

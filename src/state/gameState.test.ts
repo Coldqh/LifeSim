@@ -8,6 +8,7 @@ import {
   encodeSavePayload,
   getAllSaveStorageKeys
 } from './saveMigrations';
+import { getAllDegreePrograms } from '../data/cities/contentSelectors';
 import { clearSavedGameState, createInitialGameState, loadGameState, saveGameState } from './gameState';
 
 class MemoryStorage implements Storage {
@@ -91,6 +92,69 @@ describe('game state storage', () => {
       expect(Object.keys(loaded?.world.atlas.cityStates ?? {})).toEqual(['moscow', 'yaroslavl', 'rybinsk']);
       expect(loaded?.time.calendar).toEqual(state.time.calendar);
       expect(loaded?.player.birthDate).toEqual(state.player.birthDate);
+    });
+  });
+
+
+  it('creates and hydrates career qualifications safely', () => {
+    withMemoryStorage(() => {
+      const state = createInitialGameState();
+      expect(state.player.qualifications).toEqual([]);
+      expect(state.player.career?.employmentHistory).toEqual([]);
+
+      const legacy = {
+        ...state,
+        player: {
+          ...state.player,
+          currentJobId: 'job_barista_trainee',
+          qualifications: undefined,
+          career: undefined
+        }
+      };
+      localStorage.setItem('lifesim.gameState.v26', JSON.stringify(legacy));
+      const loaded = loadGameState();
+
+      expect(loaded?.player.qualifications).toEqual([]);
+      expect(loaded?.player.career?.activeEmployment?.jobId).toBe('job_barista_trainee');
+    });
+  });
+
+
+  it('backfills a diploma for a completed legacy university enrollment', () => {
+    withMemoryStorage(() => {
+      const state = createInitialGameState();
+      const program = getAllDegreePrograms()[0];
+      const legacy = {
+        ...state,
+        player: { ...state.player, qualifications: undefined },
+        world: {
+          ...state.world,
+          university: {
+            ...state.world.university,
+            enrollment: {
+              programId: program.id,
+              startedDay: 1,
+              semester: program.durationSemesters,
+              tuitionPaidThroughSemester: program.durationSemesters,
+              studyLoad: 0,
+              subjectProgress: {},
+              assignments: [],
+              attendedSessionKeys: [],
+              missedSessionKeys: [],
+              examsPassed: program.durationSemesters,
+              completed: true
+            }
+          }
+        }
+      };
+      localStorage.setItem('lifesim.gameState.v26', JSON.stringify(legacy));
+
+      const loaded = loadGameState();
+
+      expect(loaded?.player.qualifications?.[0]).toMatchObject({
+        degreeProgramId: program.id,
+        title: program.title
+      });
     });
   });
 

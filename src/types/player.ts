@@ -1,3 +1,4 @@
+import type { CareerResume, PlayerCareerState, PlayerQualification } from './career';
 import type { CityId, DistrictId, JobId, LocationId, PlayerId } from './ids';
 import type { HousingId, RentalContract } from './housing';
 import type { InventoryItem } from './inventory';
@@ -22,9 +23,13 @@ export type Player = {
   completedShifts: Partial<Record<JobId, number>>;
   jobExperience: Partial<Record<JobId, number>>;
   jobLevels: Partial<Record<JobId, number>>;
+  qualifications?: PlayerQualification[];
+  career?: PlayerCareerState;
   housingId: HousingId;
   rentDebt: number;
   daysUntilRent: number;
   rentalContract: RentalContract;
   boxing: BoxingProfile;
 };
+
+export type PlayerCareerResume = CareerResume;

@@ -35,3 +35,5 @@ export * from './housing/rybinskHousing';
 export * from './education/rybinskEducation';
 export * from './healthcare/rybinskServices';
 export * from './business/rybinskPremises';
+
+export * from './career';

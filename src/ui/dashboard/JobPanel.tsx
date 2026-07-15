@@ -1,4 +1,5 @@
 import { formatRubles } from '../../core/economy';
+import type { CareerCompany, CareerEmploymentStatus } from '../../types/career';
 import type { Job, JobLevel } from '../../types/job';
 import type { JobId, NpcId, NpcInteractionId } from '../../types/ids';
 import type { District, Location } from '../../types/location';
@@ -15,6 +16,9 @@ type JobView = {
   job: Job;
   location?: Location;
   district?: District;
+  company?: CareerCompany;
+  employmentStatus?: CareerEmploymentStatus;
+  probationDaysRemaining: number;
   jobLevel: JobLevel;
   nextJobLevel?: JobLevel;
   currentLevel: number;
@@ -46,6 +50,7 @@ type JobPanelProps = {
   onInteract: (npcId: NpcId, interactionId: NpcInteractionId) => void;
   onPromoteJob: (jobId: JobId) => void;
   onWorkShift: (jobId: JobId) => void;
+  onResignJob: () => void;
 };
 
 function formatDuration(minutes: number): string {
@@ -77,7 +82,7 @@ function getCareerLevelState(level: JobLevel, currentLevel: number): 'complete' 
   return 'locked';
 }
 
-export function JobPanel({ currentJobView, colleagues, onInteract, onPromoteJob, onWorkShift }: JobPanelProps) {
+export function JobPanel({ currentJobView, colleagues, onInteract, onPromoteJob, onWorkShift, onResignJob }: JobPanelProps) {
   if (!currentJobView) {
     return (
       <section className="panel empty-workplace-panel cinematic-empty-state">
@@ -96,6 +101,9 @@ export function JobPanel({ currentJobView, colleagues, onInteract, onPromoteJob,
     nextJobLevel,
     location,
     district,
+    company,
+    employmentStatus,
+    probationDaysRemaining,
     currentLevel,
     maxLevel,
     completedShifts,
@@ -124,7 +132,7 @@ export function JobPanel({ currentJobView, colleagues, onInteract, onPromoteJob,
             <div>
               <span className="section-kicker">Текущая работа · уровень {currentLevel}/{maxLevel}</span>
               <h2>{jobLevel.title}</h2>
-              <p>{location?.name ?? 'Место не найдено'} · {location?.address ?? district?.name ?? 'Район не найден'}</p>
+              <p>{company?.name ?? location?.name ?? 'Место не найдено'} · {location?.address ?? district?.name ?? 'Район не найден'}</p>
             </div>
           </div>
           <div className="workplace-status-stack">
@@ -133,6 +141,9 @@ export function JobPanel({ currentJobView, colleagues, onInteract, onPromoteJob,
             </span>
             <small className={scheduleStatus.isOpen ? 'schedule-inline schedule-inline--open' : 'schedule-inline schedule-inline--closed'}>
               {scheduleStatus.label}
+            </small>
+            <small className="schedule-inline schedule-inline--open">
+              {employmentStatus === 'probation' ? `Испытательный срок: ${probationDaysRemaining} дн.` : 'Трудовой договор активен'}
             </small>
           </div>
         </div>
@@ -247,6 +258,7 @@ export function JobPanel({ currentJobView, colleagues, onInteract, onPromoteJob,
           <span>Начать смену</span><Icon name="arrow" size={18} />
         </button>
         {!canWorkShift ? <p className="inline-warning">{shiftFailure}</p> : null}
+        <button className="secondary-command-button" type="button" onClick={onResignJob}>Уволиться</button>
       </section>
     </section>
   );

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { businessPremises } from '../business/premises';
+import { careerCompanies, professionalJobs } from '../career';
 import { rybinskBusinessPremises } from '../business/rybinskPremises';
 import { basicEducationPrograms } from '../education/basicPrograms';
 import {
@@ -23,6 +24,7 @@ import {
   getAllBoxingGyms,
   getAllBoxingTrainers,
   getAllBusinessPremises,
+  getAllCareerCompanies,
   getAllDegreePrograms,
   getAllEducationPrograms,
   getAllHousing,
@@ -34,6 +36,7 @@ import {
   getBoxingGymById,
   getBoxingTrainerById,
   getBusinessPremisesById,
+  getCareerCompanyById,
   getDegreeProgramById,
   getEducationProgramById,
   getHousingById,
@@ -51,7 +54,8 @@ const ids = <T extends { id: unknown }>(values: readonly T[]) => values.map((ent
 
 describe('city content selectors', () => {
   it('preserves legacy catalogue order and appends Rybinsk content', () => {
-    expect(ids(getAllJobs())).toEqual([...ids(basicJobs), ...ids(rybinskJobs)]);
+    expect(new Set(ids(getAllJobs()))).toEqual(new Set([...ids(basicJobs), ...ids(rybinskJobs), ...ids(professionalJobs)]));
+    expect(getAllJobs()).toHaveLength(new Set([...ids(basicJobs), ...ids(rybinskJobs), ...ids(professionalJobs)]).size);
     expect(ids(getAllHousing())).toEqual([...ids(basicHousing), ...ids(rybinskHousing)]);
     expect(ids(getAllShops())).toEqual(ids(basicShops));
     expect(ids(getAllEducationPrograms())).toEqual([...ids(basicEducationPrograms), ...ids(rybinskEducationPrograms)]);
@@ -62,6 +66,7 @@ describe('city content selectors', () => {
     expect(ids(getAllBoxingGyms())).toEqual([...ids(boxingGyms), ...ids(rybinskBoxingGyms)]);
     expect(ids(getAllBoxingTrainers())).toEqual([...ids(boxingTrainers), ...ids(rybinskBoxingTrainers)]);
     expect(ids(getAllBusinessPremises())).toEqual([...ids(businessPremises), ...ids(rybinskBusinessPremises)]);
+    expect(ids(getAllCareerCompanies())).toEqual(ids(careerCompanies));
   });
 
   it('scopes jobs through the registered city packs', () => {
@@ -90,6 +95,7 @@ describe('city content selectors', () => {
     const gym = getAllBoxingGyms()[0];
     const trainer = getAllBoxingTrainers()[0];
     const premises = getAllBusinessPremises()[0];
+    const company = getAllCareerCompanies()[0];
 
     expect(getJobById(job?.id)).toBe(job);
     expect(getHousingById(housing?.id)).toBe(housing);
@@ -102,5 +108,6 @@ describe('city content selectors', () => {
     expect(getBoxingGymById(gym?.id)).toBe(gym);
     expect(getBoxingTrainerById(trainer?.id)).toBe(trainer);
     expect(getBusinessPremisesById(premises?.id)).toBe(premises);
+    expect(getCareerCompanyById(company?.id)).toBe(company);
   });
 });

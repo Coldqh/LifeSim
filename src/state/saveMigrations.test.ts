@@ -72,6 +72,21 @@ describe('save migrations', () => {
     expect(migrated.player.birthDate).toEqual({ year: 2008, month: 8, dayOfMonth: 20 });
   });
 
+
+  it('adds qualifications and career history when migrating v26 to v27', () => {
+    const migrated = migrateSaveState({
+      player: { currentJobId: 'job_barista_trainee' },
+      time: { day: 12 },
+      world: {}
+    }, 26).state as {
+      player: { qualifications: unknown[]; career: { activeEmployment?: { jobId: string; status: string }; employmentHistory: unknown[] } };
+    };
+
+    expect(migrated.player.qualifications).toEqual([]);
+    expect(migrated.player.career.activeEmployment).toMatchObject({ jobId: 'job_barista_trainee', status: 'active' });
+    expect(migrated.player.career.employmentHistory).toHaveLength(1);
+  });
+
   it('decodes both legacy raw states and the current versioned envelope', () => {
     const legacy = decodeSavePayload(JSON.stringify({ player: { inventory: [] } }), 23);
     const encoded = encodeSavePayload({ marker: 'current' });
@@ -90,7 +105,7 @@ describe('save migrations', () => {
   it('uses a new current key, a dedicated backup key and descending legacy keys', () => {
     expect(GAME_STATE_STORAGE_KEY).toBe(`lifesim.gameState.v${CURRENT_SAVE_VERSION}`);
     expect(GAME_STATE_BACKUP_STORAGE_KEY).toBe(`${GAME_STATE_STORAGE_KEY}.backup`);
-    expect(LEGACY_GAME_STATE_STORAGE_KEYS[0]).toBe('lifesim.gameState.v25');
+    expect(LEGACY_GAME_STATE_STORAGE_KEYS[0]).toBe('lifesim.gameState.v26');
     expect(LEGACY_GAME_STATE_STORAGE_KEYS[LEGACY_GAME_STATE_STORAGE_KEYS.length - 1]).toBe('lifesim.gameState.v7');
   });
 });

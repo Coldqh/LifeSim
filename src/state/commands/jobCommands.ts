@@ -1,3 +1,4 @@
+import { getCareerApplicationFailure, resignCareerEmployment, startCareerEmployment } from '../../core/career';
 import { accrueSalary } from '../../core/finance';
 import { applyForJob as applyJob, applyJobPromotion, applyJobShift } from '../../core/jobs';
 import { applyWorkWhileSick, getMedicalActivityFailure } from '../../core/healthcare';
@@ -16,26 +17,40 @@ export function createJobCommands(setGameState: GameStateSetter) {
     if (!job) return;
 
     setGameState((currentState) => {
-      const applied = applyJob({
-        player: currentState.player,
-        job
-      });
+      const careerFailure = getCareerApplicationFailure(currentState.player, job, 'direct');
+      if (careerFailure) {
+        const logEntry = createLifeLogEntry(currentState, 'Работа недоступна', careerFailure);
+        return {
+          ...currentState,
+          lastResult: { ok: false, actionName: job.title, timeDeltaMinutes: 0, messages: [careerFailure] },
+          lifeLog: mergeLifeLog([logEntry], currentState.lifeLog)
+        };
+      }
+
+      const applied = applyJob({ player: currentState.player, job });
+      const player = applied.result.ok
+        ? startCareerEmployment({ player: applied.player, job, currentDay: currentState.time.day })
+        : applied.player;
+      const probationMessage = applied.result.ok && (job.probationDays ?? 0) > 0
+        ? `Испытательный срок: ${job.probationDays} дней.`
+        : undefined;
+      const messages = [...applied.result.messages, probationMessage].filter((message): message is string => Boolean(message));
       const logEntry = createLifeLogEntry(
         currentState,
         applied.result.ok ? 'Работа' : 'Работа недоступна',
-        applied.result.messages.join(' ')
+        messages.join(' ')
       );
 
       return {
         ...currentState,
-        player: applied.player,
+        player,
         lastResult: {
           ok: applied.result.ok,
           actionName: applied.result.jobTitle,
           timeDeltaMinutes: 0,
-          messages: applied.result.messages
+          messages
         },
-        lifeLog: [logEntry, ...currentState.lifeLog].slice(0, 12)
+        lifeLog: mergeLifeLog([logEntry], currentState.lifeLog)
       };
     });
   }
@@ -131,9 +146,32 @@ export function createJobCommands(setGameState: GameStateSetter) {
     });
   }
 
+  function resignCurrentJob(): void {
+    setGameState((currentState) => {
+      const job = getJobById(currentState.player.currentJobId);
+      if (!job) {
+        const message = 'У тебя нет текущей работы.';
+        return {
+          ...currentState,
+          lastResult: { ok: false, actionName: 'Увольнение', timeDeltaMinutes: 0, messages: [message] }
+        };
+      }
+
+      const resigned = resignCareerEmployment({ player: currentState.player, currentDay: currentState.time.day });
+      const message = `Ты уволился: ${job.title}.`;
+      return {
+        ...currentState,
+        player: resigned.player,
+        lastResult: { ok: true, actionName: 'Увольнение', timeDeltaMinutes: 0, messages: [message] },
+        lifeLog: mergeLifeLog([createLifeLogEntry(currentState, 'Карьера', message)], currentState.lifeLog)
+      };
+    });
+  }
+
   return {
     applyForJob,
     promoteJob,
-    workShift
+    workShift,
+    resignCurrentJob
   };
 }

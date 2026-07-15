@@ -6,29 +6,20 @@ export * as actions from './actions';
 export * as events from './events';
 export * as progression from './progression';
 export * as jobs from './jobs';
+export * as career from './career';
 export * as education from './education';
 export * as housing from './housing';
 export * as sport from './sport';
 export * as risk from './risk';
 export * as business from './business';
 export * as crime from './crime';
-
 export * as population from './population';
-
 export * as relationships from './relationships';
-
 export * as phone from './phone';
-
 export * as finance from './finance';
-
 export * as vehicles from './vehicles';
-
 export * as healthcare from './healthcare';
-
 export * from './intercity';
-
 export * as university from './university';
-
 export * from './social-life';
-
 export * as worldAtlas from './world-atlas';

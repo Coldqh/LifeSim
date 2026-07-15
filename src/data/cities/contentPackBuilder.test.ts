@@ -1,11 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import type { BoxingGym } from '../../types/boxing';
 import type { BusinessPremises } from '../../types/business';
+import type { CareerCompany } from '../../types/career';
 import type { EducationProgram } from '../../types/education';
 import type { MedicalService } from '../../types/healthcare';
 import type {
   BoxingGymId,
   BusinessPremisesId,
+  CareerCompanyId,
   CityId,
   CountryId,
   DegreeProgramId,
@@ -65,11 +67,12 @@ function createSyntheticCity() {
   const universityId = asId<UniversityId>('synthetic_university_definition');
   const degreeProgramId = asId<DegreeProgramId>('synthetic_degree');
   const subjectId = asId<UniversitySubjectId>('synthetic_subject');
+  const companyId = asId<CareerCompanyId>('synthetic_company');
   const content = buildCityContent({
     cityId,
     districts: [district],
     locations,
-    jobs: [{ id: asId<JobId>('synthetic_job'), locationId: workplaceId } as Job],
+    jobs: [{ id: asId<JobId>('synthetic_job'), locationId: workplaceId, companyId } as Job],
     housing: [{ id: asId<HousingId>('synthetic_housing'), locationId: homeId, districtId } as Housing],
     shops: [{ id: shopId, name: 'Shop', description: '', productIds: [] } as Shop],
     educationPrograms: [{ id: asId<EducationProgramId>('synthetic_course'), locationId: universityLocationId } as EducationProgram],
@@ -78,7 +81,8 @@ function createSyntheticCity() {
     universitySubjects: [{ id: subjectId } as UniversitySubjectDefinition],
     medicalServices: [{ id: asId<MedicalServiceId>('synthetic_medical'), clinicLocationId: clinicId } as MedicalService],
     boxingGyms: [{ id: asId<BoxingGymId>('synthetic_gym'), locationId: gymLocationId, trainerIds: [] } as unknown as BoxingGym],
-    businessPremises: [{ id: asId<BusinessPremisesId>('synthetic_premises'), locationId: workplaceId, districtId } as BusinessPremises]
+    businessPremises: [{ id: asId<BusinessPremisesId>('synthetic_premises'), locationId: workplaceId, districtId } as BusinessPremises],
+    careerCompanies: [{ id: companyId, cityId, locationId: workplaceId, name: 'Company', industry: 'Test', description: '' } as CareerCompany]
   });
 
   return { city, district, locations, stationId, content };
@@ -108,6 +112,7 @@ describe('buildCityContent', () => {
     expect(synthetic.content.boxingGyms.map((entry) => entry.id)).toEqual(['synthetic_gym']);
     expect(synthetic.content.boxingTrainers).toEqual([]);
     expect(synthetic.content.businessPremises.map((entry) => entry.id)).toEqual(['synthetic_premises']);
+    expect(synthetic.content.careerCompanies.map((entry) => entry.id)).toEqual(['synthetic_company']);
     expect(synthetic.content.transportNodeLocationIds).toEqual(['synthetic_station']);
     expect(registry.getCompletenessForCity(synthetic.city.id)?.missingCategories).toEqual([]);
   });

@@ -1,3 +1,4 @@
+import type { CareerCompany, CareerResume } from '../../types/career';
 import type { Job } from '../../types/job';
 import type { City, District, Location } from '../../types/location';
 import type {
@@ -44,6 +45,9 @@ export type PhoneVacancyView = {
   job: Job;
   location?: Location;
   district?: District;
+  company?: CareerCompany;
+  requiredDegreeTitles: string[];
+  hasRequiredDegree: boolean;
   application?: PhoneJobApplication;
   applicationFailure?: string;
   missingSkillRequirements: Array<{ skillId: import('../../types/ids').SkillId; name: string; currentLevel: number; minLevel: number }>;
@@ -162,6 +166,7 @@ export type PhoneSocialState = {
 
 export type PhonePanelState = {
   phone: PhoneState;
+  career: CareerResume;
   jobs: PhoneVacancyView[];
   unreadCount: number;
   unreadMessages: number;

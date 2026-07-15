@@ -1,4 +1,5 @@
 import type { LocationId } from '../../types/ids';
+import { careerCompanies, professionalJobs } from '../career';
 import { businessPremises } from '../business/premises';
 import { yaroslavlDistricts } from '../districts/yaroslavlDistricts';
 import { basicEducationPrograms } from '../education/basicPrograms';
@@ -23,7 +24,7 @@ export const yaroslavlContentPack = defineCityContentPack({
     cityId: yaroslavlCity.id,
     districts: yaroslavlDistricts,
     locations: yaroslavlLocations,
-    jobs: basicJobs,
+    jobs: [...basicJobs, ...professionalJobs],
     housing: basicHousing,
     shops: basicShops,
     educationPrograms: basicEducationPrograms,
@@ -33,6 +34,7 @@ export const yaroslavlContentPack = defineCityContentPack({
     medicalServices,
     boxingGyms,
     boxingTrainers,
-    businessPremises
+    businessPremises,
+    careerCompanies
   })
 });

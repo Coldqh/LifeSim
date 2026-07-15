@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import type { Job } from '../../../types/job';
 import type { City, District, Location } from '../../../types/location';
 import type {
@@ -56,7 +56,7 @@ export default function JobsApp(props: {
   const selected = props.state.jobs.find((entry) => entry.job.id === props.selectedJobId);
   const filtered = props.state.jobs.filter((entry) => {
     if (savedOnly && !entry.saved) return false;
-    const haystack = `${entry.job.title} ${entry.location?.name ?? ''} ${entry.district?.name ?? ''}`.toLowerCase();
+    const haystack = `${entry.job.title} ${entry.company?.name ?? ''} ${entry.location?.name ?? ''} ${entry.district?.name ?? ''}`.toLowerCase();
     return haystack.includes(query.trim().toLowerCase());
   });
 
@@ -66,27 +66,31 @@ export default function JobsApp(props: {
       <div className="phone-app-page phone-screen-enter">
         <button className="phone-text-button" type="button" onClick={() => props.onSelectJob(undefined)}>← Все вакансии</button>
         <section className="phone-job-detail">
-          <div className="phone-job-detail__brand">hh</div>
-          <span className="phone-kicker">{selected.location?.name ?? 'Работодатель'}</span>
+          <div className="phone-job-detail__brand">{selected.company ? selected.company.name.slice(0, 2).toUpperCase() : 'hh'}</div>
+          <span className="phone-kicker">{selected.company?.name ?? selected.location?.name ?? 'Работодатель'}</span>
           <h2>{selected.job.title}</h2>
           <strong className="phone-job-salary">{formatRubles(selected.estimatedMonthlyIncome)} / месяц</strong>
           <div className="phone-detail-grid">
             <div><span>Смена</span><strong>{selected.job.shiftDurationMinutes / 60} ч · {formatRubles(selected.job.wagePerShift)}</strong></div>
-            <div><span>Район</span><strong>{selected.district?.name ?? 'Москва'}</strong></div>
+            <div><span>Формат</span><strong>{selected.job.employmentType === 'professional' ? 'Профессия' : selected.job.employmentType === 'internship' ? 'Стажировка' : 'Обычная работа'}</strong></div>
           </div>
           <div className="phone-address-block"><Icon name="pin" size={18}/><div><strong>{selected.location?.name ?? 'Место работы'}</strong><span>{selected.location?.address ?? 'Адрес не указан'}</span></div></div>
         </section>
 
         <section className="phone-subsection">
-          <div className="phone-section-title"><span>Требования</span>{selected.missingSkillRequirements.length === 0 ? <em>Подходишь</em> : <em className="negative">Не хватает навыков</em>}</div>
-          {selected.job.requirements?.skills?.length ? (
+          <div className="phone-section-title"><span>Требования</span>{selected.missingSkillRequirements.length === 0 && selected.hasRequiredDegree ? <em>Подходишь</em> : <em className="negative">Не выполнены</em>}</div>
+          {selected.job.requirements?.skills?.length || selected.requiredDegreeTitles.length ? (
             <div className="phone-requirements-list">
-              {selected.job.requirements.skills.map((requirement) => {
+              {(selected.job.requirements?.skills ?? []).map((requirement) => {
                 const missing = selected.missingSkillRequirements.find((entry) => entry.skillId === requirement.skillId);
                 return <div key={requirement.skillId}><span>{missing?.name ?? String(requirement.skillId)}</span><strong className={missing ? 'negative' : 'positive'}>{missing?.currentLevel ?? requirement.minLevel}/{requirement.minLevel}</strong></div>;
               })}
+              {selected.requiredDegreeTitles.length ? (
+                <div><span>Подходящий диплом</span><strong className={selected.hasRequiredDegree ? 'positive' : 'negative'}>{selected.hasRequiredDegree ? 'Есть' : 'Нет'}</strong></div>
+              ) : null}
+              {selected.requiredDegreeTitles.length ? <p className="phone-muted">Подойдут: {selected.requiredDegreeTitles.join(', ')}.</p> : null}
             </div>
-          ) : <p className="phone-muted">Стартовая вакансия без требований к навыкам.</p>}
+          ) : <p className="phone-muted">Стартовая вакансия без требований к образованию и навыкам.</p>}
         </section>
 
         {application ? (
@@ -110,7 +114,15 @@ export default function JobsApp(props: {
 
   return (
     <div className="phone-app-page phone-screen-enter">
-      <div className="phone-app-banner phone-app-banner--jobs"><span>hh</span><div><strong>Работа в Москве</strong><small>{filtered.length} вакансий</small></div></div>
+      <div className="phone-app-banner phone-app-banner--jobs"><span>hh</span><div><strong>Работа и карьера</strong><small>{filtered.length} вакансий</small></div></div>
+      <section className="phone-subsection">
+        <div className="phone-section-title"><span>Резюме</span><em>{props.state.career.qualifications.length} дипломов</em></div>
+        <div className="phone-requirements-list">
+          <div><span>Отработано смен</span><strong>{props.state.career.completedShiftCount}</strong></div>
+          <div><span>История занятости</span><strong>{props.state.career.employmentHistory.length}</strong></div>
+          <div><span>Текущая работа</span><strong>{props.state.career.activeEmployment ? 'Есть' : 'Нет'}</strong></div>
+        </div>
+      </section>
       <label className="phone-search"><Icon name="search" size={17}/><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Должность, компания, район" /></label>
       <div className="phone-filter-row">
         <button className={!savedOnly ? 'active' : ''} type="button" onClick={() => setSavedOnly(false)}>Все</button>
@@ -119,7 +131,7 @@ export default function JobsApp(props: {
       <div className="phone-job-list">
         {filtered.map((view) => (
           <button className="phone-job-card" key={view.job.id} type="button" onClick={() => props.onSelectJob(view.job.id)}>
-            <div className="phone-job-card__top"><span>{view.location?.name ?? 'Работодатель'}</span>{view.application ? <em className={`status-${getApplicationTone(view.application.status)}`}>{APPLICATION_LABELS[view.application.status]}</em> : null}</div>
+            <div className="phone-job-card__top"><span>{view.company?.name ?? view.location?.name ?? 'Работодатель'}</span>{view.application ? <em className={`status-${getApplicationTone(view.application.status)}`}>{APPLICATION_LABELS[view.application.status]}</em> : null}</div>
             <strong>{view.job.title}</strong>
             <b>{formatRubles(view.estimatedMonthlyIncome)} / месяц</b>
             <small>{view.district?.name ?? 'Москва'} · {view.job.shiftDurationMinutes / 60} ч</small>

@@ -1,5 +1,6 @@
 import type { BoxingGym, BoxingTrainer } from '../../types/boxing';
 import type { BusinessPremises } from '../../types/business';
+import type { CareerCompany } from '../../types/career';
 import type { EducationProgram } from '../../types/education';
 import type { MedicalService } from '../../types/healthcare';
 import type { CityId, EventId } from '../../types/ids';
@@ -42,6 +43,7 @@ export type BuildCityContentInput = {
   boxingGyms: readonly BoxingGym[];
   boxingTrainers?: readonly BoxingTrainer[];
   businessPremises: readonly BusinessPremises[];
+  careerCompanies?: readonly CareerCompany[];
   eventIds?: readonly EventId[];
 };
 
@@ -90,6 +92,9 @@ export function buildCityContent(input: BuildCityContentInput): CityContent {
     boxingTrainers: (input.boxingTrainers ?? []).filter((trainer) => referencedTrainerIds.has(String(trainer.id))),
     businessPremises: input.businessPremises.filter((premises) => (
       locationIds.has(String(premises.locationId)) && districtIds.has(String(premises.districtId))
+    )),
+    careerCompanies: (input.careerCompanies ?? []).filter((company) => (
+      company.cityId === input.cityId && locationIds.has(String(company.locationId))
     )),
     transportNodeLocationIds: input.locations
       .filter((location) => TRANSPORT_LOCATION_TYPES.has(location.type))

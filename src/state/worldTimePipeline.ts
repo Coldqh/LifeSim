@@ -1,4 +1,5 @@
 import { simulateBusinessTime } from '../core/business';
+import { processCareerTime } from '../core/career';
 import { processFinanceDay, reconcileExternalBankBalance } from '../core/finance';
 import { applyHousingDayChanges, applyHousingSleepRecovery, refreshHousingMarket } from '../core/housing';
 import { processMedicalTime } from '../core/healthcare';
@@ -24,8 +25,10 @@ import {
   getAllJobs,
   getAllUniversitySubjects,
   getBusinessPremisesById,
+  getCareerCompanyById,
   getDegreeProgramById,
   getHousingById,
+  getJobById,
   getMedicalServiceById
 } from '../data/cities/contentSelectors';
 import { businessMenuItems } from '../data/business/menu';
@@ -245,6 +248,14 @@ export function advanceWorldTime(input: AdvanceWorldTimeInput): AdvanceWorldTime
     messages.push(birthdayMessage);
     lifeLogEntries.push(createLifeLogEntry({ time: nextTime }, 'День рождения', birthdayMessage));
   }
+  const careerApplied = processCareerTime({ player: nextPlayer, currentDay: nextTime.day });
+  nextPlayer = careerApplied.player;
+  if (careerApplied.completedProbationJobId) {
+    const completedJob = getJobById(careerApplied.completedProbationJobId);
+    const probationMessage = `Испытательный срок завершён${completedJob ? `: ${completedJob.title}` : ''}.`;
+    messages.push(probationMessage);
+    lifeLogEntries.push(createLifeLogEntry({ time: nextTime }, 'Карьера', probationMessage));
+  }
   let housingMarket = sourceWorld.housingMarket;
   let comfortNeedsDelta: Partial<NeedsState> = {};
 
@@ -390,7 +401,7 @@ export function advanceWorldTime(input: AdvanceWorldTimeInput): AdvanceWorldTime
     state: sourceWorld.phone,
     currentTotalMinutes,
     jobs: jobsCatalogue,
-    getEmployerName: (job) => getLocationById(job.locationId)?.name ?? 'Работодатель'
+    getEmployerName: (job) => getCareerCompanyById(job.companyId)?.name ?? getLocationById(job.locationId)?.name ?? 'Работодатель'
   });
 
   const socialLifeApplied = processSocialLifeTime({

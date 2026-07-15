@@ -1,8 +1,9 @@
+import { getCareerApplicationFailure, startCareerEmployment } from '../../core/career';
 import { applyForJob as applyJob, getJobApplicationFailure } from '../../core/jobs';
 import { getLocationById } from '../../core/location';
 import { completeJobInterview, markPhoneMessageRead, markPhoneNotificationRead, setPhoneMapTarget, submitPhoneJobApplication, toggleSavedPhoneJob } from '../../core/phone';
 import { addMinutes, getTotalMinutes } from '../../core/time';
-import { getJobById } from '../../data/cities/contentSelectors';
+import { getCareerCompanyById, getJobById } from '../../data/cities/contentSelectors';
 import type { JobId, PhoneMessageId, PhoneNotificationId, LocationId } from '../../types/ids';
 import { createLifeLogEntry } from '../gameState';
 import type { GameStateSetter } from './commandSupport';
@@ -14,12 +15,15 @@ export function createPhoneCommands(setGameState: GameStateSetter) {
     if (!job) return;
     setGameState((currentState) => {
       const location = getLocationById(job.locationId);
+      const company = getCareerCompanyById(job.companyId);
+      const applicationFailure = getJobApplicationFailure(currentState.player, job)
+        ?? getCareerApplicationFailure(currentState.player, job, 'phone');
       const applied = submitPhoneJobApplication({
         state: currentState.world.phone,
         job,
         currentTotalMinutes: getTotalMinutes(currentState.time),
-        applicationFailure: getJobApplicationFailure(currentState.player, job),
-        employerName: location?.name ?? 'Работодатель'
+        applicationFailure,
+        employerName: company?.name ?? location?.name ?? 'Работодатель'
       });
       const logEntry = createLifeLogEntry(
         currentState,
@@ -73,12 +77,22 @@ export function createPhoneCommands(setGameState: GameStateSetter) {
     if (!job) return;
     setGameState((currentState) => {
       const location = getLocationById(job.locationId);
+      const company = getCareerCompanyById(job.companyId);
+      const careerFailure = getCareerApplicationFailure(currentState.player, job, 'interview');
+      if (careerFailure) {
+        const logEntry = createLifeLogEntry(currentState, 'Собеседование недоступно', careerFailure);
+        return {
+          ...currentState,
+          lastResult: { ok: false, actionName: 'Собеседование', timeDeltaMinutes: 0, messages: [careerFailure] },
+          lifeLog: mergeLifeLog([logEntry], currentState.lifeLog)
+        };
+      }
       const interview = completeJobInterview({
         state: currentState.world.phone,
         job,
         currentLocationId: currentState.player.locationId,
         currentTotalMinutes: getTotalMinutes(currentState.time),
-        employerName: location?.name ?? 'Работодатель'
+        employerName: company?.name ?? location?.name ?? 'Работодатель'
       });
       if (!interview.result.ok) {
         const logEntry = createLifeLogEntry(currentState, interview.result.title, interview.result.message);
@@ -105,15 +119,21 @@ export function createPhoneCommands(setGameState: GameStateSetter) {
         };
       }
 
+      const employedPlayer = startCareerEmployment({
+        player: hired.player,
+        job,
+        currentDay: currentState.time.day
+      });
       const nextTime = addMinutes(currentState.time, 30);
       const elapsedApplied = applyElapsedTimeConsequences(
         currentState,
-        hired.player,
+        employedPlayer,
         nextTime,
         'active',
         { phone: interview.state, actionTitle: 'Собеседование' }
       );
-      const messages = [interview.result.message, ...elapsedApplied.messages];
+      const probationMessage = (job.probationDays ?? 0) > 0 ? `Испытательный срок: ${job.probationDays} дней.` : undefined;
+      const messages = [interview.result.message, probationMessage, ...elapsedApplied.messages].filter((message): message is string => Boolean(message));
       const logEntry = createLifeLogEntry({ time: nextTime }, 'Собеседование', messages.join(' '));
       return {
         ...currentState,

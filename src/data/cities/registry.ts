@@ -1,5 +1,6 @@
 import type { BoxingGym, BoxingTrainer } from '../../types/boxing';
 import type { BusinessPremises } from '../../types/business';
+import type { CareerCompany } from '../../types/career';
 import type { EducationProgram } from '../../types/education';
 import type { MedicalService } from '../../types/healthcare';
 import type { CityId, DistrictId, EventId, LocationId } from '../../types/ids';
@@ -17,6 +18,7 @@ export type CityContentCategory =
   | 'healthcare'
   | 'sports'
   | 'business'
+  | 'career'
   | 'transport';
 
 export type CityContent = {
@@ -32,6 +34,7 @@ export type CityContent = {
   boxingGyms: readonly BoxingGym[];
   boxingTrainers: readonly BoxingTrainer[];
   businessPremises: readonly BusinessPremises[];
+  careerCompanies: readonly CareerCompany[];
   transportNodeLocationIds: readonly LocationId[];
   eventIds: readonly EventId[];
 };
@@ -46,6 +49,7 @@ export type CityContentCompleteness = {
     healthcare: number;
     sports: number;
     business: number;
+    career: number;
     transport: number;
   };
   availableCategories: CityContentCategory[];
@@ -95,6 +99,7 @@ const EMPTY_CONTENT: CityContent = {
   boxingGyms: [],
   boxingTrainers: [],
   businessPremises: [],
+  careerCompanies: [],
   transportNodeLocationIds: [],
   eventIds: []
 };
@@ -113,6 +118,7 @@ function normalizeContent(content: Partial<CityContent> | undefined): CityConten
     boxingGyms: [...(content?.boxingGyms ?? [])],
     boxingTrainers: [...(content?.boxingTrainers ?? [])],
     businessPremises: [...(content?.businessPremises ?? [])],
+    careerCompanies: [...(content?.careerCompanies ?? [])],
     transportNodeLocationIds: [...(content?.transportNodeLocationIds ?? [])],
     eventIds: [...(content?.eventIds ?? [])]
   };
@@ -148,6 +154,7 @@ function assertUniqueContent(pack: CityContentPack): void {
   assertUnique(pack.content.boxingGyms, (entry) => String(entry.id), `${cityLabel} boxing gym`);
   assertUnique(pack.content.boxingTrainers, (entry) => String(entry.id), `${cityLabel} boxing trainer`);
   assertUnique(pack.content.businessPremises, (entry) => String(entry.id), `${cityLabel} business premises`);
+  assertUnique(pack.content.careerCompanies, (entry) => String(entry.id), `${cityLabel} career company`);
   assertUnique(pack.content.transportNodeLocationIds, String, `${cityLabel} transport node`);
   assertUnique(pack.content.eventIds, String, `${cityLabel} event`);
 }
@@ -165,13 +172,19 @@ function validateCityContent(pack: CityContentPack): void {
   const universityIds = new Set(pack.content.universities.map((university) => String(university.id)));
   const universitySubjectIds = new Set(pack.content.universitySubjects.map((subject) => String(subject.id)));
   const boxingTrainerIds = new Set(pack.content.boxingTrainers.map((trainer) => String(trainer.id)));
+  const careerCompanyIds = new Set(pack.content.careerCompanies.map((company) => String(company.id)));
 
   for (const location of pack.locations) {
     if (location.shopId && !shopIds.has(String(location.shopId))) {
       throw new Error(`City ${String(pack.city.id)} location ${String(location.id)} references shop outside its content pack.`);
     }
   }
-  for (const job of pack.content.jobs) assertPackLocation(pack, job.locationId, `job ${String(job.id)}`);
+  for (const job of pack.content.jobs) {
+    assertPackLocation(pack, job.locationId, `job ${String(job.id)}`);
+    if (job.companyId && !careerCompanyIds.has(String(job.companyId))) {
+      throw new Error(`Job ${String(job.id)} references company outside its city pack.`);
+    }
+  }
   for (const housing of pack.content.housing) {
     assertPackLocation(pack, housing.locationId, `housing ${String(housing.id)}`);
     if (!districtIds.has(String(housing.districtId))) {
@@ -217,6 +230,12 @@ function validateCityContent(pack: CityContentPack): void {
       throw new Error(`City ${String(pack.city.id)} business premises ${String(premises.id)} points outside its districts.`);
     }
   }
+  for (const company of pack.content.careerCompanies) {
+    if (company.cityId !== pack.city.id) {
+      throw new Error(`Career company ${String(company.id)} belongs to another city.`);
+    }
+    assertPackLocation(pack, company.locationId, `career company ${String(company.id)}`);
+  }
   for (const locationId of pack.content.transportNodeLocationIds) {
     assertPackLocation(pack, locationId, 'transport node');
   }
@@ -245,6 +264,7 @@ function createCompleteness(pack: CityContentPack): CityContentCompleteness {
     healthcare: pack.content.medicalServices.length,
     sports: pack.content.sportFacilityLocationIds.length,
     business: pack.content.businessPremises.length,
+    career: pack.content.careerCompanies.length,
     transport: pack.content.transportNodeLocationIds.length
   };
   const categories = Object.keys(counts) as CityContentCategory[];
@@ -328,6 +348,7 @@ export function createCityRegistry(packs: readonly CityContentPack[]): CityRegis
     boxingGyms: mergeUniqueById(packs, (pack) => pack.content.boxingGyms, (entry) => String(entry.id)),
     boxingTrainers: mergeUniqueById(packs, (pack) => pack.content.boxingTrainers, (entry) => String(entry.id)),
     businessPremises: mergeUniqueById(packs, (pack) => pack.content.businessPremises, (entry) => String(entry.id)),
+    careerCompanies: mergeUniqueById(packs, (pack) => pack.content.careerCompanies, (entry) => String(entry.id)),
     transportNodeLocationIds: mergeUniqueById(packs, (pack) => pack.content.transportNodeLocationIds, String),
     eventIds: mergeUniqueById(packs, (pack) => pack.content.eventIds, String)
   };

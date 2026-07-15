@@ -7,6 +7,7 @@ export * from './location';
 export * from './travel';
 export * from './transport';
 export * from './player';
+export * from './career';
 export * from './npc';
 export * from './population';
 export * from './relationship';
@@ -24,20 +25,12 @@ export * from './events';
 export * from './actions';
 export * from './progression';
 export * from './risk';
-
 export * from './business';
-
 export * from './phone';
-
 export * from './finance';
-
 export * from './vehicle';
-
 export * from './healthcare';
-
 export * from './intercity';
-
 export * from './university';
-
 export * from './socialLife';
 export * from './worldAtlas';

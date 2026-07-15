@@ -66,6 +66,7 @@ describe('game command registry', () => {
       'rentHousing',
       'requestSickLeave',
       'resetGame',
+      'resignCurrentJob',
       'respondNpcMeetingInvitation',
       'scheduleHousingViewingAction',
       'scheduleMedicalVisit',

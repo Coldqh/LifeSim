@@ -29,6 +29,7 @@ export function AppShell() {
     useInventoryItem,
     promoteJob,
     workShift,
+    resignCurrentJob,
     studyProgram,
     buyBoxingMembership,
     chooseBoxingTrainer,
@@ -121,6 +122,7 @@ export function AppShell() {
         onReset={resetGame}
         onUseInventoryItem={useInventoryItem}
         onWorkShift={workShift}
+        onResignJob={resignCurrentJob}
         onStudyProgram={studyProgram}
         onBuyBoxingMembership={buyBoxingMembership}
         onChooseBoxingTrainer={chooseBoxingTrainer}

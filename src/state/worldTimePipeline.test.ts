@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { addMinutes, getTotalMinutes } from '../core/time';
+import { professionalJobs } from '../data/career/professionalJobs';
+import { startCareerEmployment } from '../core/career';
 import { createInitialGameState } from './gameState';
 import { advanceWorldTime } from './worldTimePipeline';
 
@@ -102,6 +104,27 @@ describe('advanceWorldTime', () => {
 
     expect(remoteAfter).toBe(remoteNpc);
     expect(result.world.atlas.cityStates.yaroslavl.lastProcessedDay).toBe(state.time.day);
+  });
+
+  it('completes a career probation period through the world time pipeline', () => {
+    const state = createInitialGameState();
+    const job = professionalJobs[0];
+    const started = startCareerEmployment({ player: state.player, job, currentDay: state.time.day });
+    const player = {
+      ...started,
+      career: started.career?.activeEmployment ? {
+        ...started.career,
+        activeEmployment: { ...started.career.activeEmployment, probationEndsDay: state.time.day + 1 },
+        employmentHistory: started.career.employmentHistory.map((entry) => (
+          entry.id === started.career?.activeEmployment?.id ? { ...entry, probationEndsDay: state.time.day + 1 } : entry
+        ))
+      } : started.career
+    };
+    const nextTime = addMinutes(state.time, 24 * 60);
+    const result = advanceWorldTime({ state: { ...state, player }, player, nextTime, decayProfile: 'resting', actionTitle: 'Ожидание' });
+
+    expect(result.player.career?.activeEmployment?.status).toBe('active');
+    expect(result.lifeLogEntries.some((entry) => entry.title === 'Карьера')).toBe(true);
   });
 
 });
