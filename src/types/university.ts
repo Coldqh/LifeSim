@@ -4,10 +4,12 @@ import type {
   LocationId,
   SkillId,
   UniversityApplicationId,
+  UniversityCampusActivityId,
   UniversityId,
   UniversitySubjectId
 } from './ids';
 import type { GameTime, Weekday } from './time';
+import type { NeedsRequirement, NeedsState } from './needs';
 
 export type UniversityDefinition = {
   id: UniversityId;
@@ -40,6 +42,22 @@ export type UniversitySubjectDefinition = {
   startMinute: number;
   durationMinutes: number;
   experienceReward: number;
+};
+
+export type UniversityCampusActivityKind = 'study' | 'meal' | 'social';
+
+export type UniversityCampusActivityDefinition = {
+  id: UniversityCampusActivityId;
+  kind: UniversityCampusActivityKind;
+  title: string;
+  description: string;
+  resultMessage: string;
+  durationMinutes: number;
+  moneyCost: number;
+  needsDelta?: Partial<NeedsState>;
+  needsRequirement?: NeedsRequirement;
+  studyLoadDelta: number;
+  knowledgeReward?: number;
 };
 
 export type UniversityApplicationStatus =
@@ -110,6 +128,7 @@ export type UniversityOperationResult = {
   message: string;
   timeDeltaMinutes: number;
   moneyDelta?: number;
+  needsDelta?: Partial<NeedsState>;
 };
 
 export type UniversityClassView = {

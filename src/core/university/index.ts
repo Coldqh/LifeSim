@@ -7,6 +7,7 @@ import type { GameTime, Weekday } from '../../types/time';
 import type {
   DegreeProgramDefinition,
   UniversityApplication,
+  UniversityCampusActivityDefinition,
   UniversityClassView,
   UniversityDefinition,
   UniversityEnrollment,
@@ -378,6 +379,113 @@ export function takeUniversitySemesterExam(input: {
       history: [{ id: `university_history_semester_exam_${getTotalMinutes(input.time)}`, totalMinutes: getTotalMinutes(input.time), title: passed ? 'Экзамен сдан' : 'Нужна пересдача', text: `Результат: ${score} баллов.` }, ...input.state.history].slice(0, 40)
     },
     result: { ok: true, title: 'Семестровый экзамен', message: passed ? `Экзамен сдан: ${score}. Семестр ${completed ? 'завершён, программа окончена' : nextSemester}.` : `Результат ${score}. Назначена пересдача.`, timeDeltaMinutes: 120 }
+  };
+}
+
+export function getUniversityCampusActivityFailure(input: {
+  state: UniversityState;
+  player: Player;
+  university: UniversityDefinition;
+  activity: UniversityCampusActivityDefinition;
+}): string | undefined {
+  const enrollment = input.state.enrollment;
+  if (!enrollment || enrollment.completed) return 'Нет активного студенческого статуса.';
+  if (input.player.locationId !== input.university.locationId) return 'Нужно быть в своём университете.';
+  if (input.player.money < input.activity.moneyCost) return `Нужно ${input.activity.moneyCost} ₽.`;
+  return getNeedsRequirementFailure(input.player.needs, input.activity.needsRequirement ?? {});
+}
+
+export function performUniversityCampusActivity(input: {
+  state: UniversityState;
+  player: Player;
+  time: GameTime;
+  program: DegreeProgramDefinition;
+  university: UniversityDefinition;
+  subjects: UniversitySubjectDefinition[];
+  activity: UniversityCampusActivityDefinition;
+}): { state: UniversityState; player: Player; time: GameTime; result: UniversityOperationResult } {
+  const failure = getUniversityCampusActivityFailure({
+    state: input.state,
+    player: input.player,
+    university: input.university,
+    activity: input.activity
+  });
+  if (failure) {
+    return {
+      state: input.state,
+      player: input.player,
+      time: input.time,
+      result: { ok: false, title: input.activity.title, message: failure, timeDeltaMinutes: 0 }
+    };
+  }
+
+  const enrollment = input.state.enrollment!;
+  const focusSubject = input.activity.knowledgeReward
+    ? input.program.subjectIds
+        .map((subjectId) => ({
+          subject: input.subjects.find((entry) => entry.id === subjectId),
+          progress: enrollment.subjectProgress[subjectId] ?? createProgress()
+        }))
+        .filter((entry): entry is { subject: UniversitySubjectDefinition; progress: UniversitySubjectProgress } => Boolean(entry.subject))
+        .sort((first, second) => first.progress.knowledge - second.progress.knowledge)[0]
+    : undefined;
+
+  if (input.activity.knowledgeReward && !focusSubject) {
+    return {
+      state: input.state,
+      player: input.player,
+      time: input.time,
+      result: { ok: false, title: input.activity.title, message: 'Для программы не найдены учебные предметы.', timeDeltaMinutes: 0 }
+    };
+  }
+
+  const needsApplied = applyActivityNeedsDelta(input.player.needs, input.activity.needsDelta, {
+    scaleEnergyCost: true,
+    scaleEnergyRecovery: true
+  });
+  const nextTime = addMinutes(input.time, input.activity.durationMinutes);
+  const nextSubjectProgress = focusSubject
+    ? {
+        ...enrollment.subjectProgress,
+        [focusSubject.subject.id]: {
+          ...focusSubject.progress,
+          knowledge: Math.min(100, focusSubject.progress.knowledge + (input.activity.knowledgeReward ?? 0))
+        }
+      }
+    : enrollment.subjectProgress;
+  const knowledgeMessage = focusSubject && input.activity.knowledgeReward
+    ? ` ${focusSubject.subject.title}: знания +${input.activity.knowledgeReward}.`
+    : '';
+
+  return {
+    player: {
+      ...input.player,
+      money: applyMoneyDelta(input.player.money, -input.activity.moneyCost),
+      needs: needsApplied.needs
+    },
+    time: nextTime,
+    state: {
+      ...input.state,
+      enrollment: {
+        ...enrollment,
+        studyLoad: Math.max(0, Math.min(100, enrollment.studyLoad + input.activity.studyLoadDelta)),
+        subjectProgress: nextSubjectProgress
+      },
+      history: [{
+        id: `university_history_campus_${String(input.activity.id)}_${getTotalMinutes(input.time)}`,
+        totalMinutes: getTotalMinutes(input.time),
+        title: input.activity.title,
+        text: `${input.activity.resultMessage}${knowledgeMessage}`
+      }, ...input.state.history].slice(0, 40)
+    },
+    result: {
+      ok: true,
+      title: input.activity.title,
+      message: `${input.activity.resultMessage}${knowledgeMessage}`,
+      timeDeltaMinutes: input.activity.durationMinutes,
+      moneyDelta: input.activity.moneyCost > 0 ? -input.activity.moneyCost : undefined,
+      needsDelta: needsApplied.delta
+    }
   };
 }
 

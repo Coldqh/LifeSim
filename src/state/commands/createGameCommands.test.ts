@@ -56,6 +56,7 @@ describe('game command registry', () => {
       'openCoffeeBusiness',
       'performAction',
       'performBoxingTraining',
+      'performDegreeCampusActivity',
       'promoteJob',
       'purchaseBusinessEquipment',
       'purchaseBusinessSupply',

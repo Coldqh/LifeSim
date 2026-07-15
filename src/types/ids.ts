@@ -38,6 +38,7 @@ export type UniversityId = Brand<string, 'UniversityId'>;
 export type DegreeProgramId = Brand<string, 'DegreeProgramId'>;
 export type UniversitySubjectId = Brand<string, 'UniversitySubjectId'>;
 export type UniversityApplicationId = Brand<string, 'UniversityApplicationId'>;
+export type UniversityCampusActivityId = Brand<string, 'UniversityCampusActivityId'>;
 export type SportId = Brand<string, 'SportId'>;
 export type BoxingGymId = Brand<string, 'BoxingGymId'>;
 export type BoxingTrainerId = Brand<string, 'BoxingTrainerId'>;

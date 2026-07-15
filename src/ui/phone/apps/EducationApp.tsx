@@ -15,6 +15,7 @@ import type {
   IntercityTicketId,
   TemporaryAccommodationId,
   DegreeProgramId,
+  UniversityCampusActivityId,
   UniversitySubjectId,
   NpcId,
   SocialInvitationId,
@@ -50,6 +51,7 @@ export default function EducationApp(props: {
   onEnroll: (programId: DegreeProgramId) => void;
   onAttendClass: (subjectId: UniversitySubjectId, startsAtTotalMinutes: number) => void;
   onCompleteAssignment: (assignmentId: string) => void;
+  onCampusActivity: (activityId: UniversityCampusActivityId) => void;
   onTakeExam: () => void;
 }) {
   const university = props.state.university;
@@ -85,6 +87,22 @@ export default function EducationApp(props: {
             )) : <div className="phone-empty-state">Ближайших пар нет</div>}
           </div>
           <button className="phone-secondary-action" type="button" onClick={() => props.onRoute(university.activeUniversity!.locationId)}><Icon name="pin" size={17}/>Маршрут в кампус</button>
+        </section>
+        <section className="phone-subsection">
+          <div className="phone-section-title"><span>Жизнь в кампусе</span><em>{university.campusActivities.length}</em></div>
+          <div className="phone-study-list">
+            {university.campusActivities.map(({ activity, failure }) => (
+              <article className="phone-study-row" key={activity.id}>
+                <div>
+                  <strong>{activity.title}</strong>
+                  <small>{activity.description}</small>
+                  <small>{activity.durationMinutes} мин · {activity.moneyCost ? formatRubles(activity.moneyCost) : 'бесплатно'}{activity.knowledgeReward ? ` · знания +${activity.knowledgeReward}` : ''}</small>
+                </div>
+                <button type="button" disabled={Boolean(failure)} onClick={() => props.onCampusActivity(activity.id)}>Начать</button>
+                {failure ? <small className="phone-inline-error">{failure}</small> : null}
+              </article>
+            ))}
+          </div>
         </section>
         <section className="phone-subsection">
           <div className="phone-section-title"><span>Задания</span><em>{university.assignments.filter((entry) => !entry.completed && !entry.missed).length}</em></div>

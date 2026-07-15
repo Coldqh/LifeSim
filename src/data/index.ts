@@ -27,6 +27,7 @@ export * from './districts/yaroslavlDistricts';
 export * from './locations/yaroslavlLocations';
 export * from './intercity';
 export * from './education/universities';
+export * from './education/universityActivities';
 export * from './cities/rybinsk';
 export * from './districts/rybinskDistricts';
 export * from './locations/rybinskLocations';

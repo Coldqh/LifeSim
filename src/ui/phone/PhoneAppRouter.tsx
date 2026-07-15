@@ -28,7 +28,7 @@ export function PhoneAppRouter(props: PhoneShellProps) {
       content = <ContactsApp state={props.state} onRoute={openMap} onSendMessage={props.onSendSocialMessage} onInvite={props.onInviteSocialMeeting} onRespond={props.onRespondSocialInvitation} onAttend={props.onAttendSocialMeeting} onCancel={props.onCancelSocialMeeting}/>;
       break;
     case 'education':
-      content = <EducationApp state={props.state} onRoute={openMap} onSubmit={props.onSubmitDegreeApplication} onAttendEntrance={props.onAttendDegreeEntranceExam} onEnroll={props.onEnrollDegreeProgram} onAttendClass={props.onAttendDegreeClass} onCompleteAssignment={props.onCompleteDegreeAssignment} onTakeExam={props.onTakeDegreeSemesterExam}/>;
+      content = <EducationApp state={props.state} onRoute={openMap} onSubmit={props.onSubmitDegreeApplication} onAttendEntrance={props.onAttendDegreeEntranceExam} onEnroll={props.onEnrollDegreeProgram} onAttendClass={props.onAttendDegreeClass} onCompleteAssignment={props.onCompleteDegreeAssignment} onCampusActivity={props.onPerformDegreeCampusActivity} onTakeExam={props.onTakeDegreeSemesterExam}/>;
       break;
     case 'clock':
       content = <ClockApp onSkip={(minutes: number) => { props.onSkipTime(minutes); props.onClose(); }}/>;

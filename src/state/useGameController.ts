@@ -18,7 +18,7 @@ import { getInteractionFailure, getNpcRelationship, getRelationshipStatus } from
 import { getContactExchangeFailure, getNpcSocialCircles, getSocialMeetingFailure, getSocialQuickMessageFailure } from '../core/social-life';
 import { getBoxingFatigueLabel, getBoxingLevelProgress, getBoxingMembershipFailure, getBoxingSparringFailure, getBoxingTournamentFailure, getBoxingTrainerSelectionFailure, getBoxingTrainingFailure, hasActiveBoxingMembership } from '../core/sport';
 import { getTotalMinutes } from '../core/time';
-import { getEntranceExamFailure, getUniversityApplicationForProgram, getUniversityClasses } from '../core/university';
+import { getEntranceExamFailure, getUniversityApplicationForProgram, getUniversityCampusActivityFailure, getUniversityClasses } from '../core/university';
 import { calculateVehicleTravelQuote } from '../core/vehicles';
 import { createDistrictTravelOption, createLocationTravelOptions } from '../core/travel';
 import { allLocations } from '../data/locations';
@@ -50,6 +50,7 @@ import { businessSupplies } from '../data/business/supplies';
 import { getBusinessMenuItemById } from '../data/business/menu';
 import { businessUpgrades } from '../data/business/upgrades';
 import { getProductById } from '../data/products/basicProducts';
+import { universityCampusActivities } from '../data/education/universityActivities';
 import { getMedicalConditionDefinition } from '../data/healthcare/conditions';
 import { basicSkills, getSkillById } from '../data/skills/basicSkills';
 import { boxingTrainings } from '../data/sports/boxingTrainings';
@@ -224,6 +225,7 @@ export function useGameController() {
     enrollDegreeProgram,
     attendDegreeClass,
     completeDegreeAssignment,
+    performDegreeCampusActivity,
     takeDegreeSemesterExam,
     skipGameTime,
     resetGame
@@ -495,6 +497,17 @@ export function useGameController() {
         canEnroll: application?.status === 'passed' && gameState.player.money >= program.tuitionPerSemester
       };
     });
+    const campusActivities = activeUniversity && enrollment
+      ? universityCampusActivities.map((activity) => ({
+          activity,
+          failure: getUniversityCampusActivityFailure({
+            state,
+            player: gameState.player,
+            university: activeUniversity,
+            activity
+          })
+        }))
+      : [];
     const campusPresence = activeUniversity
       ? getLocationPopulationPresence(gameState.world.population, activeUniversity.locationId)
       : undefined;
@@ -506,6 +519,7 @@ export function useGameController() {
       activeUniversity,
       classes,
       assignments: enrollment?.assignments ?? [],
+      campusActivities,
       campusPeople: [...(campusPresence?.staff ?? []), ...(campusPresence?.visitors ?? [])].slice(0, 12)
     };
   }, [gameState.player, gameState.time, gameState.world.population, gameState.world.university]);
@@ -1134,6 +1148,7 @@ export function useGameController() {
     enrollDegreeProgram,
     attendDegreeClass,
     completeDegreeAssignment,
+    performDegreeCampusActivity,
     takeDegreeSemesterExam,
     skipGameTime,
     resetGame

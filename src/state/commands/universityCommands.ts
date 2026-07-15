@@ -1,12 +1,14 @@
 import { issueDegreeQualification } from '../../core/career';
 import { getLocationById } from '../../core/location';
 import { getTotalMinutes } from '../../core/time';
-import { attendEntranceExam, attendUniversityClass, completeUniversityAssignment, enrollUniversityProgram, submitUniversityApplication, takeUniversitySemesterExam } from '../../core/university';
+import { attendEntranceExam, attendUniversityClass, completeUniversityAssignment, enrollUniversityProgram, performUniversityCampusActivity, submitUniversityApplication, takeUniversitySemesterExam } from '../../core/university';
 import { getDegreeProgramById, getUniversityById, getUniversitySubjectById } from '../../data/cities/contentSelectors';
-import type { DegreeProgramId, UniversitySubjectId, PhoneNotificationId, PhoneCalendarEventId } from '../../types/ids';
+import { getUniversityCampusActivityById } from '../../data/education/universityActivities';
+import type { DegreeProgramId, UniversityCampusActivityId, UniversitySubjectId, PhoneNotificationId, PhoneCalendarEventId } from '../../types/ids';
 import { createLifeLogEntry } from '../gameState';
 import type { GameStateSetter } from './commandSupport';
 import { applyElapsedTimeConsequences, mergeLifeLog } from './commandSupport';
+import { mergeNeedsDelta } from '../worldTimePipeline';
 
 export function createUniversityCommands(setGameState: GameStateSetter) {
   function submitDegreeApplication(programId: DegreeProgramId): void {
@@ -154,6 +156,59 @@ export function createUniversityCommands(setGameState: GameStateSetter) {
     });
   }
 
+  function performDegreeCampusActivity(activityId: UniversityCampusActivityId): void {
+    const activity = getUniversityCampusActivityById(activityId);
+    if (!activity) return;
+    setGameState((currentState) => {
+      const program = getDegreeProgramById(currentState.world.university.enrollment?.programId);
+      const university = getUniversityById(program?.universityId);
+      if (!program || !university) return currentState;
+      const subjects = program.subjectIds
+        .map((subjectId) => getUniversitySubjectById(subjectId))
+        .filter((subject): subject is NonNullable<typeof subject> => Boolean(subject));
+      const applied = performUniversityCampusActivity({
+        state: currentState.world.university,
+        player: currentState.player,
+        time: currentState.time,
+        program,
+        university,
+        subjects,
+        activity
+      });
+      if (!applied.result.ok) {
+        return {
+          ...currentState,
+          lastResult: { ok: false, actionName: applied.result.title, timeDeltaMinutes: 0, messages: [applied.result.message] }
+        };
+      }
+      const elapsedApplied = applyElapsedTimeConsequences(
+        currentState,
+        applied.player,
+        applied.time,
+        'active',
+        { university: applied.state, actionTitle: applied.result.title }
+      );
+      return {
+        ...currentState,
+        player: elapsedApplied.player,
+        time: applied.time,
+        world: elapsedApplied.world,
+        lastResult: {
+          ok: true,
+          actionName: applied.result.title,
+          timeDeltaMinutes: applied.result.timeDeltaMinutes,
+          moneyDelta: applied.result.moneyDelta,
+          needsDelta: mergeNeedsDelta(applied.result.needsDelta, elapsedApplied.needsDelta),
+          messages: [applied.result.message, ...elapsedApplied.messages]
+        },
+        lifeLog: mergeLifeLog([
+          createLifeLogEntry({ time: applied.time }, applied.result.title, applied.result.message),
+          ...elapsedApplied.lifeLogEntries
+        ], currentState.lifeLog)
+      };
+    });
+  }
+
   function takeDegreeSemesterExam(): void {
     setGameState((currentState) => {
       const program = getDegreeProgramById(currentState.world.university.enrollment?.programId);
@@ -209,6 +264,7 @@ export function createUniversityCommands(setGameState: GameStateSetter) {
     enrollDegreeProgram,
     attendDegreeClass,
     completeDegreeAssignment,
+    performDegreeCampusActivity,
     takeDegreeSemesterExam
   };
 }

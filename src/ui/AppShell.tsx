@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useGameController } from '../state';
-import type { CityId, IntercityRouteId, IntercityTicketId, JobId, TemporaryAccommodationId, VehicleListingId, VehicleModelId, DegreeProgramId, UniversitySubjectId } from '../types/ids';
+import type { CityId, IntercityRouteId, IntercityTicketId, JobId, TemporaryAccommodationId, VehicleListingId, VehicleModelId, DegreeProgramId, UniversityCampusActivityId, UniversitySubjectId } from '../types/ids';
 import type { PhoneAppId } from '../types/phone';
 import { Dashboard } from './dashboard';
 import { PhoneShell } from './phone';
@@ -85,6 +85,7 @@ export function AppShell() {
     enrollDegreeProgram,
     attendDegreeClass,
     completeDegreeAssignment,
+    performDegreeCampusActivity,
     takeDegreeSemesterExam,
     skipGameTime,
     resetGame
@@ -187,6 +188,7 @@ export function AppShell() {
         onEnrollDegreeProgram={(id: DegreeProgramId) => enrollDegreeProgram(id)}
         onAttendDegreeClass={(subjectId: UniversitySubjectId, startsAt: number) => attendDegreeClass(subjectId, startsAt)}
         onCompleteDegreeAssignment={completeDegreeAssignment}
+        onPerformDegreeCampusActivity={(activityId: UniversityCampusActivityId) => performDegreeCampusActivity(activityId)}
         onTakeDegreeSemesterExam={takeDegreeSemesterExam}
         onSkipTime={skipGameTime}
         onSendSocialMessage={sendNpcPhoneMessage}
