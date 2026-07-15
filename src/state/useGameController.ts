@@ -154,14 +154,7 @@ import {
 } from '../core/university';
 import {
   applyVehicleTravel,
-  buyNewVehicle,
-  buyUsedVehicle,
-  calculateVehicleTravelQuote,
-  inspectUsedVehicle,
-  refuelVehicle,
-  scheduleUsedVehicleInspection,
-  sellOwnedVehicle,
-  serviceVehicle
+  calculateVehicleTravelQuote
 } from '../core/vehicles';
 import {
   calculateDistrictTravel,
@@ -248,7 +241,7 @@ import type { GameTime } from '../types/time';
 import type { Npc } from '../types/npc';
 import type { SocialContext, SocialNpcView } from '../types/relationship';
 import type { SocialMeetingSlot, SocialMessageActionId } from '../types/socialLife';
-import type { VehicleModel, VehicleOperationResult, VehicleWorldState } from '../types/vehicle';
+import type { VehicleWorldState } from '../types/vehicle';
 
 import type { UniversityState } from '../types/university';
 import type { DistrictTravelOption, LocationTravelOption, TransportOption, TravelResult } from '../types/travel';
@@ -261,6 +254,18 @@ import {
   type GameState,
   type LifeLogEntry
 } from './gameState';
+import {
+  GAS_STATION_LOCATION_IDS,
+  SERVICE_LOCATION_IDS,
+  buyNewVehicleCommand,
+  buyUsedVehicleCommand,
+  getDealerLocationIdForModel,
+  inspectVehicleCommand,
+  refuelVehicleCommand,
+  scheduleVehicleInspectionCommand,
+  sellVehicleCommand,
+  serviceVehicleCommand
+} from './commands/vehicleCommands';
 import { selectIntercityState } from './selectors/intercityState';
 import { selectScheduledWaitState } from './selectors/scheduledWaitState';
 import { advanceWorldTime, mergeNeedsDelta } from './worldTimePipeline';
@@ -364,23 +369,6 @@ function getNpcSocialContext(npc: Npc, locationId: LocationId | undefined, isCol
 }
 
 
-const MASS_DEALER_LOCATION_ID = 'msk_tverskoy_auto_showroom' as LocationId;
-const PREMIUM_DEALER_LOCATION_ID = 'msk_khamovniki_import_dealer' as LocationId;
-const GAS_STATION_LOCATION_IDS = [
-  'msk_danilovsky_gas_station' as LocationId,
-  'msk_presnya_gas_station' as LocationId
-];
-const SERVICE_LOCATION_IDS = [
-  'msk_tverskoy_service_center' as LocationId,
-  MASS_DEALER_LOCATION_ID,
-  PREMIUM_DEALER_LOCATION_ID
-];
-
-function getDealerLocationIdForModel(model: VehicleModel): LocationId {
-  return model.tier === 'premium' || model.tier === 'luxury'
-    ? PREMIUM_DEALER_LOCATION_ID
-    : MASS_DEALER_LOCATION_ID;
-}
 
 function createPersonalCarTransportOption(input: {
   world: VehicleWorldState;
@@ -503,45 +491,6 @@ function calculatePersonalCarTravel(input: {
   };
 }
 
-function applyVehicleOperationState(
-  currentState: GameState,
-  vehicles: VehicleWorldState,
-  result: VehicleOperationResult
-): GameState {
-  const logEntry = createLifeLogEntry(currentState, result.title, result.message);
-  if (!result.ok) {
-    return {
-      ...currentState,
-      lastResult: { ok: false, actionName: result.title, timeDeltaMinutes: 0, messages: [result.message] },
-      lifeLog: mergeLifeLog([logEntry], currentState.lifeLog)
-    };
-  }
-  const chargedPlayer = {
-    ...currentState.player,
-    money: applyMoneyDelta(currentState.player.money, result.moneyDelta ?? 0)
-  };
-  const nextTime = addMinutes(currentState.time, result.timeDeltaMinutes);
-  const elapsedApplied = applyElapsedTimeConsequences(currentState, chargedPlayer, nextTime, 'active', { vehicles, actionTitle: result.title });
-  const messages = [result.message, ...elapsedApplied.messages];
-  return {
-    ...currentState,
-    time: nextTime,
-    player: elapsedApplied.player,
-    world: elapsedApplied.world,
-    lastResult: {
-      ok: true,
-      actionName: result.title,
-      timeDeltaMinutes: result.timeDeltaMinutes,
-      moneyDelta: result.moneyDelta,
-      needsDelta: elapsedApplied.needsDelta,
-      messages
-    },
-    lifeLog: mergeLifeLog([
-      createLifeLogEntry({ time: nextTime }, result.title, messages.join(' ')),
-      ...elapsedApplied.lifeLogEntries
-    ], currentState.lifeLog)
-  };
-}
 
 export function useGameController() {
   const [gameState, setGameState] = useState<GameState>(resolveInitialState);
@@ -2977,103 +2926,31 @@ export function useGameController() {
 
 
   function scheduleVehicleInspectionAction(listingId: VehicleListingId): void {
-    setGameState((currentState) => {
-      const applied = scheduleUsedVehicleInspection(currentState.world.vehicles, listingId);
-      const entry = createLifeLogEntry(currentState, applied.result.title, applied.result.message);
-      return {
-        ...currentState,
-        world: { ...currentState.world, vehicles: applied.world },
-        lastResult: { ok: applied.result.ok, actionName: applied.result.title, timeDeltaMinutes: 0, messages: [applied.result.message] },
-        lifeLog: mergeLifeLog([entry], currentState.lifeLog)
-      };
-    });
+    setGameState((currentState) => scheduleVehicleInspectionCommand(currentState, listingId));
   }
 
   function inspectVehicleAction(listingId: VehicleListingId): void {
-    setGameState((currentState) => {
-      const applied = inspectUsedVehicle({
-        world: currentState.world.vehicles,
-        listingId,
-        currentLocationId: currentState.player.locationId
-      });
-      return applyVehicleOperationState(currentState, applied.world, applied.result);
-    });
+    setGameState((currentState) => inspectVehicleCommand(currentState, listingId));
   }
 
   function buyUsedVehicleAction(listingId: VehicleListingId): void {
-    setGameState((currentState) => {
-      const listing = currentState.world.vehicles.usedListings.find((entry) => entry.id === listingId);
-      const model = getVehicleModelById(listing?.modelId);
-      if (!listing || !model) return currentState;
-      const applied = buyUsedVehicle({
-        world: currentState.world.vehicles,
-        listingId,
-        currentLocationId: currentState.player.locationId,
-        bankBalance: currentState.player.money,
-        model,
-        day: currentState.time.day
-      });
-      return applyVehicleOperationState(currentState, applied.world, applied.result);
-    });
+    setGameState((currentState) => buyUsedVehicleCommand(currentState, listingId));
   }
 
   function buyNewVehicleAction(modelId: VehicleModelId): void {
-    const model = getVehicleModelById(modelId);
-    if (!model) return;
-    setGameState((currentState) => {
-      const applied = buyNewVehicle({
-        world: currentState.world.vehicles,
-        model,
-        currentLocationId: currentState.player.locationId,
-        dealerLocationId: getDealerLocationIdForModel(model),
-        bankBalance: currentState.player.money,
-        day: currentState.time.day
-      });
-      return applyVehicleOperationState(currentState, applied.world, applied.result);
-    });
+    setGameState((currentState) => buyNewVehicleCommand(currentState, modelId));
   }
 
   function refuelOwnedVehicle(liters: number): void {
-    setGameState((currentState) => {
-      const model = getVehicleModelById(currentState.world.vehicles.ownedVehicle?.modelId);
-      if (!model) return currentState;
-      const requestedLiters = liters <= 0
-        ? Math.ceil(model.fuelTankLiters - (currentState.world.vehicles.ownedVehicle?.fuelLiters ?? 0))
-        : liters;
-      const applied = refuelVehicle({
-        world: currentState.world.vehicles,
-        model,
-        currentLocationId: currentState.player.locationId,
-        gasStationLocationIds: GAS_STATION_LOCATION_IDS,
-        liters: requestedLiters,
-        bankBalance: currentState.player.money
-      });
-      return applyVehicleOperationState(currentState, applied.world, applied.result);
-    });
+    setGameState((currentState) => refuelVehicleCommand(currentState, liters));
   }
 
   function serviceOwnedVehicle(): void {
-    setGameState((currentState) => {
-      const model = getVehicleModelById(currentState.world.vehicles.ownedVehicle?.modelId);
-      if (!model) return currentState;
-      const applied = serviceVehicle({
-        world: currentState.world.vehicles,
-        model,
-        currentLocationId: currentState.player.locationId,
-        serviceLocationIds: SERVICE_LOCATION_IDS,
-        bankBalance: currentState.player.money
-      });
-      return applyVehicleOperationState(currentState, applied.world, applied.result);
-    });
+    setGameState((currentState) => serviceVehicleCommand(currentState));
   }
 
   function sellOwnedVehicleAction(): void {
-    setGameState((currentState) => {
-      const model = getVehicleModelById(currentState.world.vehicles.ownedVehicle?.modelId);
-      if (!model) return currentState;
-      const applied = sellOwnedVehicle({ world: currentState.world.vehicles, model, day: currentState.time.day });
-      return applyVehicleOperationState(currentState, applied.world, applied.result);
-    });
+    setGameState((currentState) => sellVehicleCommand(currentState));
   }
 
   function buyIntercityTicketAction(routeId: IntercityRouteId, departureTotalMinutes: number): void {
