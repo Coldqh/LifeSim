@@ -1,14 +1,6 @@
 import { applyMoneyDelta } from '../../core/economy';
 import { addMinutes } from '../../core/time';
-import {
-  buyNewVehicle,
-  buyUsedVehicle,
-  inspectUsedVehicle,
-  refuelVehicle,
-  scheduleUsedVehicleInspection,
-  sellOwnedVehicle,
-  serviceVehicle
-} from '../../core/vehicles';
+import { buyNewVehicle, buyUsedVehicle, inspectUsedVehicle, refuelVehicle, scheduleUsedVehicleInspection, sellOwnedVehicle, serviceVehicle } from '../../core/vehicles';
 import { getVehicleModelById } from '../../data/vehicles/vehicleModels';
 import type { LocationId, VehicleListingId, VehicleModelId } from '../../types/ids';
 import type { VehicleModel, VehicleOperationResult, VehicleWorldState } from '../../types/vehicle';
@@ -35,11 +27,11 @@ export function getDealerLocationIdForModel(model: VehicleModel): LocationId {
     : MASS_DEALER_LOCATION_ID;
 }
 
-function mergeLifeLog(newEntries: LifeLogEntry[], oldEntries: LifeLogEntry[]): LifeLogEntry[] {
+  function mergeLifeLog(newEntries: LifeLogEntry[], oldEntries: LifeLogEntry[]): LifeLogEntry[] {
   return [...newEntries, ...oldEntries].slice(0, 16);
 }
 
-function applyVehicleOperationState(
+  function applyVehicleOperationState(
   currentState: GameState,
   vehicles: VehicleWorldState,
   result: VehicleOperationResult
