@@ -196,6 +196,7 @@ export function processPhoneTime(input: {
   currentTotalMinutes: number;
   jobs: Job[];
   getEmployerName: (job: Job) => string;
+  isJobAvailable?: (jobId: JobId) => boolean;
 }): PhoneState {
   if (input.currentTotalMinutes <= input.state.lastProcessedTotalMinutes) return input.state;
 
@@ -204,6 +205,26 @@ export function processPhoneTime(input: {
     const job = input.jobs.find((candidate) => candidate.id === application.jobId);
     if (!job) return application;
     const employerName = input.getEmployerName(job);
+
+    if (application.status === 'submitted' && input.isJobAvailable && !input.isJobAvailable(application.jobId)) {
+      state = pushPhoneMessage(state, {
+        senderName: employerName,
+        subject: 'Вакансия закрыта',
+        body: `Работодатель завершил поиск по вакансии «${job.title}». Другой кандидат успел раньше.`,
+        createdAtTotalMinutes: input.currentTotalMinutes,
+        jobId: job.id,
+        locationId: job.locationId
+      });
+      state = pushPhoneNotification(state, {
+        appId: 'jobs',
+        title: 'Возможность упущена',
+        body: `Вакансия «${job.title}» больше недоступна`,
+        createdAtTotalMinutes: input.currentTotalMinutes,
+        jobId: job.id,
+        locationId: job.locationId
+      });
+      return { ...application, status: 'rejected' as const, resolvedAtTotalMinutes: input.currentTotalMinutes };
+    }
 
     if (application.status === 'submitted' && input.currentTotalMinutes >= application.responseAtTotalMinutes) {
       if (shouldInvite(application, applicationIndex)) {

@@ -30,6 +30,7 @@ import { getContactExchangeFailure, getNpcSocialCircles, getSocialMeetingFailure
 import { getBoxingFatigueLabel, getBoxingLevelProgress, getBoxingMembershipFailure, getBoxingSparringFailure, getBoxingTournamentFailure, getBoxingTrainerSelectionFailure, getBoxingTrainingFailure, hasActiveBoxingMembership } from '../core/sport';
 import { getTotalMinutes } from '../core/time';
 import { createWorldDynamicsPanelState } from '../core/world-dynamics';
+import { createOpportunityJobView, createOpportunityPanelState, getJobOpportunityFailure } from '../core/opportunity-lifecycle';
 import {
   getEntranceExamFailure,
   getUniversityApplicationForProgram,
@@ -365,7 +366,17 @@ export function useGameController() {
     function buildJobView(job: import('../types/job').Job) {
       const location = getLocationById(job.locationId);
       const district = location ? getDistrictById(location.districtId) : undefined;
-      const applicationFailure = getJobApplicationFailure(gameState.player, job)
+      const opportunity = createOpportunityJobView({
+        state: gameState.world.opportunities,
+        jobId: job.id,
+        currentDay: gameState.time.day,
+        getNpcName: (npcId) => {
+          const npc = gameState.world.population.npcs.find((entry) => entry.id === npcId);
+          return npc ? `${npc.firstName} ${npc.lastName}` : undefined;
+        }
+      });
+      const applicationFailure = getJobOpportunityFailure(gameState.world.opportunities, job.id)
+        ?? getJobApplicationFailure(gameState.player, job)
         ?? getCareerApplicationFailure(gameState.player, job, 'direct')
         ?? getCareerProgressionFailure(gameState.progression, job);
       const shiftFailure = getMedicalActivityFailure(gameState.world.medical, 'work')
@@ -418,7 +429,8 @@ export function useGameController() {
         promotionFailure,
         missingSkillRequirements,
         effectiveShiftNeedsDelta,
-        scheduleStatus: getScheduleStatus(job.shiftSchedule, gameState.time)
+        scheduleStatus: getScheduleStatus(job.shiftSchedule, gameState.time),
+        opportunity
       };
     }
 
@@ -432,7 +444,7 @@ export function useGameController() {
       currentJobView,
       currentLocationJobs
     };
-  }, [gameState.player, gameState.progression, gameState.time, gameState.world.medical]);
+  }, [gameState.player, gameState.progression, gameState.time, gameState.world.medical, gameState.world.opportunities, gameState.world.population.npcs]);
 
   const financeState = useMemo(() => {
     const finance = gameState.world.finance;
@@ -720,7 +732,17 @@ export function useGameController() {
       const application = getJobApplicationForJob(phone, job.id);
       const degreeFailure = getCareerApplicationFailure(gameState.player, job, 'phone');
       const progressionFailure = getCareerProgressionFailure(gameState.progression, job);
-      const applicationFailure = getJobApplicationFailure(gameState.player, job) ?? degreeFailure ?? progressionFailure;
+      const opportunity = createOpportunityJobView({
+        state: gameState.world.opportunities,
+        jobId: job.id,
+        currentDay: gameState.time.day,
+        getNpcName: (npcId) => {
+          const npc = gameState.world.population.npcs.find((entry) => entry.id === npcId);
+          return npc ? `${npc.firstName} ${npc.lastName}` : undefined;
+        }
+      });
+      const opportunityFailure = getJobOpportunityFailure(gameState.world.opportunities, job.id);
+      const applicationFailure = opportunityFailure ?? getJobApplicationFailure(gameState.player, job) ?? degreeFailure ?? progressionFailure;
       const missingSkillRequirements = getMissingSkillRequirements(gameState.player, job.requirements?.skills).map((requirement) => ({
         ...requirement,
         name: getSkillById(requirement.skillId)?.name ?? String(requirement.skillId)
@@ -747,9 +769,10 @@ export function useGameController() {
         missingSkillRequirements,
         interviewFailure,
         saved: phone.savedJobIds.includes(job.id),
-        estimatedMonthlyIncome: Math.round(job.wagePerShift * 21)
+        estimatedMonthlyIncome: Math.round(job.wagePerShift * 21),
+        opportunity
       };
-    });
+    }).sort((left, right) => Number(right.opportunity.available) - Number(left.opportunity.available));
     const mapTarget = getLocationById(phone.mapTargetLocationId);
     const mapRoute = mapTarget && mapTarget.cityId === currentLocation?.cityId
       ? addPersonalCarToLocationOptions(
@@ -877,11 +900,12 @@ export function useGameController() {
       lifeGoals: lifeGoalsState,
       dailyLife: dailyLifeState,
       worldDynamics: worldDynamicsState,
+      opportunities: createOpportunityPanelState({ state: gameState.world.opportunities, cityId: gameState.player.cityId }),
       lifeProgression: lifeProgressionState,
       social: { groups: socialGroups, contacts, meetingOptions: socialMeetingOptions, invitations: socialInvitations, meetings: socialMeetings },
       districtTravelOptions: locationState.districtTravelOptions
     };
-  }, [gameState.player, gameState.progression, gameState.time, gameState.world.phone, gameState.world.vehicles, gameState.world.social, gameState.world.population, gameState.world.business, financeState, vehicleState, intercityState, universityState, lifeGoalsState, lifeProgressionState, dailyLifeState, worldDynamicsState, locationState.districtTravelOptions]);
+  }, [gameState.player, gameState.progression, gameState.time, gameState.world.phone, gameState.world.vehicles, gameState.world.social, gameState.world.population, gameState.world.business, gameState.world.opportunities, financeState, vehicleState, intercityState, universityState, lifeGoalsState, lifeProgressionState, dailyLifeState, worldDynamicsState, locationState.districtTravelOptions]);
 
   const educationState = useMemo(() => {
     const skills = basicSkills.map((skill) => ({

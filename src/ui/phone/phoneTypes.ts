@@ -47,6 +47,7 @@ import type { NpcRelationship, RelationshipStatus } from '../../types/relationsh
 import type { SocialContact, SocialCircleTag, SocialInvitation, SocialMeeting, SocialMeetingDefinition, SocialMeetingSlot, SocialMessageActionId, SocialQuickMessageDefinition } from '../../types/socialLife';
 import type { SocialGroupView } from '../../types/socialGroup';
 import type { WorldDynamicsPanelState } from '../../types/worldDynamics';
+import type { OpportunityJobView, OpportunityPanelState } from '../../types/opportunity';
 
 export type PhoneVacancyView = {
   job: Job;
@@ -61,6 +62,7 @@ export type PhoneVacancyView = {
   interviewFailure?: string;
   saved: boolean;
   estimatedMonthlyIncome: number;
+  opportunity: OpportunityJobView;
 };
 
 export type VehiclePanelState = {
@@ -200,6 +202,7 @@ export type PhonePanelState = {
   lifeProgression: LifeProgressionPanelState;
   dailyLife: DailyLifePanelState;
   worldDynamics: WorldDynamicsPanelState;
+  opportunities: OpportunityPanelState;
   social: PhoneSocialState;
 };
 

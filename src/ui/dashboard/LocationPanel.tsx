@@ -7,6 +7,7 @@ import type { TravelModeId } from '../../types/transport';
 import type { City, District, Location, LocationType } from '../../types/location';
 import type { DistrictTravelOption, LocationTravelOption } from '../../types/travel';
 import type { ScheduleStatus } from '../../types/schedule';
+import type { OpportunityJobView } from '../../types/opportunity';
 import { Icon, type IconName } from '../icons';
 import { LocationScene } from '../visuals';
 import { LocationTravelModal } from './LocationTravelModal';
@@ -28,6 +29,7 @@ type LocationJobView = {
   shiftFailure?: string;
   missingSkillRequirements: Array<{ name: string; currentLevel: number; minLevel: number }>;
   scheduleStatus: ScheduleStatus;
+  opportunity: OpportunityJobView;
 };
 
 type LocationPanelProps = {
@@ -287,6 +289,9 @@ export function LocationPanel({
                     <span>{formatDuration(view.job.shiftDurationMinutes)} · {formatRubles(view.job.wagePerShift)} · +{view.job.experiencePerShift} XP</span>
                     <small className={view.scheduleStatus.isOpen ? 'schedule-inline schedule-inline--open' : 'schedule-inline schedule-inline--closed'}>
                       Смены: {view.scheduleStatus.label}
+                    </small>
+                    <small className={view.opportunity.available ? 'schedule-inline schedule-inline--open' : 'schedule-inline schedule-inline--closed'}>
+                      Вакансия: {view.opportunity.label}
                     </small>
                     <EffectList items={getVacancyEffects(view.job)} />
                     {view.missingSkillRequirements.length > 0 ? (

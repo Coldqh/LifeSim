@@ -26,3 +26,4 @@ export * as worldAtlas from './world-atlas';
 export * as worldDynamics from './world-dynamics';
 
 export * as lifeProgression from './life-progression';
+export * as opportunityLifecycle from './opportunity-lifecycle';

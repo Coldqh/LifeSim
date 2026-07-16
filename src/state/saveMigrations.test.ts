@@ -132,6 +132,23 @@ describe('save migrations', () => {
     expect(migrated.progression.handledSignalIds).toEqual([]);
   });
 
+  it('adds autonomous opportunity lifecycle state when migrating v30 to v31', () => {
+    const migrated = migrateSaveState({
+      player: {},
+      time: { day: 14 },
+      world: { atlas: { seed: 93 } },
+      progression: { version: 1 }
+    }, 30).state as {
+      world: { opportunities: { version: number; seed: number; lastProcessedDay: number; jobListings: Record<string, unknown>; history: unknown[] } };
+    };
+
+    expect(migrated.world.opportunities.version).toBe(1);
+    expect(migrated.world.opportunities.seed).toBe(93 ^ 0x5f3759df);
+    expect(migrated.world.opportunities.lastProcessedDay).toBe(14);
+    expect(migrated.world.opportunities.jobListings).toEqual({});
+    expect(migrated.world.opportunities.history).toEqual([]);
+  });
+
   it('decodes both legacy raw states and the current versioned envelope', () => {
     const legacy = decodeSavePayload(JSON.stringify({ player: { inventory: [] } }), 23);
     const encoded = encodeSavePayload({ marker: 'current' });

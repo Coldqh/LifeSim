@@ -41,3 +41,4 @@ export * from './lifeGoal';
 export * from './socialGroup';
 
 export * from './lifeProgression';
+export * from './opportunity';

@@ -3,6 +3,9 @@ import { addMinutes, getTotalMinutes } from '../core/time';
 import { professionalJobs } from '../data/career/professionalJobs';
 import { startCareerEmployment } from '../core/career';
 import { createInitialGameState } from './gameState';
+import { submitPhoneJobApplication } from '../core/phone';
+import { getAllJobs, getCareerCompanyById } from '../data/cities/contentSelectors';
+import { getLocationById } from '../core/location';
 import { advanceWorldTime } from './worldTimePipeline';
 
 describe('advanceWorldTime', () => {
@@ -143,6 +146,40 @@ describe('advanceWorldTime', () => {
 
     expect(result.player.career?.activeEmployment?.status).toBe('active');
     expect(result.lifeLogEntries.some((entry) => entry.title === 'Карьера')).toBe(true);
+  });
+
+
+  it('lets the job market close a vacancy and rejects a pending player application', () => {
+    const state = createInitialGameState();
+    const job = getAllJobs()[0];
+    const submittedPhone = submitPhoneJobApplication({
+      state: state.world.phone,
+      job,
+      currentTotalMinutes: getTotalMinutes(state.time),
+      employerName: getCareerCompanyById(job.companyId)?.name ?? getLocationById(job.locationId)?.name ?? 'Работодатель'
+    }).state;
+    const listing = state.world.opportunities.jobListings[String(job.id)];
+    const prepared = {
+      ...state,
+      world: {
+        ...state.world,
+        phone: submittedPhone,
+        opportunities: {
+          ...state.world.opportunities,
+          jobListings: {
+            ...state.world.opportunities.jobListings,
+            [String(job.id)]: { ...listing, closesDay: state.time.day + 1 }
+          }
+        }
+      }
+    };
+    const nextTime = addMinutes(state.time, 24 * 60);
+    const result = advanceWorldTime({ state: prepared, player: prepared.player, nextTime, decayProfile: 'resting', actionTitle: 'Ожидание' });
+
+    expect(result.world.opportunities.jobListings[String(job.id)].status).not.toBe('open');
+    expect(result.world.phone.applications[0].status).toBe('rejected');
+    expect(result.world.phone.messages.some((entry) => entry.subject === 'Вакансия закрыта')).toBe(true);
+    expect(result.lifeLogEntries.some((entry) => entry.title === 'Вакансия занята' || entry.title === 'Поиск сотрудника завершён')).toBe(true);
   });
 
 });

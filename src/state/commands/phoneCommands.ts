@@ -4,6 +4,7 @@ import { getLocationById } from '../../core/location';
 import { getCareerInviteChanceDelta, getCareerProgressionFailure } from '../../core/life-progression';
 import { completeJobInterview, markPhoneMessageRead, markPhoneNotificationRead, setPhoneMapTarget, submitPhoneJobApplication, toggleSavedPhoneJob } from '../../core/phone';
 import { getWorldDynamicsModifiers } from '../../core/world-dynamics';
+import { getJobOpportunityFailure } from '../../core/opportunity-lifecycle';
 import { addMinutes, getTotalMinutes } from '../../core/time';
 import { getCareerCompanyById, getJobById } from '../../data/cities/contentSelectors';
 import type { JobId, PhoneMessageId, PhoneNotificationId, LocationId } from '../../types/ids';
@@ -18,7 +19,8 @@ export function createPhoneCommands(setGameState: GameStateSetter) {
     setGameState((currentState) => {
       const location = getLocationById(job.locationId);
       const company = getCareerCompanyById(job.companyId);
-      const applicationFailure = getJobApplicationFailure(currentState.player, job)
+      const applicationFailure = getJobOpportunityFailure(currentState.world.opportunities, job.id)
+        ?? getJobApplicationFailure(currentState.player, job)
         ?? getCareerApplicationFailure(currentState.player, job, 'phone')
         ?? getCareerProgressionFailure(currentState.progression, job);
       const worldModifiers = getWorldDynamicsModifiers(

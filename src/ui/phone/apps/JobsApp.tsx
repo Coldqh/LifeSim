@@ -70,6 +70,7 @@ export default function JobsApp(props: {
           <span className="phone-kicker">{selected.company?.name ?? selected.location?.name ?? 'Работодатель'}</span>
           <h2>{selected.job.title}</h2>
           <strong className="phone-job-salary">{formatRubles(selected.estimatedMonthlyIncome)} / месяц</strong>
+          <p className={selected.opportunity.available ? 'phone-muted positive' : 'phone-inline-error'}>{selected.opportunity.label}</p>
           <div className="phone-detail-grid">
             <div><span>Смена</span><strong>{selected.job.shiftDurationMinutes / 60} ч · {formatRubles(selected.job.wagePerShift)}</strong></div>
             <div><span>Формат</span><strong>{selected.job.employmentType === 'professional' ? 'Профессия' : selected.job.employmentType === 'internship' ? 'Стажировка' : 'Обычная работа'}</strong></div>
@@ -131,10 +132,10 @@ export default function JobsApp(props: {
       <div className="phone-job-list">
         {filtered.map((view) => (
           <button className="phone-job-card" key={view.job.id} type="button" onClick={() => props.onSelectJob(view.job.id)}>
-            <div className="phone-job-card__top"><span>{view.company?.name ?? view.location?.name ?? 'Работодатель'}</span>{view.application ? <em className={`status-${getApplicationTone(view.application.status)}`}>{APPLICATION_LABELS[view.application.status]}</em> : null}</div>
+            <div className="phone-job-card__top"><span>{view.company?.name ?? view.location?.name ?? 'Работодатель'}</span>{view.application ? <em className={`status-${getApplicationTone(view.application.status)}`}>{APPLICATION_LABELS[view.application.status]}</em> : <em className={view.opportunity.available ? 'status-positive' : 'status-negative'}>{view.opportunity.available ? 'Открыта' : 'Закрыта'}</em>}</div>
             <strong>{view.job.title}</strong>
             <b>{formatRubles(view.estimatedMonthlyIncome)} / месяц</b>
-            <small>{view.district?.name ?? 'Москва'} · {view.job.shiftDurationMinutes / 60} ч</small>
+            <small>{view.district?.name ?? 'Москва'} · {view.job.shiftDurationMinutes / 60} ч · {view.opportunity.label}</small>
             {view.saved ? <i><Icon name="star" size={14}/></i> : null}
           </button>
         ))}

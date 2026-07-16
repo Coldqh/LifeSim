@@ -73,4 +73,35 @@ describe('career commands', () => {
       status: 'active'
     });
   });
+
+  it('blocks direct and phone applications after another candidate closes the vacancy', () => {
+    const base = createInitialGameState();
+    const directJob = getAllJobs().find((entry) => entry.applicationMode !== 'interview');
+    expect(directJob).toBeDefined();
+    const listing = base.world.opportunities.jobListings[String(directJob!.id)];
+    const closedState: GameState = {
+      ...base,
+      world: {
+        ...base.world,
+        opportunities: {
+          ...base.world.opportunities,
+          jobListings: {
+            ...base.world.opportunities.jobListings,
+            [String(directJob!.id)]: { ...listing, status: 'filled', resolvedDay: base.time.day }
+          }
+        }
+      }
+    };
+
+    const directHarness = createHarness(closedState);
+    directHarness.commands.applyForJob(directJob!.id);
+    expect(directHarness.getState().lastResult?.ok).toBe(false);
+    expect(directHarness.getState().lastResult?.messages.join(' ')).toContain('занята');
+
+    const phoneHarness = createHarness(closedState);
+    phoneHarness.commands.submitJobApplication(directJob!.id);
+    expect(phoneHarness.getState().lastResult?.ok).toBe(false);
+    expect(phoneHarness.getState().world.phone.applications).toHaveLength(0);
+  });
+
 });

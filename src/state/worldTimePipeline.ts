@@ -22,6 +22,7 @@ import { processUniversityTime } from '../core/university';
 import { refreshVehicleMarket } from '../core/vehicles';
 import { getRegionalCityIds, processWorldAtlasTime, simulateActiveCityPopulation } from '../core/world-atlas';
 import { getWorldDynamicsModifiers, processWorldDynamicsTime } from '../core/world-dynamics';
+import { isJobOpportunityOpen, processOpportunityLifecycle } from '../core/opportunity-lifecycle';
 import { businessEquipment } from '../data/business/equipment';
 import {
   getAllHousing,
@@ -50,6 +51,7 @@ import { socialEventTemplates } from '../data/social/socialEventTemplates';
 import { getBoxingGymById } from '../data/sports';
 import { usedVehicleListingTemplates } from '../data/vehicles/usedListingTemplates';
 import { worldDynamicsTemplates } from '../data/worldDynamics';
+import { jobCategoryNpcRoles, opportunityLifecycleRules } from '../data/opportunityLifecycle';
 import type { PhoneNotificationId } from '../types/ids';
 import type { NeedsState } from '../types/needs';
 import type { Player } from '../types/player';
@@ -85,6 +87,7 @@ export type AdvanceWorldTimeResult = {
   university: WorldState['university'];
   atlas: WorldState['atlas'];
   dynamics: WorldState['dynamics'];
+  opportunities: WorldState['opportunities'];
   lifeLogEntries: LifeLogEntry[];
   needsDelta?: Partial<NeedsState>;
   messages: string[];
@@ -323,7 +326,7 @@ export function advanceWorldTime(input: AdvanceWorldTimeInput): AdvanceWorldTime
   }
 
   const activeCityId = nextPlayer.cityId;
-  const population = simulateActiveCityPopulation({
+  let population = simulateActiveCityPopulation({
     population: sourceWorld.population,
     fromTime: state.time,
     toTime: nextTime,
@@ -333,6 +336,31 @@ export function advanceWorldTime(input: AdvanceWorldTimeInput): AdvanceWorldTime
     getCityIdForDistrict: (districtId) => cityRegistry.getDistrict(districtId)?.cityId,
     getCityIdForLocation: (locationId) => cityRegistry.getLocation(locationId)?.cityId
   });
+  const protectedJobIds = sourceWorld.phone.applications
+    .filter((application) => application.status === 'invited')
+    .map((application) => application.jobId);
+  const opportunityApplied = processOpportunityLifecycle({
+    state: sourceWorld.opportunities,
+    fromDay: state.time.day,
+    toDay: nextTime.day,
+    jobs: jobsCatalogue,
+    npcs: population.npcs,
+    protectedJobIds,
+    getJobCityId: (job) => cityRegistry.getLocation(job.locationId)?.cityId,
+    getNpcCityId: (npc) => cityRegistry.getDistrict(npc.homeDistrictId)?.cityId
+      ?? cityRegistry.getLocation(npc.employment?.locationId)?.cityId,
+    getNpcRoleId: (job) => jobCategoryNpcRoles[job.category],
+    rules: opportunityLifecycleRules
+  });
+  population = { ...population, npcs: opportunityApplied.npcs };
+  const visibleOpportunityEvents = opportunityApplied.events
+    .filter((event) => event.cityId === activeCityId)
+    .slice(-4);
+  for (const event of visibleOpportunityEvents) {
+    messages.push(event.text);
+    lifeLogEntries.push(createLifeLogEntry({ time: nextTime }, event.title, event.text));
+  }
+
   const regionalCityIds = getRegionalCityIds({
     activeCityId,
     routes: intercityNetwork.routes,
@@ -473,8 +501,25 @@ export function advanceWorldTime(input: AdvanceWorldTimeInput): AdvanceWorldTime
     state: sourceWorld.phone,
     currentTotalMinutes,
     jobs: jobsCatalogue,
-    getEmployerName: (job) => getCareerCompanyById(job.companyId)?.name ?? getLocationById(job.locationId)?.name ?? 'Работодатель'
+    getEmployerName: (job) => getCareerCompanyById(job.companyId)?.name ?? getLocationById(job.locationId)?.name ?? 'Работодатель',
+    isJobAvailable: (jobId) => isJobOpportunityOpen(opportunityApplied.state, jobId)
   });
+  const appliedJobIds = new Set(sourceWorld.phone.applications.map((application) => String(application.jobId)));
+  const savedJobIds = new Set(sourceWorld.phone.savedJobIds.map(String));
+  for (const event of opportunityApplied.events) {
+    const key = String(event.jobId);
+    if (!savedJobIds.has(key) || appliedJobIds.has(key)) continue;
+    const job = getJobById(event.jobId);
+    phone = pushPhoneNotification(phone, {
+      appId: 'jobs',
+      title: event.title,
+      body: job ? `${job.title} · ${event.text}` : event.text,
+      createdAtTotalMinutes: currentTotalMinutes,
+      jobId: event.jobId,
+      locationId: job?.locationId
+    });
+  }
+
   for (const news of [...dynamicsApplied.started, ...dynamicsApplied.ended]) {
     phone = pushPhoneNotification(phone, {
       appId: 'today',
@@ -562,7 +607,8 @@ export function advanceWorldTime(input: AdvanceWorldTimeInput): AdvanceWorldTime
     intercity: intercityApplied.intercity,
     university: universityApplied.state,
     atlas: atlasApplied.atlas,
-    dynamics: dynamicsApplied.state
+    dynamics: dynamicsApplied.state,
+    opportunities: opportunityApplied.state
   };
 
   return {
@@ -580,6 +626,7 @@ export function advanceWorldTime(input: AdvanceWorldTimeInput): AdvanceWorldTime
     university: world.university,
     atlas: world.atlas,
     dynamics: world.dynamics,
+    opportunities: world.opportunities,
     lifeLogEntries,
     needsDelta: mergeNeedsDelta(decayApplied.delta, comfortNeedsDelta),
     messages

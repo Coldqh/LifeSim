@@ -108,6 +108,20 @@ export default function TodayApp(props: {
         ) : null}
       </section>
 
+      <section className="phone-section-card phone-today__world">
+        <header><div><span>Рынок возможностей</span><strong>{props.state.opportunities.openVacancyCount} открытых вакансий</strong></div><Icon name="briefcase" size={20}/></header>
+        <p>{props.state.opportunities.closedVacancyCount > 0
+          ? `${props.state.opportunities.closedVacancyCount} вакансий сейчас закрыты или уже заняты. Мир не ждёт решения игрока.`
+          : 'Все известные вакансии пока принимают отклики.'}</p>
+        {props.state.opportunities.recentChanges.length ? (
+          <div className="phone-today-world-news">
+            {props.state.opportunities.recentChanges.slice(0, 4).map((entry) => (
+              <div key={entry.id}><span>День {entry.day}</span><strong>{entry.title}</strong><p>{entry.text}</p></div>
+            ))}
+          </div>
+        ) : null}
+      </section>
+
       <section className="phone-section-card phone-today__agenda">
         <header><div><span>План</span><strong>Сегодня</strong></div><Icon name="calendar" size={20}/></header>
         {daily.agenda.length ? daily.agenda.map((item) => (

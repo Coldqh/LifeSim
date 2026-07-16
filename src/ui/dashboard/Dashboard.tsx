@@ -42,6 +42,7 @@ import type { Product, Shop } from '../../types/product';
 import type { NeedCondition, NeedsConsequences } from '../../types/needs';
 import type { LocationPopulationPresence, PopulationSummary } from '../../types/population';
 import type { LifeProgressionPanelState } from '../../types/lifeProgression';
+import type { OpportunityJobView } from '../../types/opportunity';
 import type { SocialNpcView } from '../../types/relationship';
 import type { ActiveSocialEvent, SocialHistoryEntry } from '../../types/socialEvent';
 import type { Npc } from '../../types/npc';
@@ -101,6 +102,7 @@ type JobView = {
   missingSkillRequirements: Array<{ name: string; currentLevel: number; minLevel: number }>;
   effectiveShiftNeedsDelta: Partial<import('../../types/needs').NeedsState>;
   scheduleStatus: ScheduleStatus;
+  opportunity: OpportunityJobView;
 };
 
 type DashboardProps = {

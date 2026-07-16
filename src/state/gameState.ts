@@ -13,6 +13,7 @@ import type { IntercityTravelState } from '../types/intercity';
 import type { UniversityState } from '../types/university';
 import type { WorldAtlasState } from '../types/worldAtlas';
 import type { WorldDynamicsState } from '../types/worldDynamics';
+import type { OpportunityWorldState } from '../types/opportunity';
 import type { LifeGoalsState } from '../types/lifeGoal';
 import type { LifeProgressionState } from '../types/lifeProgression';
 import { calculateAge, createInitialTime, formatGameTime, getTotalMinutes, normalizeGameTime } from '../core/time';
@@ -34,12 +35,14 @@ import { createInitialIntercityState } from '../core/intercity';
 import { createInitialUniversityState } from '../core/university';
 import { createInitialWorldAtlasState, getRegionalCityIds, normalizeWorldAtlasState } from '../core/world-atlas';
 import { createInitialWorldDynamicsState, normalizeWorldDynamicsState } from '../core/world-dynamics';
+import { createInitialOpportunityState, normalizeOpportunityState } from '../core/opportunity-lifecycle';
 import { createInitialLifeGoalsState, normalizeLifeGoalsState } from '../core/life-goals';
 import { createInitialLifeProgressionState, normalizeLifeProgressionState } from '../core/life-progression';
 import { usedVehicleListingTemplates } from '../data/vehicles/usedListingTemplates';
 import { cityRegistry } from '../data/cities';
-import { getAllBusinessPremises, getAllHousing, getDegreeProgramById, getUniversityById } from '../data/cities/contentSelectors';
+import { getAllBusinessPremises, getAllHousing, getAllJobs, getDegreeProgramById, getUniversityById } from '../data/cities/contentSelectors';
 import { intercityNetwork } from '../data/intercity/routes';
+import { opportunityLifecycleRules } from '../data/opportunityLifecycle';
 import {
   CURRENT_SAVE_VERSION,
   GAME_STATE_BACKUP_STORAGE_KEY,
@@ -55,6 +58,7 @@ export { CURRENT_SAVE_VERSION, GAME_STATE_BACKUP_STORAGE_KEY, GAME_STATE_STORAGE
 const REMOVED_PRODUCT_IDS = new Set(['hygiene_kit', 'toothpaste', 'laundry_powder']);
 const housingCatalogue = getAllHousing();
 const businessPremisesCatalogue = getAllBusinessPremises();
+const jobsCatalogue = getAllJobs();
 
 export type LifeLogEntry = {
   id: string;
@@ -77,6 +81,7 @@ export type WorldState = {
   university: UniversityState;
   atlas: WorldAtlasState;
   dynamics: WorldDynamicsState;
+  opportunities: OpportunityWorldState;
 };
 
 export type GameState = {
@@ -278,7 +283,14 @@ export function createInitialGameState(): GameState {
       intercity: createInitialIntercityState(getTotalMinutes(time)),
       university: createInitialUniversityState(getTotalMinutes(time)),
       atlas,
-      dynamics: createInitialWorldDynamicsState(atlas.seed, time.day)
+      dynamics: createInitialWorldDynamicsState(atlas.seed, time.day),
+      opportunities: createInitialOpportunityState({
+        seed: atlas.seed ^ 0x5f3759df,
+        day: time.day,
+        jobs: jobsCatalogue,
+        getJobCityId: (job) => cityRegistry.getLocation(job.locationId)?.cityId,
+        rules: opportunityLifecycleRules
+      })
     },
     lifeGoals: createInitialLifeGoalsState(),
     progression: createInitialLifeProgressionState(time.day),
@@ -757,7 +769,15 @@ function normalizeLoadedGameState(value: unknown): GameState | undefined {
       intercity: normalizeIntercityState(parsed.world?.intercity, time),
       university,
       atlas,
-      dynamics: normalizeWorldDynamicsState(parsed.world?.dynamics, atlas.seed, time.day)
+      dynamics: normalizeWorldDynamicsState(parsed.world?.dynamics, atlas.seed, time.day),
+      opportunities: normalizeOpportunityState({
+        value: parsed.world?.opportunities,
+        seed: atlas.seed ^ 0x5f3759df,
+        day: time.day,
+        jobs: jobsCatalogue,
+        getJobCityId: (job) => cityRegistry.getLocation(job.locationId)?.cityId,
+        rules: opportunityLifecycleRules
+      })
     },
     player: normalizedPlayer
   };

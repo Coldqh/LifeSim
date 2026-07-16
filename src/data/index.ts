@@ -40,3 +40,4 @@ export * from './business/rybinskPremises';
 export * from './career';
 
 export * from './lifeProgression';
+export * from './opportunityLifecycle';
