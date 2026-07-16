@@ -1,5 +1,5 @@
 import type { Location } from '../../types/location';
-import type { Npc, NpcWorldState } from '../../types/npc';
+import type { Npc, NpcLocationPurpose, NpcWorldState } from '../../types/npc';
 import type { LocationPopulationProfile, PopulationState } from '../../types/population';
 import type { GameTime, Weekday } from '../../types/time';
 import type { LocationId, NpcId } from '../../types/ids';
@@ -12,7 +12,7 @@ const WEEKDAYS: Weekday[] = ['monday', 'tuesday', 'wednesday', 'thursday', 'frid
 
 type DesiredTarget =
   | { kind: 'home'; purpose: 'home' }
-  | { kind: 'location'; locationId: LocationId; purpose: 'work' | 'visit' };
+  | { kind: 'location'; locationId: LocationId; purpose: NpcLocationPurpose };
 
 function stringHash(value: string): number {
   let hash = 2166136261;
@@ -93,9 +93,80 @@ function rankCandidate(npc: Npc, location: Location, seed: number, time: GameTim
   return preferenceBonus + districtBonus + random;
 }
 
+function choosePlannedLocation(input: {
+  npc: Npc;
+  time: GameTime;
+  locations: Location[];
+  cityByDistrict: Map<import('../../types/ids').DistrictId, import('../../types/ids').CityId>;
+  seed: number;
+  types: Location['type'][];
+}): Location | undefined {
+  const cityId = input.cityByDistrict.get(input.npc.homeDistrictId);
+  const candidates = input.locations
+    .filter((location) => location.cityId === cityId
+      && input.types.includes(location.type)
+      && getScheduleStatus(location.openingHours, input.time).isOpen)
+    .sort((first, second) => rankCandidate(input.npc, second, input.seed, input.time) - rankCandidate(input.npc, first, input.seed, input.time));
+  return candidates[0];
+}
+
+function getProfileTarget(input: {
+  npc: Npc;
+  time: GameTime;
+  locations: Location[];
+  cityByDistrict: Map<import('../../types/ids').DistrictId, import('../../types/ids').CityId>;
+  seed: number;
+}): DesiredTarget | undefined {
+  const { npc, time } = input;
+  const minute = time.hour * 60 + time.minute;
+  const weekday = WEEKDAYS.slice(0, 5).includes(time.weekday);
+  if ((npc.life.sickUntilDay ?? 0) >= time.day) return { kind: 'home', purpose: 'home' };
+  if (minute < 7 * 60 + 30 || minute >= 22 * 60) return { kind: 'home', purpose: 'home' };
+
+  if (npc.activityProfile === 'student') {
+    const missedToday = npc.life.lastOutcome?.day === time.day && npc.life.lastOutcome.kind === 'missed_study';
+    if (weekday && !missedToday && minute >= 8 * 60 + 15 && minute < 15 * 60 + 30) {
+      const location = choosePlannedLocation({ ...input, types: ['university', 'education_center'] });
+      if (location) return { kind: 'location', locationId: location.id, purpose: 'study' };
+    }
+    if (minute >= 16 * 60 && minute < 18 * 60) {
+      const location = choosePlannedLocation({ ...input, types: ['shop', 'cafe', 'food_court'] });
+      if (location) return { kind: 'location', locationId: location.id, purpose: 'shopping' };
+    }
+    if (minute >= 18 * 60 && minute < 21 * 60 + 30) {
+      const location = choosePlannedLocation({ ...input, types: ['park', 'cafe', 'sport_ground', 'fitness'] });
+      if (location) return { kind: 'location', locationId: location.id, purpose: 'leisure' };
+    }
+  }
+
+  if (npc.activityProfile === 'unemployed') {
+    if (weekday && minute >= 9 * 60 + 30 && minute < 13 * 60 + 30) {
+      const location = choosePlannedLocation({ ...input, types: ['business_center', 'coworking', 'service', 'education_center'] });
+      if (location) return { kind: 'location', locationId: location.id, purpose: 'job_search' };
+    }
+    if (minute >= 14 * 60 && minute < 16 * 60) {
+      const location = choosePlannedLocation({ ...input, types: ['shop', 'mall', 'bank'] });
+      if (location) return { kind: 'location', locationId: location.id, purpose: 'shopping' };
+    }
+    if (minute >= 17 * 60 && minute < 20 * 60 + 30) {
+      const location = choosePlannedLocation({ ...input, types: ['park', 'cafe', 'sport_ground'] });
+      if (location) return { kind: 'location', locationId: location.id, purpose: 'leisure' };
+    }
+  }
+
+  if (npc.activityProfile === 'worker' && minute >= 18 * 60 && minute < 21 * 60) {
+    const location = choosePlannedLocation({ ...input, types: ['shop', 'cafe', 'park', 'fitness'] });
+    if (location) return { kind: 'location', locationId: location.id, purpose: minute < 19 * 60 + 30 ? 'shopping' : 'leisure' };
+  }
+
+  return undefined;
+}
+
 function resolveDesiredTargets(population: PopulationState, locations: Location[], time: GameTime, getProfile: (location: Location) => LocationPopulationProfile): Map<NpcId, DesiredTarget> {
   const targets = new Map<NpcId, DesiredTarget>();
   const available: Npc[] = [];
+  const publicLocations = locations.filter((location) => location.type !== 'home');
+  const cityByDistrict = new Map(locations.map((location) => [location.districtId, location.cityId]));
 
   population.npcs.forEach((npc) => {
     if (npc.activationDay > time.day) {
@@ -103,15 +174,22 @@ function resolveDesiredTargets(population: PopulationState, locations: Location[
       return;
     }
 
-    if (isWorkTargetActive(npc, time) && npc.employment) {
+    const missedWorkToday = npc.life.lastOutcome?.day === time.day
+      && (npc.life.lastOutcome.kind === 'missed_work' || npc.life.lastOutcome.kind === 'lost_job');
+    if (!missedWorkToday && isWorkTargetActive(npc, time) && npc.employment) {
       targets.set(npc.id, { kind: 'location', locationId: npc.employment.locationId, purpose: 'work' });
+      return;
+    }
+
+    const plannedTarget = getProfileTarget({ npc, time, locations: publicLocations, cityByDistrict, seed: population.seed });
+    if (plannedTarget) {
+      targets.set(npc.id, plannedTarget);
       return;
     }
 
     available.push(npc);
   });
 
-  const publicLocations = locations.filter((location) => location.type !== 'home');
   const minuteBlock = Math.floor((time.hour * 60 + time.minute) / 120);
   const orderedLocations = [...publicLocations].sort((first, second) => {
     const firstScore = deterministicUnit(population.seed, `${first.id}:${time.day}:${minuteBlock}:order`);
@@ -124,8 +202,6 @@ function resolveDesiredTargets(population: PopulationState, locations: Location[
     location,
     demand: getVisitorDemand(location, time, population.seed, getProfile)
   }));
-
-  const cityByDistrict = new Map(locations.map((location) => [location.districtId, location.cityId]));
 
   function assignVisitors(location: Location, requestedCount: number): void {
     if (requestedCount <= 0 || remaining.size === 0) return;
@@ -189,7 +265,7 @@ function completeTravel(state: NpcWorldState, totalMinutes: number): NpcWorldSta
   return {
     kind: 'at_location',
     locationId: state.destinationLocationId,
-    purpose: state.purpose === 'work' ? 'work' : 'visit',
+    purpose: state.purpose === 'home' ? 'visit' : state.purpose,
     sinceTotalMinutes: state.arrivalTotalMinutes
   };
 }

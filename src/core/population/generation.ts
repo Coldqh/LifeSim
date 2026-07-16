@@ -5,6 +5,7 @@ import type { DistrictId, NpcId } from '../../types/ids';
 import type { GameTime, Weekday } from '../../types/time';
 import { getTotalMinutes } from '../time';
 import { createNpcPersonality } from '../relationships';
+import { createInitialNpcLifeState } from '../npc-daily';
 
 const WEEKDAYS: Weekday[] = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
 const MINUTES_IN_DAY = 24 * 60;
@@ -116,6 +117,7 @@ function createNpc(input: {
   const initialState: NpcWorldState = { kind: 'home', sinceTotalMinutes: 0 };
 
   const id = npcId(`npc_${String(index + 1).padStart(4, '0')}`);
+  const personality = createNpcPersonality(String(id), activityProfile);
 
   return {
     id,
@@ -127,7 +129,13 @@ function createNpc(input: {
     activationDay,
     preferredLocationTypes: getPreferences(activityProfile),
     employment,
-    personality: createNpcPersonality(String(id), activityProfile),
+    personality,
+    life: createInitialNpcLifeState({
+      npcId: id,
+      activityProfile,
+      day: 1,
+      reliability: personality.reliability
+    }),
     worldState: initialState
   };
 }

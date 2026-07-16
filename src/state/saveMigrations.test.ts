@@ -149,6 +149,30 @@ describe('save migrations', () => {
     expect(migrated.world.opportunities.history).toEqual([]);
   });
 
+  it('adds autonomous daily life state to NPCs when migrating v31 to v32', () => {
+    const migrated = migrateSaveState({
+      time: { day: 18 },
+      world: {
+        population: {
+          seed: 1,
+          npcs: [{
+            id: 'npc_student',
+            activityProfile: 'student',
+            personality: { reliability: 73 }
+          }]
+        }
+      }
+    }, 31).state as {
+      world: { population: { npcs: Array<{ life: { reliability: number; studyProgress: number; lastProcessedDay: number } }> } };
+    };
+
+    expect(migrated.world.population.npcs[0].life).toMatchObject({
+      reliability: 73,
+      studyProgress: 5,
+      lastProcessedDay: 18
+    });
+  });
+
   it('decodes both legacy raw states and the current versioned envelope', () => {
     const legacy = decodeSavePayload(JSON.stringify({ player: { inventory: [] } }), 23);
     const encoded = encodeSavePayload({ marker: 'current' });

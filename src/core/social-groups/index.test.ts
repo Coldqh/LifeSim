@@ -18,6 +18,7 @@ function npc(id: string, profile: Npc['activityProfile'] = 'student'): Npc {
     activationDay: 1,
     preferredLocationTypes: [],
     personality: { sociability: 50, temperament: 50, reliability: 50, ambition: 50, generosity: 50, interests: [] },
+    life: { energy: 80, health: 90, money: 10000, reliability: 50, studyProgress: 0, missedCommitments: 0, warningCount: 0, jobSearchDays: profile === 'unemployed' ? 1 : 0, lastProcessedDay: 1 },
     worldState: { kind: 'home', sinceTotalMinutes: 0 }
   };
 }

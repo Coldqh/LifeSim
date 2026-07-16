@@ -23,6 +23,7 @@ import type { BoxingProfile } from '../types/boxing';
 import type { PopulationState } from '../types/population';
 import { createPopulationSeed, generatePopulation, simulatePopulation } from '../core/population';
 import { createInitialSocialState, createNpcPersonality } from '../core/relationships';
+import { normalizeNpcLifeState } from '../core/npc-daily';
 import type { SocialState } from '../types/socialEvent';
 import { populationDataSource } from '../data/population/config';
 import { createHousingMarket } from '../core/housing';
@@ -354,10 +355,20 @@ function normalizePopulation(
     return createPopulationForTime(time, detailedCityIds);
   }
 
-  const normalizedNpcs = candidate.npcs.map((npc) => ({
-    ...npc,
-    personality: npc.personality ?? createNpcPersonality(String(npc.id), npc.activityProfile)
-  }));
+  const normalizedNpcs = candidate.npcs.map((npc) => {
+    const personality = npc.personality ?? createNpcPersonality(String(npc.id), npc.activityProfile);
+    return {
+      ...npc,
+      personality,
+      life: normalizeNpcLifeState({
+        value: npc.life,
+        npcId: npc.id,
+        activityProfile: npc.activityProfile,
+        day: time.day,
+        reliability: personality.reliability
+      })
+    };
+  });
   const presentCityIds = new Set(normalizedNpcs.map(getNpcCityId).filter((cityId): cityId is CityId => Boolean(cityId)).map(String));
   const missingCityIds = detailedCityIds.filter((cityId) => !presentCityIds.has(String(cityId)));
 

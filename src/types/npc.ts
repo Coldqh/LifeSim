@@ -12,6 +12,38 @@ export type KnownNpcIdentity = {
 
 export type NpcActivityProfile = 'worker' | 'student' | 'unemployed' | 'remote_worker' | 'retired';
 
+export type NpcDailyOutcomeKind =
+  | 'worked'
+  | 'missed_work'
+  | 'studied'
+  | 'missed_study'
+  | 'searched_job'
+  | 'rested'
+  | 'sick'
+  | 'lost_job';
+
+export type NpcDailyOutcome = {
+  day: number;
+  kind: NpcDailyOutcomeKind;
+  text: string;
+};
+
+export type NpcLifeState = {
+  energy: number;
+  health: number;
+  money: number;
+  reliability: number;
+  studyProgress: number;
+  missedCommitments: number;
+  warningCount: number;
+  jobSearchDays: number;
+  lastProcessedDay: number;
+  sickUntilDay?: number;
+  lastOutcome?: NpcDailyOutcome;
+};
+
+export type NpcLocationPurpose = 'work' | 'study' | 'job_search' | 'shopping' | 'leisure' | 'visit';
+
 export type NpcEmployment = {
   locationId: LocationId;
   roleId: NpcRoleId;
@@ -22,12 +54,12 @@ export type NpcEmployment = {
 
 export type NpcWorldState =
   | { kind: 'home'; sinceTotalMinutes: number }
-  | { kind: 'at_location'; locationId: LocationId; purpose: 'work' | 'visit'; sinceTotalMinutes: number }
+  | { kind: 'at_location'; locationId: LocationId; purpose: NpcLocationPurpose; sinceTotalMinutes: number }
   | {
       kind: 'travelling';
       destinationKind: 'home' | 'location';
       destinationLocationId?: LocationId;
-      purpose: 'work' | 'visit' | 'home';
+      purpose: NpcLocationPurpose | 'home';
       arrivalTotalMinutes: number;
       sinceTotalMinutes: number;
     };
@@ -43,6 +75,7 @@ export type Npc = {
   preferredLocationTypes: LocationType[];
   employment?: NpcEmployment;
   personality: NpcPersonality;
+  life: NpcLifeState;
   worldState: NpcWorldState;
 };
 

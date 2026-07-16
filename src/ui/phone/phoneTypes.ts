@@ -164,6 +164,9 @@ export type PhoneSocialContactView = {
   status: RelationshipStatus;
   circles: SocialCircleTag[];
   messages: PhoneMessage[];
+  activityLabel: string;
+  activityLocation?: Location;
+  availableNow: boolean;
   quickMessages: Array<{ definition: SocialQuickMessageDefinition; failure?: string }>;
   pendingInvitation?: SocialInvitation;
   scheduledMeeting?: SocialMeeting;

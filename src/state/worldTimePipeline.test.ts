@@ -35,6 +35,25 @@ describe('advanceWorldTime', () => {
   });
 
 
+  it('advances autonomous NPC daily state when a day passes', () => {
+    const state = createInitialGameState();
+    const trackedNpc = state.world.population.npcs.find((npc) => npc.activityProfile === 'student' || npc.activityProfile === 'unemployed');
+    expect(trackedNpc).toBeDefined();
+
+    const nextTime = addMinutes(state.time, 24 * 60);
+    const result = advanceWorldTime({
+      state,
+      player: state.player,
+      nextTime,
+      decayProfile: 'resting',
+      actionTitle: 'Ожидание'
+    });
+    const updated = result.world.population.npcs.find((npc) => npc.id === trackedNpc?.id);
+
+    expect(updated?.life.lastProcessedDay).toBe(nextTime.day);
+    expect(updated?.life.lastOutcome?.day).toBe(nextTime.day);
+  });
+
   it('creates visible autonomous world news when several days pass', () => {
     const state = createInitialGameState();
     const nextTime = addMinutes(state.time, 5 * 24 * 60);

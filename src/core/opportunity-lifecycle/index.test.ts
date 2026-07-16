@@ -36,6 +36,7 @@ const npc: Npc = {
     generosity: 50,
     interests: []
   },
+  life: { energy: 80, health: 90, money: 10000, reliability: 50, studyProgress: 0, missedCommitments: 0, warningCount: 0, jobSearchDays: 1, lastProcessedDay: 1 },
   worldState: { kind: 'home', sinceTotalMinutes: 0 }
 };
 const rules = {

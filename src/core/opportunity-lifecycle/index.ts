@@ -166,8 +166,15 @@ function selectNpcCandidate(input: {
     && input.getNpcCityId(npc) === input.cityId
   ));
   if (candidates.length === 0) return undefined;
-  const index = hashString(`${input.seed}:${String(input.job.id)}:${input.day}:npc`) % candidates.length;
-  return candidates[index];
+  return [...candidates].sort((first, second) => {
+    const searchDelta = second.life.jobSearchDays - first.life.jobSearchDays;
+    if (searchDelta !== 0) return searchDelta;
+    const reliabilityDelta = second.life.reliability - first.life.reliability;
+    if (reliabilityDelta !== 0) return reliabilityDelta;
+    const firstRoll = hashString(`${input.seed}:${String(input.job.id)}:${input.day}:${String(first.id)}`);
+    const secondRoll = hashString(`${input.seed}:${String(input.job.id)}:${input.day}:${String(second.id)}`);
+    return secondRoll - firstRoll;
+  })[0];
 }
 
 function employNpc(input: { npc: Npc; job: Job; roleId: NpcRoleId; day: number }): Npc {
@@ -179,6 +186,16 @@ function employNpc(input: { npc: Npc; job: Job; roleId: NpcRoleId; day: number }
       locationId: input.job.locationId,
       roleId: input.roleId,
       ...schedule
+    },
+    life: {
+      ...input.npc.life,
+      jobSearchDays: 0,
+      warningCount: 0,
+      lastOutcome: {
+        day: input.day,
+        kind: 'worked',
+        text: `Получил работу: ${input.job.title}.`
+      }
     }
   };
 }

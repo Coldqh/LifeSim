@@ -101,6 +101,7 @@ export default function ContactsApp(props: {
             <span className="phone-kicker">{selected.role?.name ?? 'Житель города'}</span>
             <h2>{fullName}</h2>
             <p>{selected.npc.age} лет · {getRelationshipStatusLabel(selected.status)}</p>
+            <p>{selected.activityLabel}{selected.activityLocation ? ` · ${selected.activityLocation.name}` : ''} · {selected.availableNow ? 'свободен' : 'занят'}</p>
           </div>
         </section>
 
@@ -236,7 +237,7 @@ export default function ContactsApp(props: {
         {filtered.length ? filtered.map((contact) => (
           <button type="button" key={contact.npc.id} onClick={() => setSelectedNpcId(contact.npc.id)}>
             <span className="phone-message-avatar">{contact.npc.firstName[0]}{contact.npc.lastName[0]}</span>
-            <div><strong>{contact.npc.firstName} {contact.npc.lastName}</strong><small>{contact.role?.name ?? 'Житель города'} · {getRelationshipStatusLabel(contact.status)}</small><p>{contact.messages[0]?.body ?? 'Можно написать или назначить встречу'}</p></div>
+            <div><strong>{contact.npc.firstName} {contact.npc.lastName}</strong><small>{contact.role?.name ?? 'Житель города'} · {getRelationshipStatusLabel(contact.status)}</small><p>{contact.activityLabel}{contact.activityLocation ? ` · ${contact.activityLocation.name}` : ''}</p></div>
             {contact.relationship.romanceStatus !== 'none' ? <Icon name="heart" size={16}/> : null}
           </button>
         )) : <div className="phone-empty-state">Контактов в этой категории нет</div>}

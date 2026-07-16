@@ -11,6 +11,7 @@ import {
   pushPhoneNotification
 } from '../phone';
 import { addMinutes, getTotalMinutes } from '../time';
+import { getNpcScheduleConflict } from '../npc-daily';
 import type {
   LocationId,
   NpcId,
@@ -198,6 +199,8 @@ export function getMeetingInviteFailure(input: {
   if (!input.location || !input.meetingType.locationTypes.includes(input.location.type)) return 'Для этой встречи выбрано неподходящее место.';
   if (input.startsAtTotalMinutes < input.currentTotalMinutes + 120) return 'Встречу нужно назначить минимум через два часа.';
   if (input.startsAtTotalMinutes > input.currentTotalMinutes + 7 * MINUTES_IN_DAY) return 'Встречу можно назначить максимум на неделю вперёд.';
+  const npcConflict = getNpcScheduleConflict(input.npc, input.startsAtTotalMinutes);
+  if (npcConflict) return npcConflict;
   const hasActive = input.social.invitations.some((entry) => entry.npcId === input.npc.id && entry.status === 'pending')
     || input.social.meetings.some((entry) => entry.npcId === input.npc.id && entry.status === 'scheduled');
   if (hasActive) return 'С этим человеком уже есть активное приглашение или встреча.';
@@ -342,8 +345,9 @@ export function processSocialLifeTime(input: {
 
     if (invitation.direction === 'outgoing' && input.currentTotalMinutes >= invitation.responseAtTotalMinutes) {
       const relationship = getNpcRelationship(social, npc.id);
+      const scheduleConflict = getNpcScheduleConflict(npc, invitation.startsAtTotalMinutes);
       const roll = hashString(`${invitation.id}:answer`) % 100;
-      const accepted = roll < invitationAcceptanceScore(npc, relationship, definition);
+      const accepted = !scheduleConflict && roll < invitationAcceptanceScore(npc, relationship, definition);
       if (accepted) {
         const meeting = createMeetingFromInvitation(invitation, definition);
         if (!social.meetings.some((entry) => entry.id === meeting.id)) social = { ...social, meetings: [meeting, ...social.meetings].slice(0, 60) };
@@ -364,7 +368,7 @@ export function processSocialLifeTime(input: {
       phone = pushPhoneMessage(phone, {
         senderName: fullName(npc),
         subject: 'Не получится',
-        body: 'В этот раз не смогу. Давай как-нибудь позже.',
+        body: scheduleConflict ?? 'В этот раз не смогу. Давай как-нибудь позже.',
         createdAtTotalMinutes: invitation.responseAtTotalMinutes,
         npcId: npc.id,
         socialInvitationId: invitation.id
@@ -459,44 +463,46 @@ export function processSocialLifeTime(input: {
         const startDay = Math.floor(input.currentTotalMinutes / MINUTES_IN_DAY) + 1;
         const startHour = definition.id.toString().includes('training') ? 19 : definition.id.toString().includes('study') ? 16 : 18;
         const startsAt = startDay * MINUTES_IN_DAY + startHour * 60 + (hashString(String(npc.id)) % 2) * 30;
-        const invitation: SocialInvitation = {
-          id: invitationId(`social_incoming_${String(npc.id)}_${input.currentTotalMinutes}`),
-          npcId: npc.id,
-          meetingTypeId: definition.id,
-          locationId: location.id,
-          startsAtTotalMinutes: startsAt,
-          createdAtTotalMinutes: input.currentTotalMinutes,
-          responseAtTotalMinutes: startsAt - 60,
-          direction: 'incoming',
-          status: 'pending'
-        };
-        social = {
-          ...social,
-          invitations: [invitation, ...social.invitations].slice(0, 60),
-          initiativeCooldowns: {
-            ...social.initiativeCooldowns,
-            __global: input.currentTotalMinutes + 18 * 60,
-            [String(npc.id)]: input.currentTotalMinutes + 3 * MINUTES_IN_DAY
-          }
-        };
-        phone = pushPhoneMessage(phone, {
-          senderName: fullName(npc),
-          subject: definition.shortTitle,
-          body: `Есть предложение: ${definition.title.toLowerCase()}. ${formatDayTime(startsAt)}, ${location.name}.`,
-          createdAtTotalMinutes: input.currentTotalMinutes,
-          locationId: location.id,
-          npcId: npc.id,
-          socialInvitationId: invitation.id
-        });
-        phone = pushPhoneNotification(phone, {
-          appId: 'contacts',
-          title: 'Новое приглашение',
-          body: `${fullName(npc)} · ${definition.shortTitle}`,
-          createdAtTotalMinutes: input.currentTotalMinutes,
-          locationId: location.id,
-          npcId: npc.id,
-          socialInvitationId: invitation.id
-        });
+        if (!getNpcScheduleConflict(npc, startsAt)) {
+          const invitation: SocialInvitation = {
+            id: invitationId(`social_incoming_${String(npc.id)}_${input.currentTotalMinutes}`),
+            npcId: npc.id,
+            meetingTypeId: definition.id,
+            locationId: location.id,
+            startsAtTotalMinutes: startsAt,
+            createdAtTotalMinutes: input.currentTotalMinutes,
+            responseAtTotalMinutes: startsAt - 60,
+            direction: 'incoming',
+            status: 'pending'
+          };
+          social = {
+            ...social,
+            invitations: [invitation, ...social.invitations].slice(0, 60),
+            initiativeCooldowns: {
+              ...social.initiativeCooldowns,
+              __global: input.currentTotalMinutes + 18 * 60,
+              [String(npc.id)]: input.currentTotalMinutes + 3 * MINUTES_IN_DAY
+            }
+          };
+          phone = pushPhoneMessage(phone, {
+            senderName: fullName(npc),
+            subject: definition.shortTitle,
+            body: `Есть предложение: ${definition.title.toLowerCase()}. ${formatDayTime(startsAt)}, ${location.name}.`,
+            createdAtTotalMinutes: input.currentTotalMinutes,
+            locationId: location.id,
+            npcId: npc.id,
+            socialInvitationId: invitation.id
+          });
+          phone = pushPhoneNotification(phone, {
+            appId: 'contacts',
+            title: 'Новое приглашение',
+            body: `${fullName(npc)} · ${definition.shortTitle}`,
+            createdAtTotalMinutes: input.currentTotalMinutes,
+            locationId: location.id,
+            npcId: npc.id,
+            socialInvitationId: invitation.id
+          });
+        }
       }
     }
   }
@@ -566,12 +572,17 @@ export function getSocialMeetingFailure(input: {
   currentTotalMinutes: number;
   player: Player;
   definition?: SocialMeetingDefinition;
+  npc?: Npc;
 }): string | undefined {
   if (input.meeting.status !== 'scheduled') return 'Встреча уже закрыта.';
   if (input.currentLocationId !== input.meeting.locationId) return 'Нужно приехать в место встречи.';
   if (input.currentTotalMinutes < input.meeting.startsAtTotalMinutes - MEETING_EARLY_WINDOW) return `Встреча начнётся в ${formatClock(input.meeting.startsAtTotalMinutes)}.`;
   if (input.currentTotalMinutes > input.meeting.startsAtTotalMinutes + MEETING_LATE_WINDOW) return 'Ты опоздал на встречу.';
   if (!input.definition) return 'Тип встречи не найден.';
+  if (input.npc) {
+    const npcConflict = getNpcScheduleConflict(input.npc, input.meeting.startsAtTotalMinutes);
+    if (npcConflict) return npcConflict;
+  }
   if (input.player.money < input.definition.moneyCost) return `Нужно ${input.definition.moneyCost} ₽.`;
   return getNeedsRequirementFailure(input.player.needs, { minEnergy: 8, minHealth: 12, minHunger: 4, minThirst: 4 });
 }
@@ -602,7 +613,8 @@ export function attendSocialMeeting(input: {
     currentLocationId: input.currentLocationId,
     currentTotalMinutes: now,
     player: input.player,
-    definition: input.definition
+    definition: input.definition,
+    npc: input.npc
   });
   if (failure) return { player: input.player, time: input.time, social: input.social, phone: input.phone, ok: false, message: failure };
 

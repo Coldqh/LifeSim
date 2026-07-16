@@ -23,6 +23,7 @@ import { refreshVehicleMarket } from '../core/vehicles';
 import { getRegionalCityIds, processWorldAtlasTime, simulateActiveCityPopulation } from '../core/world-atlas';
 import { getWorldDynamicsModifiers, processWorldDynamicsTime } from '../core/world-dynamics';
 import { isJobOpportunityOpen, processOpportunityLifecycle } from '../core/opportunity-lifecycle';
+import { processNpcDailyPopulation } from '../core/npc-daily';
 import { businessEquipment } from '../data/business/equipment';
 import {
   getAllHousing,
@@ -326,8 +327,23 @@ export function advanceWorldTime(input: AdvanceWorldTimeInput): AdvanceWorldTime
   }
 
   const activeCityId = nextPlayer.cityId;
-  let population = simulateActiveCityPopulation({
+  const npcDailyApplied = processNpcDailyPopulation({
     population: sourceWorld.population,
+    fromDay: state.time.day,
+    toDay: nextTime.day,
+    getNpcCityId: (npc) => cityRegistry.getDistrict(npc.homeDistrictId)?.cityId
+      ?? cityRegistry.getLocation(npc.employment?.locationId)?.cityId
+  });
+  const visibleNpcDailyEvents = npcDailyApplied.events
+    .filter((event) => event.cityId === activeCityId)
+    .slice(-3);
+  for (const event of visibleNpcDailyEvents) {
+    messages.push(event.text);
+    lifeLogEntries.push(createLifeLogEntry({ time: nextTime }, event.title, event.text));
+  }
+
+  let population = simulateActiveCityPopulation({
+    population: npcDailyApplied.population,
     fromTime: state.time,
     toTime: nextTime,
     activeCityId,
@@ -504,6 +520,15 @@ export function advanceWorldTime(input: AdvanceWorldTimeInput): AdvanceWorldTime
     getEmployerName: (job) => getCareerCompanyById(job.companyId)?.name ?? getLocationById(job.locationId)?.name ?? 'Работодатель',
     isJobAvailable: (jobId) => isJobOpportunityOpen(opportunityApplied.state, jobId)
   });
+  for (const event of visibleNpcDailyEvents) {
+    phone = pushPhoneNotification(phone, {
+      appId: 'contacts',
+      title: event.title,
+      body: event.text,
+      createdAtTotalMinutes: currentTotalMinutes,
+      npcId: event.npcId
+    });
+  }
   const appliedJobIds = new Set(sourceWorld.phone.applications.map((application) => String(application.jobId)));
   const savedJobIds = new Set(sourceWorld.phone.savedJobIds.map(String));
   for (const event of opportunityApplied.events) {

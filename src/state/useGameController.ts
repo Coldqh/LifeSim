@@ -24,6 +24,7 @@ import { getShopForLocation, getShopProducts } from '../core/shop';
 import { getScheduleActivityFailure, getScheduleStatus } from '../core/schedule';
 import { getInterviewFailure, getJobApplicationForJob, getPhoneUnreadCount } from '../core/phone';
 import { getLocationPopulationPresence, getPopulationSummary } from '../core/population';
+import { getNpcActivityView } from '../core/npc-daily';
 import { getInteractionFailure, getNpcRelationship, getRelationshipStatus } from '../core/relationships';
 import { createSocialGroupMemberMap, createSocialGroupView } from '../core/social-groups';
 import { getContactExchangeFailure, getNpcSocialCircles, getSocialMeetingFailure, getSocialQuickMessageFailure } from '../core/social-life';
@@ -825,6 +826,8 @@ export function useGameController() {
           playerHomeDistrictId: String(gameState.player.districtId),
           businessLocationId: ownedBusinessLocationId
         });
+        const activity = getNpcActivityView(npc, gameState.time.day);
+        const activityLocation = getLocationById(activity.locationId);
         const quickMessages = socialQuickMessages.map((definition) => ({
           definition,
           failure: getSocialQuickMessageFailure({
@@ -842,6 +845,9 @@ export function useGameController() {
           status: getRelationshipStatus(relationship),
           circles,
           messages,
+          activityLabel: activity.label,
+          activityLocation,
+          availableNow: activity.availableNow,
           quickMessages,
           pendingInvitation: gameState.world.social.invitations.find((entry) => entry.npcId === npc.id && entry.status === 'pending'),
           scheduledMeeting: gameState.world.social.meetings.find((entry) => entry.npcId === npc.id && entry.status === 'scheduled')
@@ -869,9 +875,10 @@ export function useGameController() {
       .filter((entry) => entry.status === 'scheduled')
       .map((meeting) => {
         const definition = getSocialMeetingType(meeting.meetingTypeId);
+        const npc = gameState.world.population.npcs.find((entry) => entry.id === meeting.npcId);
         return {
           meeting,
-          npc: gameState.world.population.npcs.find((entry) => entry.id === meeting.npcId),
+          npc,
           definition,
           location: getLocationById(meeting.locationId),
           failure: getSocialMeetingFailure({
@@ -879,7 +886,8 @@ export function useGameController() {
             currentLocationId: gameState.player.locationId,
             currentTotalMinutes: getTotalMinutes(gameState.time),
             player: gameState.player,
-            definition
+            definition,
+            npc
           })
         };
       });

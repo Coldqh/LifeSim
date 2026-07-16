@@ -5,7 +5,7 @@ export function getLocationPopulationPresence(population: PopulationState, locat
   if (!locationId) return undefined;
   const present = population.npcs.filter((npc) => npc.worldState.kind === 'at_location' && npc.worldState.locationId === locationId);
   const staff = present.filter((npc) => npc.worldState.kind === 'at_location' && npc.worldState.purpose === 'work');
-  const visitors = present.filter((npc) => npc.worldState.kind === 'at_location' && npc.worldState.purpose === 'visit');
+  const visitors = present.filter((npc) => npc.worldState.kind === 'at_location' && npc.worldState.purpose !== 'work');
 
   return {
     locationId,

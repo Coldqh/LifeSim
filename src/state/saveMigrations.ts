@@ -1,6 +1,6 @@
 import { getCalendarDateForDay } from '../core/time';
 export const MIN_SUPPORTED_SAVE_VERSION = 7;
-export const CURRENT_SAVE_VERSION = 31;
+export const CURRENT_SAVE_VERSION = 32;
 export const SAVE_ENVELOPE_FORMAT = 'lifesim-save';
 
 export const getGameStateStorageKey = (version: number): string => `lifesim.gameState.v${version}`;
@@ -266,6 +266,51 @@ function migrateV30ToV31(state: unknown): unknown {
   };
 }
 
+
+function migrateV31ToV32(state: unknown): unknown {
+  const root = asRecord(state);
+  const world = asRecord(root?.world);
+  const population = asRecord(world?.population);
+  const time = asRecord(root?.time);
+  if (!root || !world || !population || !Array.isArray(population.npcs)) return state;
+  const day = typeof time?.day === 'number' ? Math.max(1, Math.floor(time.day)) : 1;
+  const startingMoney: Record<string, number> = {
+    worker: 24_000,
+    student: 9_000,
+    unemployed: 4_500,
+    remote_worker: 18_000,
+    retired: 16_000
+  };
+  const npcs = population.npcs.map((rawNpc) => {
+    const npc = asRecord(rawNpc);
+    if (!npc || asRecord(npc.life)) return rawNpc;
+    const profile = typeof npc.activityProfile === 'string' ? npc.activityProfile : 'unemployed';
+    const personality = asRecord(npc.personality);
+    const reliability = typeof personality?.reliability === 'number' ? Math.max(0, Math.min(100, Math.round(personality.reliability))) : 50;
+    return {
+      ...npc,
+      life: {
+        energy: 80,
+        health: 90,
+        money: startingMoney[profile] ?? 8_000,
+        reliability,
+        studyProgress: profile === 'student' ? 5 : 0,
+        missedCommitments: 0,
+        warningCount: 0,
+        jobSearchDays: profile === 'unemployed' ? 1 : 0,
+        lastProcessedDay: day
+      }
+    };
+  });
+  return {
+    ...root,
+    world: {
+      ...world,
+      population: { ...population, npcs }
+    }
+  };
+}
+
 const SAVE_MIGRATIONS = new Map<number, SaveMigration>([
   [7, identityMigration],
   [8, identityMigration],
@@ -290,7 +335,8 @@ const SAVE_MIGRATIONS = new Map<number, SaveMigration>([
   [27, migrateV27ToV28],
   [28, migrateV28ToV29],
   [29, migrateV29ToV30],
-  [30, migrateV30ToV31]
+  [30, migrateV30ToV31],
+  [31, migrateV31ToV32]
 ]);
 
 function assertSupportedVersion(version: number): void {
