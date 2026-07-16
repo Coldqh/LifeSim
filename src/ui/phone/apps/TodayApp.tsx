@@ -1,4 +1,5 @@
 import type { DailyOpportunityDecision } from '../../../types/dailyLife';
+import type { ContextualStoryChoice } from '../../../types/contextualStory';
 import type { LocationId, SocialEventChoiceId } from '../../../types/ids';
 import type { GameTime } from '../../../types/time';
 import { formatGameDate, formatGameTime, formatWeekday, getTotalMinutes } from '../../../core/time';
@@ -11,6 +12,23 @@ const STORY_LABELS = {
   work_colleague: 'Работа',
   boxing_partner: 'Боксёрский зал'
 } as const;
+
+const CONTEXTUAL_STORY_LABELS = {
+  work: 'Работа',
+  education: 'Учёба',
+  housing: 'Жильё',
+  finance: 'Деньги',
+  social: 'Люди',
+  district: 'Район'
+} as const;
+
+function contextualChoiceMeta(choice: ContextualStoryChoice): string {
+  const money = choice.effects.reduce((sum, effect) => effect.kind === 'money' ? sum + effect.amount : sum, 0);
+  return [
+    choice.durationMinutes ? `${choice.durationMinutes} мин` : undefined,
+    money ? `${money > 0 ? '+' : ''}${formatRubles(money)}` : undefined
+  ].filter(Boolean).join(' · ') || 'Решение без затрат времени';
+}
 
 const STATUS_LABELS = {
   upcoming: 'Впереди',
@@ -33,6 +51,7 @@ export default function TodayApp(props: {
   onOpenApp: (app: 'jobs' | 'education' | 'goals') => void;
   onChooseStory: (choiceId: SocialEventChoiceId) => void;
   onResolveLifeEvent: (eventId: string, choiceId: string) => void;
+  onResolveContextualStory: (eventId: string, choiceId: string) => void;
   onClose: () => void;
 }) {
   const daily = props.state.dailyLife;
@@ -94,6 +113,28 @@ export default function TodayApp(props: {
                   </button>
                 ))}
               </div>
+            </article>
+          ))}
+        </section>
+      ) : null}
+
+      {props.state.contextualStories.activeEvents.length ? (
+        <section className="phone-section-card phone-today__story">
+          <header><div><span>Истории вокруг тебя</span><strong>{props.state.contextualStories.activeEvents.length} требуют решения</strong></div><Icon name="users" size={20}/></header>
+          {props.state.contextualStories.activeEvents.map((event) => (
+            <article className={`phone-today-world-condition phone-today-world-condition--${event.tone === 'critical' ? 'slowdown' : event.tone === 'warning' ? 'transport_delay' : 'demand_surge'}`} key={event.id}>
+              <div><strong>{event.title}</strong><small>{CONTEXTUAL_STORY_LABELS[event.category]} · до дня {event.dueDay}</small></div>
+              <p>{event.text}</p>
+              <div className="phone-today__story-choices">
+                {event.choices.filter((choice) => !choice.expiryOnly).map((choice) => (
+                  <button type="button" key={choice.id} onClick={() => props.onResolveContextualStory(event.id, choice.id)}>
+                    <strong>{choice.label}</strong>
+                    <span>{choice.description}</span>
+                    <small>{contextualChoiceMeta(choice)}</small>
+                  </button>
+                ))}
+              </div>
+              <small className="phone-today__story-deadline">Осталось {Math.max(0, event.dueDay - props.time.day)} дн.</small>
             </article>
           ))}
         </section>

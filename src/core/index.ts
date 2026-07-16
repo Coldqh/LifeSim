@@ -35,3 +35,4 @@ export * as household from './household';
 export * from './life-phases';
 
 export * as districtEcosystem from './district-ecosystem';
+export * as storyDirector from './story-director';

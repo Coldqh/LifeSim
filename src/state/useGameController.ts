@@ -35,6 +35,7 @@ import { getBoxingFatigueLabel, getBoxingLevelProgress, getBoxingMembershipFailu
 import { getTotalMinutes } from '../core/time';
 import { createWorldDynamicsPanelState } from '../core/world-dynamics';
 import { createLifePhasesPanelState } from '../core/life-phases';
+import { createContextualStoryPanelState } from '../core/story-director';
 import { createOpportunityJobView, createOpportunityPanelState, getJobOpportunityFailure } from '../core/opportunity-lifecycle';
 import {
   getEntranceExamFailure,
@@ -275,7 +276,8 @@ export function useGameController() {
     resolveDailyOpportunity,
     selectLifeGoal,
     payHouseholdBills,
-    resolveLongTermLifeDecision
+    resolveLongTermLifeDecision,
+    resolveContextualStoryDecision
   } = useMemo(() => createGameCommands(setGameState), []);
 
   function executeDailyOpportunity(opportunity: DailyOpportunity): void {
@@ -300,6 +302,11 @@ export function useGameController() {
   const lifePhasesState = useMemo(
     () => createLifePhasesPanelState(gameState.world.lifePhases),
     [gameState.world.lifePhases]
+  );
+
+  const contextualStoriesState = useMemo(
+    () => createContextualStoryPanelState(gameState.world.contextualStories),
+    [gameState.world.contextualStories]
   );
 
   const districtEcosystemState = useMemo(() => createDistrictEcosystemPanelState({
@@ -974,12 +981,13 @@ export function useGameController() {
       household: householdState,
       lifePhases: lifePhasesState,
       districtEcosystem: districtEcosystemState,
+      contextualStories: contextualStoriesState,
       organizations: createOrganizationPanelState({ state: gameState.world.organizations, definitions: organizationDefinitions, cityId: gameState.player.cityId }),
       lifeProgression: lifeProgressionState,
       social: { groups: socialGroups, contacts, meetingOptions: socialMeetingOptions, invitations: socialInvitations, meetings: socialMeetings },
       districtTravelOptions: locationState.districtTravelOptions
     };
-  }, [gameState.player, gameState.progression, gameState.time, gameState.world.phone, gameState.world.vehicles, gameState.world.social, gameState.world.population, gameState.world.business, gameState.world.opportunities, gameState.world.organizations, financeState, vehicleState, intercityState, universityState, lifeGoalsState, lifeProgressionState, dailyLifeState, worldDynamicsState, householdState, lifePhasesState, districtEcosystemState, locationState.districtTravelOptions]);
+  }, [gameState.player, gameState.progression, gameState.time, gameState.world.phone, gameState.world.vehicles, gameState.world.social, gameState.world.population, gameState.world.business, gameState.world.opportunities, gameState.world.organizations, financeState, vehicleState, intercityState, universityState, lifeGoalsState, lifeProgressionState, dailyLifeState, worldDynamicsState, householdState, lifePhasesState, districtEcosystemState, contextualStoriesState, locationState.districtTravelOptions]);
 
   const educationState = useMemo(() => {
     const skills = basicSkills.map((skill) => ({
@@ -1406,6 +1414,7 @@ export function useGameController() {
     lifeGoalsState,
     lifeProgressionState,
     lifePhasesState,
+    contextualStoriesState,
     scheduledWaitState,
     performAction,
     moveToDistrict,
@@ -1478,6 +1487,7 @@ export function useGameController() {
     selectLifeGoal,
     payHouseholdBills,
     resolveLongTermLifeDecision,
+    resolveContextualStoryDecision,
     executeDailyOpportunity,
     resetGame
   };

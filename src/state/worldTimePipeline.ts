@@ -5,6 +5,7 @@ import { processFinanceDay, reconcileExternalBankBalance } from '../core/finance
 import { applyHousingDayChanges, applyHousingSleepRecovery, refreshHousingMarket } from '../core/housing';
 import { getHouseholdSleepPenalty, processHouseholdDays } from '../core/household';
 import { processLifePhasesTime } from '../core/life-phases';
+import { processContextualStoryTime } from '../core/story-director';
 import { processMedicalTime } from '../core/healthcare';
 import { processIntercityTime } from '../core/intercity';
 import { getLocationById } from '../core/location';
@@ -99,6 +100,7 @@ export type AdvanceWorldTimeResult = {
   household: WorldState['household'];
   lifePhases: WorldState['lifePhases'];
   districtEcosystem: WorldState['districtEcosystem'];
+  contextualStories: WorldState['contextualStories'];
   lifeLogEntries: LifeLogEntry[];
   needsDelta?: Partial<NeedsState>;
   messages: string[];
@@ -716,6 +718,41 @@ export function advanceWorldTime(input: AdvanceWorldTimeInput): AdvanceWorldTime
     phone = pushPhoneNotification(phone, { appId: 'today', title: summary.title, body: text, createdAtTotalMinutes: currentTotalMinutes });
   }
 
+  const contextualStoryApplied = processContextualStoryTime({
+    state: sourceWorld.contextualStories,
+    fromDay: state.time.day,
+    toDay: nextTime.day,
+    player: nextPlayer,
+    university: lifePhasesApplied.university,
+    household,
+    social,
+    organizations: organizationApplied.state,
+    districtEcosystem: districtEcosystemApplied.state,
+    population
+  });
+  nextPlayer = contextualStoryApplied.player;
+  population = contextualStoryApplied.population;
+  social = contextualStoryApplied.social;
+  for (const event of contextualStoryApplied.startedEvents) {
+    const text = `${event.text} Ответить до дня ${event.dueDay}.`;
+    messages.push(text);
+    lifeLogEntries.push(createLifeLogEntry({ time: nextTime }, event.title, text));
+    phone = pushPhoneNotification(phone, {
+      appId: 'today',
+      title: event.title,
+      body: text,
+      createdAtTotalMinutes: currentTotalMinutes,
+      npcId: event.npcId,
+      locationId: event.districtId ? cityRegistry.getLocationsForDistrict(event.districtId)[0]?.id : undefined
+    });
+  }
+  for (const entry of contextualStoryApplied.resolvedEntries) {
+    const text = `Срок ответа истёк. ${entry.text}`;
+    messages.push(text);
+    lifeLogEntries.push(createLifeLogEntry({ time: nextTime }, entry.title, text));
+    phone = pushPhoneNotification(phone, { appId: 'today', title: 'История продолжилась без тебя', body: text, createdAtTotalMinutes: currentTotalMinutes, npcId: entry.npcId });
+  }
+
   const intercityApplied = processIntercityAndPhone({
     intercity: sourceWorld.intercity,
     phone,
@@ -765,14 +802,15 @@ export function advanceWorldTime(input: AdvanceWorldTimeInput): AdvanceWorldTime
     vehicles,
     medical: lifePhasesApplied.medical,
     intercity: intercityApplied.intercity,
-    university: lifePhasesApplied.university,
+    university: contextualStoryApplied.university,
     atlas: atlasApplied.atlas,
     dynamics: dynamicsApplied.state,
     opportunities: opportunityApplied.state,
-    organizations: organizationApplied.state,
-    household,
+    organizations: contextualStoryApplied.organizations,
+    household: contextualStoryApplied.household,
     lifePhases: lifePhasesApplied.state,
-    districtEcosystem: districtEcosystemApplied.state
+    districtEcosystem: contextualStoryApplied.districtEcosystem,
+    contextualStories: contextualStoryApplied.state
   };
 
   return {
@@ -795,6 +833,7 @@ export function advanceWorldTime(input: AdvanceWorldTimeInput): AdvanceWorldTime
     household: world.household,
     lifePhases: world.lifePhases,
     districtEcosystem: world.districtEcosystem,
+    contextualStories: world.contextualStories,
     lifeLogEntries,
     needsDelta: mergeNeedsDelta(decayApplied.delta, comfortNeedsDelta),
     messages

@@ -20,6 +20,7 @@ import { createDailyLifeCommands } from './dailyLifeCommands';
 import { createLifeGoalCommands } from './lifeGoalCommands';
 import { createHouseholdCommands } from './householdCommands';
 import { createLifePhaseCommands } from './lifePhaseCommands';
+import { createContextualStoryCommands } from './contextualStoryCommands';
 
 export function createGameCommands(setGameState: GameStateSetter) {
   return {
@@ -43,7 +44,8 @@ export function createGameCommands(setGameState: GameStateSetter) {
     ...createDailyLifeCommands(setGameState),
     ...createLifeGoalCommands(setGameState),
     ...createHouseholdCommands(setGameState),
-    ...createLifePhaseCommands(setGameState)
+    ...createLifePhaseCommands(setGameState),
+    ...createContextualStoryCommands(setGameState)
   };
 }
 

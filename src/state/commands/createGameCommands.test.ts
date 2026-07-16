@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { getElapsedMinutes } from '../../core/time';
+import { getContextualStoryDefinition } from '../../data/contextualStories';
 import { createInitialGameState, type GameState } from '../gameState';
 import type { BusinessPremisesId } from '../../types/ids';
 import type { HousingId } from '../../types/housing';
@@ -71,6 +72,7 @@ describe('game command registry', () => {
       'requestSickLeave',
       'resetGame',
       'resignCurrentJob',
+      'resolveContextualStoryDecision',
       'resolveDailyOpportunity',
       'resolveLongTermLifeDecision',
       'respondNpcMeetingInvitation',
@@ -172,6 +174,27 @@ describe('game command registry', () => {
       decision: 'accepted'
     });
     expect(harness.getState().lastResult?.actionName).toBe('План на день');
+  });
+
+  it('resolves a contextual story through the command registry', () => {
+    const initial = createInitialGameState();
+    const definition = getContextualStoryDefinition('story_finance_short_gig');
+    if (!definition) throw new Error('Missing contextual story definition');
+    initial.world.contextualStories.activeEvents = [{
+      id: 'context_story_test', templateId: definition.id, category: definition.category, tone: definition.tone,
+      source: 'world', title: definition.title, text: definition.text, startedDay: initial.time.day,
+      dueDay: initial.time.day + definition.responseDays, defaultChoiceId: definition.defaultChoiceId,
+      choices: definition.choices, districtId: initial.player.districtId
+    }];
+    const harness = createStateHarness(initial);
+    const beforeEnergy = harness.getState().player.needs.energy;
+
+    harness.commands.resolveContextualStoryDecision('context_story_test', 'skip');
+
+    expect(harness.getState().lastResult?.ok).toBe(true);
+    expect(harness.getState().player.needs.energy).toBe(beforeEnergy + 1);
+    expect(harness.getState().world.contextualStories.activeEvents).toHaveLength(0);
+    expect(harness.getState().world.contextualStories.history[0]).toMatchObject({ templateId: 'story_finance_short_gig', choiceId: 'skip', expired: false });
   });
 
   it('resolves a long-term life decision through the command registry', () => {

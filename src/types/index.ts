@@ -49,3 +49,4 @@ export * from './household';
 export * from './lifePhase';
 
 export * from './districtEcosystem';
+export * from './contextualStory';

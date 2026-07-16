@@ -52,6 +52,7 @@ import type { OpportunityJobView, OpportunityPanelState } from '../../types/oppo
 import type { OrganizationPanelState } from '../../types/organization';
 import type { HouseholdPanelState } from '../../types/household';
 import type { DistrictEcosystemPanelState } from '../../types/districtEcosystem';
+import type { ContextualStoryPanelState } from '../../types/contextualStory';
 
 export type PhoneVacancyView = {
   job: Job;
@@ -216,6 +217,7 @@ export type PhonePanelState = {
   household: HouseholdPanelState;
   lifePhases: LifePhasesPanelState;
   districtEcosystem: DistrictEcosystemPanelState;
+  contextualStories: ContextualStoryPanelState;
   social: PhoneSocialState;
 };
 
@@ -274,4 +276,5 @@ export type PhoneShellProps = {
   onChooseSocialEvent: (choiceId: SocialEventChoiceId) => void;
   onExecuteDailyOpportunity: (opportunity: DailyOpportunity) => void;
   onResolveLongTermLifeDecision: (eventId: string, choiceId: string) => void;
+  onResolveContextualStory: (eventId: string, choiceId: string) => void;
 };

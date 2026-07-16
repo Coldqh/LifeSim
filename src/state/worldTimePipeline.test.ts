@@ -6,6 +6,7 @@ import { createInitialGameState } from './gameState';
 import { submitPhoneJobApplication } from '../core/phone';
 import { getAllJobs, getCareerCompanyById } from '../data/cities/contentSelectors';
 import { getLocationById } from '../core/location';
+import { getContextualStoryDefinition } from '../data/contextualStories';
 import { advanceWorldTime } from './worldTimePipeline';
 
 describe('advanceWorldTime', () => {
@@ -69,6 +70,26 @@ describe('advanceWorldTime', () => {
     expect(result.world.dynamics.history.length).toBeGreaterThan(0);
     expect(result.world.phone.notifications.some((entry) => Boolean(entry.worldNewsId))).toBe(true);
     expect(result.lifeLogEntries.some((entry) => result.world.dynamics.history.some((news) => news.title === entry.title))).toBe(true);
+  });
+
+  it('expires contextual stories through the shared world time pipeline', () => {
+    const state = createInitialGameState();
+    const definition = getContextualStoryDefinition('story_finance_short_gig');
+    if (!definition) throw new Error('Missing contextual story definition');
+    state.world.contextualStories.activeEvents = [{
+      id: 'context_story_pipeline_test', templateId: definition.id, category: definition.category, tone: definition.tone,
+      source: 'world', title: definition.title, text: definition.text, startedDay: state.time.day,
+      dueDay: state.time.day, defaultChoiceId: definition.defaultChoiceId, choices: definition.choices,
+      districtId: state.player.districtId
+    }];
+
+    const nextTime = addMinutes(state.time, 24 * 60);
+    const result = advanceWorldTime({ state, player: state.player, nextTime, decayProfile: 'resting', actionTitle: 'Ожидание' });
+
+    expect(result.world.contextualStories.activeEvents.some((entry) => entry.id === 'context_story_pipeline_test')).toBe(false);
+    expect(result.world.contextualStories.history.some((entry) => entry.eventId === 'context_story_pipeline_test' && entry.expired)).toBe(true);
+    expect(result.lifeLogEntries.some((entry) => entry.title === definition.title && entry.text.includes('Срок ответа истёк'))).toBe(true);
+    expect(result.world.phone.notifications.some((entry) => entry.title === 'История продолжилась без тебя')).toBe(true);
   });
 
   it('accrues household bills after a day passes and does not apply them twice', () => {

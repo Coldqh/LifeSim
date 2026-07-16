@@ -20,6 +20,7 @@ import type { LifeGoalsState } from '../types/lifeGoal';
 import type { LifeProgressionState } from '../types/lifeProgression';
 import type { LifePhasesState } from '../types/lifePhase';
 import type { DistrictEcosystemState } from '../types/districtEcosystem';
+import type { ContextualStoryState } from '../types/contextualStory';
 import { calculateAge, createInitialTime, formatGameTime, getTotalMinutes, normalizeGameTime } from '../core/time';
 import { createInitialBoxingProfile } from '../core/sport';
 import { createInitialCareerState, issueDegreeQualification, normalizePlayerCareerState, normalizePlayerQualifications } from '../core/career';
@@ -47,6 +48,7 @@ import { createInitialLifeGoalsState, normalizeLifeGoalsState } from '../core/li
 import { createInitialLifeProgressionState, normalizeLifeProgressionState } from '../core/life-progression';
 import { createInitialLifePhasesState, createLifePhaseSnapshot, normalizeLifePhasesState } from '../core/life-phases';
 import { createInitialDistrictEcosystemState, normalizeDistrictEcosystemState } from '../core/district-ecosystem';
+import { createInitialContextualStoryState, normalizeContextualStoryState } from '../core/story-director';
 import { usedVehicleListingTemplates } from '../data/vehicles/usedListingTemplates';
 import { cityRegistry } from '../data/cities';
 import { getAllBusinessPremises, getAllHousing, getAllJobs, getDegreeProgramById, getHousingById, getUniversityById } from '../data/cities/contentSelectors';
@@ -96,6 +98,7 @@ export type WorldState = {
   household: HouseholdState;
   lifePhases: LifePhasesState;
   districtEcosystem: DistrictEcosystemState;
+  contextualStories: ContextualStoryState;
 };
 
 export type GameState = {
@@ -335,7 +338,8 @@ export function createInitialGameState(): GameState {
         housing: getHousingById(player.housingId)
       }),
       lifePhases,
-      districtEcosystem
+      districtEcosystem,
+      contextualStories: createInitialContextualStoryState(atlas.seed ^ 0x4f1bbcdc, time.day)
     },
     lifeGoals,
     progression: createInitialLifeProgressionState(time.day),
@@ -861,7 +865,8 @@ function normalizeLoadedGameState(value: unknown): GameState | undefined {
         housing: getHousingById(playerHousingId)
       }),
       lifePhases,
-      districtEcosystem
+      districtEcosystem,
+      contextualStories: normalizeContextualStoryState(parsed.world?.contextualStories, atlas.seed ^ 0x4f1bbcdc, time.day)
     },
     player: normalizedPlayer
   };

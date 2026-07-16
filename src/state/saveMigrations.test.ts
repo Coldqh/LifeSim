@@ -225,6 +225,22 @@ describe('save migrations', () => {
     });
   });
 
+  it('adds contextual story director state when migrating v36 to v37', () => {
+    const migrated = migrateSaveState({ time: { day: 40 }, world: { atlas: { seed: 88 } } }, 36).state as {
+      world: { contextualStories: { version: number; seed: number; lastProcessedDay: number; activeEvents: unknown[]; scheduledEvents: unknown[]; cooldowns: Record<string, number>; history: unknown[] } };
+    };
+
+    expect(migrated.world.contextualStories).toEqual({
+      version: 1,
+      seed: 88 ^ 0x4f1bbcdc,
+      lastProcessedDay: 40,
+      activeEvents: [],
+      scheduledEvents: [],
+      cooldowns: {},
+      history: []
+    });
+  });
+
   it('decodes both legacy raw states and the current versioned envelope', () => {
     const legacy = decodeSavePayload(JSON.stringify({ player: { inventory: [] } }), 23);
     const encoded = encodeSavePayload({ marker: 'current' });
