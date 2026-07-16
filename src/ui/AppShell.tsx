@@ -115,13 +115,19 @@ export function AppShell() {
         socialState={socialState}
         housingState={housingState}
         businessState={businessState}
-        locationState={locationState}
+        locationState={{
+          ...locationState,
+          campusActivities: universityState.activeUniversity?.locationId === locationState.location?.id
+            ? universityState.campusActivities
+            : []
+        }}
         onApplyForJob={(jobId) => openPhone('jobs', jobId)}
         onBuyProduct={buyProduct}
         onPromoteJob={promoteJob}
         onMoveDistrict={moveToDistrict}
         onMoveLocation={moveToLocation}
         onPerformAction={performAction}
+        onPerformUniversityCampusActivity={performDegreeCampusActivity}
         onReset={resetGame}
         onUseInventoryItem={useInventoryItem}
         onWorkShift={workShift}

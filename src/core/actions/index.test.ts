@@ -5,12 +5,14 @@ import type { LifeAction } from '../../types/actions';
 import type { ActionId } from '../../types/ids';
 import type { Player } from '../../types/player';
 import type { GameTime } from '../../types/time';
+import { SKILL_IDS } from '../../data/skills/basicSkills';
 
 const time: GameTime = createInitialTime();
 
 function createPlayer(money: number): Player {
   return {
     money,
+    skills: {},
     needs: {
       hunger: 50,
       thirst: 50,
@@ -84,4 +86,23 @@ describe('applyLifeAction', () => {
       messages: ['Деньги: 50/100 ₽.']
     });
   });
+
+  it('applies skill rewards together with the regular action result', () => {
+    const output = applyLifeAction({
+      player: createPlayer(1_000),
+      time,
+      action: createAction({
+        moneyDelta: 0,
+        skillRewards: [{ skillId: SKILL_IDS.digital, experience: 14 }]
+      })
+    });
+
+    expect(output.player.skills[SKILL_IDS.digital]).toEqual({ level: 0, experience: 14 });
+    expect(output.result.skillUpdates).toEqual([expect.objectContaining({
+      skillId: SKILL_IDS.digital,
+      experienceDelta: 14,
+      leveledUp: false
+    })]);
+  });
+
 });

@@ -1,4 +1,5 @@
 import { lifeActions } from '../../data/lifeActions';
+import { getDefaultActionIdsForLocationType } from '../../data/locations/defaultLocationActions';
 import { cityRegistry } from '../../data/cities';
 import type { LifeAction } from '../../types/actions';
 import type { CityId, DistrictId, JobId, LocationId } from '../../types/ids';
@@ -45,17 +46,24 @@ export function getJobIdsForLocation(locationId: LocationId | undefined): JobId[
   return getLocationById(locationId)?.jobIds ?? [];
 }
 
+function getActionIdsForLocation(location: Location): LifeAction['id'][] {
+  return [...new Set([
+    ...location.availableActionIds,
+    ...getDefaultActionIdsForLocationType(location.type)
+  ])];
+}
+
 export function getActionsForLocation(locationId: LocationId | undefined): LifeAction[] {
   const location = getLocationById(locationId);
   if (!location) return [];
-  return location.availableActionIds
+  return getActionIdsForLocation(location)
     .map((actionId) => lifeActions.find((action) => action.id === actionId))
     .filter((action): action is LifeAction => Boolean(action));
 }
 
 export function isActionAvailableAtLocation(locationId: LocationId | undefined, actionId: LifeAction['id']): boolean {
   const location = getLocationById(locationId);
-  return Boolean(location?.availableActionIds.includes(actionId));
+  return Boolean(location && getActionIdsForLocation(location).includes(actionId));
 }
 
 export function getCityDistrictAndLocation(input: {

@@ -279,6 +279,11 @@ export function useGameController() {
       ? getTemporaryStayFailure({ state: gameState.world.intercity, locationId: location?.id, day: gameState.time.day })
       : undefined;
     const actionScheduleFailure = getScheduleActivityFailure(location?.openingHours, gameState.time, 0, 'Действие') ?? lodgingFailure;
+    const actionFailures = Object.fromEntries(actions.map((action) => [
+      String(action.id),
+      getScheduleActivityFailure(location?.openingHours, gameState.time, action.durationMinutes, 'Действие')
+        ?? ((action.category === 'sleep' || action.category === 'rest') ? lodgingFailure : undefined)
+    ]));
     const shopScheduleFailure = shop
       ? getScheduleActivityFailure(location?.openingHours, gameState.time, 0, 'Магазин')
       : undefined;
@@ -316,6 +321,7 @@ export function useGameController() {
       locationScheduleStatus,
       locationScheduleStatuses,
       actionScheduleFailure,
+      actionFailures,
       shopScheduleFailure,
       locationTravelOptions,
       districtTravelOptions
@@ -520,6 +526,7 @@ export function useGameController() {
         canEnroll: application?.status === 'passed' && gameState.player.money >= program.tuitionPerSemester
       };
     });
+    const activeUniversityLocation = getLocationById(activeUniversity?.locationId);
     const campusActivities = activeUniversity && enrollment
       ? universityCampusActivities.map((activity) => ({
           activity,
@@ -528,7 +535,12 @@ export function useGameController() {
             player: gameState.player,
             university: activeUniversity,
             activity
-          })
+          }) ?? getScheduleActivityFailure(
+            activeUniversityLocation?.openingHours,
+            gameState.time,
+            activity.durationMinutes,
+            'Кампус'
+          )
         }))
       : [];
     const campusPresence = activeUniversity

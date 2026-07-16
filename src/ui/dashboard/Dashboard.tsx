@@ -26,7 +26,8 @@ import type {
   BusinessMenuItemId,
   BusinessPremisesId,
   BusinessSupplyId,
-  BusinessUpgradeId
+  BusinessUpgradeId,
+  UniversityCampusActivityId
 } from '../../types/ids';
 import type { HousingId } from '../../types/housing';
 import type { BusinessEmployeeRole } from '../../types/business';
@@ -44,6 +45,7 @@ import type { SocialNpcView } from '../../types/relationship';
 import type { ActiveSocialEvent, SocialHistoryEntry } from '../../types/socialEvent';
 import type { Npc } from '../../types/npc';
 import type { ScheduleStatus } from '../../types/schedule';
+import type { UniversityCampusActivityDefinition } from '../../types/university';
 import type { DistrictTravelOption, LocationTravelOption } from '../../types/travel';
 import { Icon, type IconName } from '../icons';
 import { CharacterScene } from '../visuals';
@@ -64,6 +66,7 @@ import { SportPanel, type BoxingPanelState } from './SportPanel';
 import { LocationPeoplePanel } from './LocationPeoplePanel';
 import { PeoplePanel } from './PeoplePanel';
 import { SocialEventModal } from './SocialEventModal';
+import { UniversityCampusActionCard } from './UniversityCampusActionCard';
 
 type DashboardTab = 'character' | 'city' | 'housing' | 'business' | 'jobs' | 'development' | 'sport' | 'people' | 'log';
 
@@ -113,9 +116,11 @@ type DashboardProps = {
     locationScheduleStatus: ScheduleStatus;
     locationScheduleStatuses: Record<string, ScheduleStatus>;
     actionScheduleFailure?: string;
+    actionFailures: Record<string, string | undefined>;
     shopScheduleFailure?: string;
     locationTravelOptions: LocationTravelOption[];
     districtTravelOptions: DistrictTravelOption[];
+    campusActivities: Array<{ activity: UniversityCampusActivityDefinition; failure?: string }>;
   };
   jobState: {
     jobs: JobView[];
@@ -156,6 +161,7 @@ type DashboardProps = {
   housingState: HousingMarketPanelState;
   businessState: BusinessPanelState;
   onPerformAction: (actionId: ActionId) => void;
+  onPerformUniversityCampusActivity: (activityId: UniversityCampusActivityId) => void;
   onMoveDistrict: (districtId: DistrictId, modeId: TravelModeId) => void;
   onMoveLocation: (locationId: LocationId, modeId: TravelModeId) => void;
   onBuyProduct: (productId: ProductId) => void;
@@ -239,6 +245,7 @@ export function Dashboard({
   housingState,
   businessState,
   onPerformAction,
+  onPerformUniversityCampusActivity,
   onMoveDistrict,
   onMoveLocation,
   onBuyProduct,
@@ -428,25 +435,40 @@ export function Dashboard({
                   <div className="actions-panel__beam" aria-hidden="true" />
                   <div className="section-heading section-heading--compact">
                     <div><span className="section-kicker">Текущее место</span><h2>Действия</h2></div>
-                    <span className="section-counter">{actions.length}</span>
+                    <span className="section-counter">{actions.length + locationState.campusActivities.length}</span>
                   </div>
-                  {actions.length > 0 ? (
-                    <div className="actions-list">{actions.map((action) => (
-                      <ActionCard
-                        action={action}
-                        failure={locationState.actionScheduleFailure ?? getLifeActionFailure(player, action)}
-                        effectiveNeedsDelta={adjustActivityNeedsDelta(
-                          player.needs,
-                          action.needsDelta,
-                          {
-                            scaleEnergyCost: true,
-                            scaleEnergyRecovery: action.category === 'sleep' || action.category === 'rest'
-                          }
-                        )}
-                        key={action.id}
-                        onPerform={onPerformAction}
-                      />
-                    ))}</div>
+                  {actions.length > 0 || locationState.campusActivities.length > 0 ? (
+                    <div className="actions-list">
+                      {actions.map((action) => (
+                        <ActionCard
+                          action={action}
+                          failure={locationState.actionFailures[String(action.id)] ?? getLifeActionFailure(player, action)}
+                          effectiveNeedsDelta={adjustActivityNeedsDelta(
+                            player.needs,
+                            action.needsDelta,
+                            {
+                              scaleEnergyCost: true,
+                              scaleEnergyRecovery: action.category === 'sleep' || action.category === 'rest'
+                            }
+                          )}
+                          key={action.id}
+                          onPerform={onPerformAction}
+                        />
+                      ))}
+                      {locationState.campusActivities.map(({ activity, failure }) => (
+                        <UniversityCampusActionCard
+                          activity={activity}
+                          effectiveNeedsDelta={adjustActivityNeedsDelta(
+                            player.needs,
+                            activity.needsDelta,
+                            { scaleEnergyCost: true, scaleEnergyRecovery: true }
+                          )}
+                          failure={failure}
+                          key={activity.id}
+                          onPerform={onPerformUniversityCampusActivity}
+                        />
+                      ))}
+                    </div>
                   ) : (
                     <div className="empty-state compact-empty-state">Нет доступных действий</div>
                   )}

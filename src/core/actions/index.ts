@@ -4,6 +4,7 @@ import {
   getNeedsRequirementFailure,
   getNeedWarning
 } from '../needs';
+import { applySkillRewards } from '../progression';
 import { addMinutes } from '../time';
 import type { ActionResult, LifeAction } from '../../types/actions';
 import type { GameTime } from '../../types/time';
@@ -101,15 +102,21 @@ export function applyLifeAction(input: ApplyLifeActionInput): ApplyLifeActionOut
     scaleEnergyCost: true,
     scaleEnergyRecovery: action.category === 'sleep' || action.category === 'rest'
   });
+  const skillApplied = applySkillRewards(player.skills, action.skillRewards);
   const nextMoney = applyMoneyDelta(player.money, action.moneyDelta);
   const warning = getNeedWarning(needsApplied.needs);
-  const messages = warning ? [action.resultMessage, warning] : [action.resultMessage];
+  const levelUpMessages = skillApplied.updates
+    .filter((update) => update.leveledUp)
+    .map((update) => `Навык повышен до уровня ${update.nextLevel}.`);
+  const messages = [action.resultMessage, ...levelUpMessages, warning]
+    .filter((message): message is string => Boolean(message));
 
   return {
     player: {
       ...player,
       money: nextMoney,
-      needs: needsApplied.needs
+      needs: needsApplied.needs,
+      skills: skillApplied.skills
     },
     time: nextTime,
     result: {
@@ -119,6 +126,7 @@ export function applyLifeAction(input: ApplyLifeActionInput): ApplyLifeActionOut
       timeDeltaMinutes: action.durationMinutes,
       moneyDelta: action.moneyDelta,
       needsDelta: needsApplied.delta,
+      ...(skillApplied.updates.length > 0 ? { skillUpdates: skillApplied.updates } : {}),
       messages
     }
   };
