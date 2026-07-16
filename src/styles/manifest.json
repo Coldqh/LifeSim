@@ -158,6 +158,14 @@
       "originalStartLine": 8404,
       "originalEndLine": 8404,
       "lines": 37
+    },
+    {
+      "order": 19,
+      "file": "parts/19-household-survival.css",
+      "heading": "Household economy and survival loop",
+      "originalStartLine": 8404,
+      "originalEndLine": 8625,
+      "lines": 222
     }
   ]
 }

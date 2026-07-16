@@ -15,7 +15,7 @@ export const basicShops: Shop[] = [
     id: shopId('shop_local_grocery'),
     name: 'Магазин у дома',
     description: 'Базовая еда и вода для обычного дня.',
-    productIds: products(['water_05l', 'water_15l', 'snack_bar', 'ready_meal', 'fruit_pack', 'yogurt', 'tea_cup'])
+    productIds: products(['groceries_basic', 'groceries_fresh', 'cleaning_supplies', 'water_05l', 'water_15l', 'snack_bar', 'ready_meal', 'fruit_pack', 'yogurt', 'tea_cup'])
   },
   {
     id: shopId('shop_coffee_spot'),

@@ -49,6 +49,7 @@ import type { SocialGroupView } from '../../types/socialGroup';
 import type { WorldDynamicsPanelState } from '../../types/worldDynamics';
 import type { OpportunityJobView, OpportunityPanelState } from '../../types/opportunity';
 import type { OrganizationPanelState } from '../../types/organization';
+import type { HouseholdPanelState } from '../../types/household';
 
 export type PhoneVacancyView = {
   job: Job;
@@ -181,6 +182,8 @@ export type PhoneSocialState = {
   meetings: Array<{ meeting: SocialMeeting; npc?: Npc; definition?: SocialMeetingDefinition; location?: Location; failure?: string }>;
 };
 
+
+
 export type PhonePanelState = {
   phone: PhoneState;
   career: CareerResume;
@@ -208,6 +211,7 @@ export type PhonePanelState = {
   worldDynamics: WorldDynamicsPanelState;
   opportunities: OpportunityPanelState;
   organizations: OrganizationPanelState;
+  household: HouseholdPanelState;
   social: PhoneSocialState;
 };
 

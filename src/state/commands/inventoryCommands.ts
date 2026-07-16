@@ -1,4 +1,5 @@
 import { applyMoneyDelta, canAfford } from '../../core/economy';
+import { addHouseholdSupply } from '../../core/household';
 import { addInventoryItem, hasInventoryItem, removeInventoryItem } from '../../core/inventory';
 import { applyMedicalProduct, applyProductMedicalRisk } from '../../core/healthcare';
 import { getLocationById } from '../../core/location';
@@ -71,18 +72,24 @@ export function createInventoryCommands(setGameState: GameStateSetter) {
         };
       }
 
+      const householdSupply = product.householdSupply;
       const nextPlayer = {
         ...currentState.player,
         money: applyMoneyDelta(currentState.player.money, -effectivePrice),
-        inventory: addInventoryItem(currentState.player.inventory, product.id)
+        inventory: householdSupply ? currentState.player.inventory : addInventoryItem(currentState.player.inventory, product.id)
       };
+      const nextHousehold = householdSupply
+        ? addHouseholdSupply({ state: currentState.world.household, productId: product.id, supply: householdSupply, day: currentState.time.day })
+        : currentState.world.household;
       const priceNote = effectivePrice !== product.price ? ` Цена организации: ${effectivePrice} ₽.` : '';
-      const message = `Куплено: ${product.name}. Товар добавлен в инвентарь.${priceNote}`;
+      const storageNote = householdSupply ? ' Покупка отправлена в домашний запас.' : ' Товар добавлен в инвентарь.';
+      const message = `Куплено: ${product.name}.${storageNote}${priceNote}`;
       const logEntry = createLifeLogEntry(currentState, 'Покупка', message);
 
       return {
         ...currentState,
         player: nextPlayer,
+        world: { ...currentState.world, household: nextHousehold },
         lastResult: {
           ok: true,
           actionName: product.category === 'medicine' ? `Аптека: ${product.name}` : `Покупка: ${product.name}`,

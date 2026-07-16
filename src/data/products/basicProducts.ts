@@ -30,6 +30,36 @@ export function productId(value: string): ProductId {
 
 export const basicProducts: Product[] = [
   {
+    id: productId('groceries_basic'),
+    name: 'Базовый набор продуктов',
+    category: 'food',
+    price: 420,
+    description: 'Крупа, яйца и простые продукты на два домашних приёма пищи.',
+    useDurationMinutes: 0,
+    effects: {},
+    householdSupply: { foodUnits: 2, shelfLifeDays: 5 }
+  },
+  {
+    id: productId('groceries_fresh'),
+    name: 'Свежий набор продуктов',
+    category: 'food',
+    price: 650,
+    description: 'Свежие продукты на три домашних приёма пищи. Быстро портятся.',
+    useDurationMinutes: 0,
+    effects: {},
+    householdSupply: { foodUnits: 3, shelfLifeDays: 3 }
+  },
+  {
+    id: productId('cleaning_supplies'),
+    name: 'Средства для уборки',
+    category: 'other',
+    price: 280,
+    description: 'Бытовая химия и расходники на три полноценные уборки.',
+    useDurationMinutes: 0,
+    effects: {},
+    householdSupply: { cleaningUnits: 3 }
+  },
+  {
     id: productId('water_05l'),
     name: 'Святой Источник негазированная 0.5 л',
     category: 'drink',

@@ -90,6 +90,21 @@ export default function TodayApp(props: {
         </section>
       ) : null}
 
+      <section className="phone-section-card phone-today__household">
+        <header>
+          <div><span>Дом и быт</span><strong>{props.state.household.activeBreakdownLabel ?? (props.state.household.debt > 0 ? 'Нужна оплата' : 'Состояние дома')}</strong></div>
+          <Icon name="home" size={20}/>
+        </header>
+        <div className="phone-today__household-grid">
+          <div><span>Чистота</span><strong>{props.state.household.state.cleanliness}/100</strong></div>
+          <div><span>Исправность</span><strong>{props.state.household.state.condition}/100</strong></div>
+          <div><span>Продукты</span><strong>{props.state.household.foodUnits} порц.</strong></div>
+          <div className={props.state.household.outstandingBills > 0 ? 'is-warning' : ''}><span>Счета</span><strong>{formatRubles(props.state.household.outstandingBills)}</strong></div>
+        </div>
+        {props.state.household.activeBreakdownLabel ? <p className="phone-today__household-alert">{props.state.household.activeBreakdownLabel}. Ремонт доступен дома.</p> : null}
+        {props.state.household.nextExpiryDay ? <small>Ближайшие продукты испортятся в день {props.state.household.nextExpiryDay}.</small> : <small>Дома нет запаса продуктов.</small>}
+      </section>
+
       <section className="phone-section-card phone-today__world">
         <header><div><span>Город сейчас</span><strong>{props.state.worldDynamics.activeConditions.length ? 'Мир меняется' : 'Спокойный период'}</strong></div><Icon name="city" size={20}/></header>
         {props.state.worldDynamics.activeConditions.length ? props.state.worldDynamics.activeConditions.map((condition) => (

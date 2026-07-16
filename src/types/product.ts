@@ -1,6 +1,7 @@
 import type { NeedsState } from './needs';
 import type { MedicalProductUse } from './healthcare';
 import type { ProductId, ShopId } from './ids';
+import type { HouseholdSupplyDefinition } from './household';
 
 export type ProductCategory = 'food' | 'drink' | 'coffee' | 'medicine' | 'other';
 
@@ -14,6 +15,7 @@ export type Product = {
   imageSrc?: string;
   effects: Partial<NeedsState>;
   medicalUse?: MedicalProductUse;
+  householdSupply?: HouseholdSupplyDefinition;
 };
 
 export type ShopProduct = {

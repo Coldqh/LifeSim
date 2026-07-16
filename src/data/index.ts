@@ -42,3 +42,5 @@ export * from './career';
 export * from './lifeProgression';
 export * from './opportunityLifecycle';
 export * from './organizations';
+
+export * from './household';

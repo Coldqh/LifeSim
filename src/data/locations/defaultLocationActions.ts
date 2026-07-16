@@ -5,7 +5,9 @@ import { LIFE_ACTION_IDS } from '../lifeActions';
 const DEFAULT_ACTION_IDS_BY_LOCATION_TYPE: Partial<Record<LocationType, ActionId[]>> = {
   home: [
     LIFE_ACTION_IDS.cookSimpleMeal,
-    LIFE_ACTION_IDS.cleanHome
+    LIFE_ACTION_IDS.cleanHome,
+    LIFE_ACTION_IDS.orderMealDelivery,
+    LIFE_ACTION_IDS.repairHome
   ],
   cafe: [
     LIFE_ACTION_IDS.cafeCoffeeBreak,

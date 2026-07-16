@@ -186,6 +186,7 @@ type DashboardProps = {
   onScheduleHousingViewing: (housingId: HousingId) => void;
   onViewHousing: (housingId: HousingId) => void;
   onRentHousing: (housingId: HousingId) => void;
+  onPayHouseholdBills: () => void;
   onOpenBusiness: (premisesId: BusinessPremisesId, name: string) => void;
   onBuyBusinessSupply: (supplyId: BusinessSupplyId, batches?: number) => void;
   onSetBusinessPrice: (itemId: BusinessMenuItemId, price: number) => void;
@@ -271,6 +272,7 @@ export function Dashboard({
   onScheduleHousingViewing,
   onViewHousing,
   onRentHousing,
+  onPayHouseholdBills,
   onOpenBusiness,
   onBuyBusinessSupply,
   onSetBusinessPrice,
@@ -409,7 +411,7 @@ export function Dashboard({
               </section>
 
               <div className="character-data-grid">
-                <HousingPanel housing={housing} player={player} />
+                <HousingPanel housing={housing} player={player} household={housingState.household} />
                 <InventoryPanel inventory={player.inventory} onUseInventoryItem={onUseInventoryItem} />
               </div>
             </section>
@@ -491,6 +493,7 @@ export function Dashboard({
                 onScheduleViewing={onScheduleHousingViewing}
                 onViewHousing={onViewHousing}
                 onRentHousing={onRentHousing}
+                onPayHouseholdBills={onPayHouseholdBills}
               />
             </section>
           ) : null}

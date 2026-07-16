@@ -29,3 +29,5 @@ export * as lifeProgression from './life-progression';
 export * as opportunityLifecycle from './opportunity-lifecycle';
 export * as npcDaily from './npc-daily';
 export * from './organizations';
+
+export * as household from './household';

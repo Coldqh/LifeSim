@@ -13,6 +13,7 @@ import type { District, Location } from '../../types/location';
 import type { TravelModeId } from '../../types/transport';
 import type { LocationTravelOption } from '../../types/travel';
 import { Icon } from '../icons';
+import type { HouseholdPanelState } from '../../types/household';
 import { HousingScene } from '../visuals';
 import { TransportOptionCard } from './TransportOptionCard';
 
@@ -34,6 +35,7 @@ export type HousingMarketPanelState = {
   market: HousingMarketState;
   listings: HousingListingView[];
   daysUntilRefresh: number;
+  household: HouseholdPanelState;
 };
 
 type HousingMarketPanelProps = {
@@ -43,6 +45,7 @@ type HousingMarketPanelProps = {
   onScheduleViewing: (housingId: HousingId) => void;
   onViewHousing: (housingId: HousingId) => void;
   onRentHousing: (housingId: HousingId) => void;
+  onPayHouseholdBills: () => void;
 };
 
 const KIND_LABELS: Record<HousingKind, string> = {
@@ -71,7 +74,8 @@ export function HousingMarketPanel({
   onMoveLocation,
   onScheduleViewing,
   onViewHousing,
-  onRentHousing
+  onRentHousing,
+  onPayHouseholdBills
 }: HousingMarketPanelProps) {
   const [districtFilter, setDistrictFilter] = useState<DistrictId | 'all'>('all');
   const [kindFilter, setKindFilter] = useState<HousingKind | 'all'>('all');
@@ -122,6 +126,33 @@ export function HousingMarketPanel({
             </dl>
           ) : null}
         </div>
+      </section>
+
+      <section className="panel household-survival-panel visual-panel">
+        <div className="section-heading">
+          <div><span className="section-kicker">Домашний быт</span><h2>Состояние жилья</h2></div>
+          <span className={state.household.activeBreakdownLabel || state.household.debt > 0 ? 'status-label status-label--warning' : 'status-label'}>
+            {state.household.activeBreakdownLabel ?? (state.household.debt > 0 ? 'Есть долг' : 'Под контролем')}
+          </span>
+        </div>
+        <div className="household-status-grid">
+          <div><span>Чистота</span><strong>{state.household.state.cleanliness}/100</strong><i><b style={{ width: `${state.household.state.cleanliness}%` }}/></i></div>
+          <div><span>Исправность</span><strong>{state.household.state.condition}/100</strong><i><b style={{ width: `${state.household.state.condition}%` }}/></i></div>
+          <div><span>Продукты</span><strong>{state.household.foodUnits} порц.</strong><small>{state.household.nextExpiryDay ? `Ближайший срок: день ${state.household.nextExpiryDay}` : 'Запас пуст'}</small></div>
+          <div><span>Уборка</span><strong>{state.household.cleaningSupplies} исп.</strong><small>Средства для уборки</small></div>
+        </div>
+        <div className="household-bills-list">
+          {state.household.bills.map((bill) => (
+            <div className={bill.debt > 0 ? 'is-overdue' : ''} key={bill.kind}>
+              <span>{bill.label}<small>оплата до дня {bill.dueDay}</small></span>
+              <strong>{formatRubles(bill.accrued + bill.debt)}</strong>
+            </div>
+          ))}
+        </div>
+        <footer className="household-survival-panel__footer">
+          <div><span>К оплате</span><strong>{formatRubles(state.household.outstandingBills)}</strong></div>
+          <button type="button" disabled={state.household.outstandingBills <= 0} onClick={onPayHouseholdBills}>Оплатить счета</button>
+        </footer>
       </section>
 
       <section className="panel housing-market-panel visual-panel">

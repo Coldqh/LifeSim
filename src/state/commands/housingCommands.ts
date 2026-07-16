@@ -1,4 +1,5 @@
 import { HOUSING_MOVING_DURATION_MINUTES, HOUSING_VIEWING_DURATION_MINUTES, isHousingListingActive, markHousingViewed, moveIntoHousing, scheduleHousingViewing } from '../../core/housing';
+import { moveHouseholdToHousing } from '../../core/household';
 import { getHousingProgressionFailure } from '../../core/life-progression';
 import { addMinutes } from '../../core/time';
 import { getHousingById } from '../../data/cities/contentSelectors';
@@ -113,12 +114,18 @@ export function createHousingCommands(setGameState: GameStateSetter) {
       }
 
       const nextTime = addMinutes(currentState.time, HOUSING_MOVING_DURATION_MINUTES);
+      const household = moveHouseholdToHousing({
+        state: currentState.world.household,
+        housingId: housing.id,
+        day: currentState.time.day,
+        housing
+      });
       const elapsedApplied = applyElapsedTimeConsequences(
         currentState,
         moved.player,
         nextTime,
         'active',
-        { housingMarket: moved.market, actionTitle: moved.result.actionName }
+        { housingMarket: moved.market, household, actionTitle: moved.result.actionName }
       );
       const messages = [...moved.result.messages, ...elapsedApplied.messages];
       const logEntry = createLifeLogEntry({ time: nextTime }, 'Новое жильё', messages.join(' '));

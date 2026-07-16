@@ -1,0 +1,221 @@
+/* Household economy and survival loop */
+.household-survival-panel {
+  display: grid;
+  gap: 18px;
+  padding: 22px;
+  overflow: hidden;
+}
+
+.household-status-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.household-status-grid > div {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  padding: 13px;
+  border: 1px solid var(--line);
+  background: var(--panel-deep);
+}
+
+.household-status-grid span,
+.household-survival-panel__footer span {
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+}
+
+.household-status-grid strong {
+  font-size: 16px;
+}
+
+.household-status-grid small {
+  color: var(--muted);
+  font-size: 9px;
+  line-height: 1.45;
+}
+
+.household-status-grid i {
+  display: block;
+  height: 4px;
+  overflow: hidden;
+  background: var(--line);
+}
+
+.household-status-grid i b {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+}
+
+.household-bills-list {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.household-bills-list > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 11px 12px;
+  border: 1px solid var(--line);
+  background: var(--panel-deep);
+}
+
+.household-bills-list > div.is-overdue {
+  border-color: color-mix(in srgb, var(--danger) 55%, var(--line));
+  background: color-mix(in srgb, var(--danger) 9%, var(--panel-deep));
+}
+
+.household-bills-list span {
+  display: grid;
+  gap: 3px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.household-bills-list small {
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 500;
+}
+
+.household-bills-list strong {
+  white-space: nowrap;
+  font-size: 12px;
+}
+
+.household-survival-panel__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding-top: 4px;
+}
+
+.household-survival-panel__footer > div {
+  display: grid;
+  gap: 3px;
+}
+
+.household-survival-panel__footer strong {
+  font-size: 20px;
+}
+
+.household-survival-panel__footer button {
+  min-height: 40px;
+  padding: 0 18px;
+  border: 1px solid var(--accent);
+  background: var(--accent);
+  color: var(--accent-contrast, #071016);
+  font-weight: 800;
+}
+
+.household-survival-panel__footer button:disabled {
+  opacity: .4;
+  cursor: not-allowed;
+}
+
+.phone-today__household {
+  display: grid;
+  gap: 12px;
+}
+
+.phone-today__household > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.phone-today__household > header > div {
+  display: grid;
+  gap: 3px;
+}
+
+.phone-today__household > header span {
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.phone-today__household-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 7px;
+}
+
+.phone-today__household-grid > div {
+  display: grid;
+  gap: 4px;
+  padding: 10px;
+  border: 1px solid var(--line);
+  background: var(--panel-deep);
+}
+
+.phone-today__household-grid > div.is-warning {
+  border-color: color-mix(in srgb, var(--warning) 55%, var(--line));
+}
+
+.phone-today__household-grid span {
+  color: var(--muted);
+  font-size: 9px;
+}
+
+.phone-today__household-grid strong {
+  font-size: 13px;
+}
+
+.phone-today__household-alert {
+  margin: 0;
+  padding: 9px 10px;
+  border-left: 2px solid var(--danger);
+  background: color-mix(in srgb, var(--danger) 8%, var(--panel-deep));
+  font-size: 10px;
+  line-height: 1.45;
+}
+
+.phone-today__household > small {
+  color: var(--muted);
+  font-size: 9px;
+  line-height: 1.45;
+}
+
+@media (max-width: 760px) {
+  .household-survival-panel {
+    padding: 14px;
+  }
+
+  .household-status-grid,
+  .household-bills-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .household-bills-list > div:last-child {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 480px) {
+  .household-status-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .household-survival-panel__footer {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .household-survival-panel__footer button {
+    width: 100%;
+  }
+}

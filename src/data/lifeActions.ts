@@ -13,6 +13,8 @@ export const LIFE_ACTION_IDS = {
   lightTraining: actionId('light_training'),
   cookSimpleMeal: actionId('cook_simple_meal'),
   cleanHome: actionId('clean_home'),
+  orderMealDelivery: actionId('order_meal_delivery'),
+  repairHome: actionId('repair_home'),
   cafeCoffeeBreak: actionId('cafe_coffee_break'),
   cafeLaptopSession: actionId('cafe_laptop_session'),
   parkJog: actionId('park_jog')
@@ -80,18 +82,17 @@ export const lifeActions: LifeAction[] = [
   {
     id: LIFE_ACTION_IDS.cookSimpleMeal,
     name: 'Приготовить простую еду',
-    description: 'Купить недорогие продукты по пути и приготовить обычный домашний приём пищи.',
+    description: 'Использовать один запас продуктов дома и приготовить горячую еду.',
     category: 'food',
     durationMinutes: 45,
-    moneyDelta: -180,
     needsDelta: {
-      hunger: 38,
+      hunger: 50,
       thirst: 4,
       energy: -6,
-      mood: 4
+      mood: 5,
+      health: 1
     },
     requirements: {
-      minMoney: 180,
       minEnergy: 8,
       minHealth: 15
     },
@@ -113,6 +114,42 @@ export const lifeActions: LifeAction[] = [
       minHealth: 15
     },
     resultMessage: 'Ты привёл жильё в порядок.'
+  },
+  {
+    id: LIFE_ACTION_IDS.orderMealDelivery,
+    name: 'Заказать доставку еды',
+    description: 'Дороже готовки, но не требует запасов и занимает меньше времени.',
+    category: 'food',
+    durationMinutes: 20,
+    moneyDelta: -650,
+    needsDelta: {
+      hunger: 65,
+      thirst: 8,
+      energy: 2,
+      mood: 5
+    },
+    requirements: {
+      minMoney: 650,
+      minHealth: 10
+    },
+    resultMessage: 'Курьер привёз еду. Ты быстро поел дома.'
+  },
+  {
+    id: LIFE_ACTION_IDS.repairHome,
+    name: 'Устранить поломку',
+    description: 'Вызвать мастера и вернуть жильё в рабочее состояние.',
+    category: 'household',
+    durationMinutes: 120,
+    moneyDelta: -1800,
+    needsDelta: {
+      energy: -4,
+      mood: 4
+    },
+    requirements: {
+      minMoney: 1800,
+      minHealth: 10
+    },
+    resultMessage: 'Мастер закончил ремонт.'
   },
   {
     id: LIFE_ACTION_IDS.cafeCoffeeBreak,

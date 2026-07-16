@@ -91,6 +91,7 @@ export function AppShell() {
     skipGameTime,
     resolveDailyOpportunity,
     selectLifeGoal,
+    payHouseholdBills,
     executeDailyOpportunity,
     resetGame
   } = useGameController();
@@ -147,6 +148,7 @@ export function AppShell() {
         onScheduleHousingViewing={scheduleHousingViewing}
         onViewHousing={viewHousing}
         onRentHousing={rentHousing}
+        onPayHouseholdBills={payHouseholdBills}
         onOpenBusiness={openCoffeeBusiness}
         onBuyBusinessSupply={purchaseBusinessSupply}
         onSetBusinessPrice={changeBusinessMenuPrice}

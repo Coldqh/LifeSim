@@ -2,11 +2,13 @@ import { simulateBusinessTime } from '../core/business';
 import { processCareerTime } from '../core/career';
 import { processFinanceDay, reconcileExternalBankBalance } from '../core/finance';
 import { applyHousingDayChanges, applyHousingSleepRecovery, refreshHousingMarket } from '../core/housing';
+import { getHouseholdSleepPenalty, processHouseholdDays } from '../core/household';
 import { processMedicalTime } from '../core/healthcare';
 import { processIntercityTime } from '../core/intercity';
 import { getLocationById } from '../core/location';
 import {
   applyNeedsDecay,
+  applyNeedsDelta,
   describeNeedsDecay,
   getConditionTransitionMessages,
   type NeedsDecayProfile
@@ -92,6 +94,7 @@ export type AdvanceWorldTimeResult = {
   dynamics: WorldState['dynamics'];
   opportunities: WorldState['opportunities'];
   organizations: WorldState['organizations'];
+  household: WorldState['household'];
   lifeLogEntries: LifeLogEntry[];
   needsDelta?: Partial<NeedsState>;
   messages: string[];
@@ -273,6 +276,7 @@ export function advanceWorldTime(input: AdvanceWorldTimeInput): AdvanceWorldTime
     lifeLogEntries.push(createLifeLogEntry({ time: nextTime }, 'Карьера', probationMessage));
   }
   let housingMarket = sourceWorld.housingMarket;
+  let household = sourceWorld.household;
   let comfortNeedsDelta: Partial<NeedsState> = {};
 
   if (decayMessage) {
@@ -297,6 +301,13 @@ export function advanceWorldTime(input: AdvanceWorldTimeInput): AdvanceWorldTime
       lifeLogEntries.push(...applied.events.map((event) => (
         createLifeLogEntry({ time: nextTime }, event.title, event.text)
       )));
+      const householdApplied = processHouseholdDays({ state: household, housing, player: nextPlayer, toDay: nextTime.day });
+      household = householdApplied.state;
+      nextPlayer = householdApplied.player;
+      for (const event of householdApplied.events) {
+        messages.push(event.text);
+        lifeLogEntries.push(createLifeLogEntry({ time: nextTime }, event.title, event.text));
+      }
     }
     housingMarket = refreshHousingMarket({
       market: housingMarket,
@@ -319,6 +330,18 @@ export function advanceWorldTime(input: AdvanceWorldTimeInput): AdvanceWorldTime
     });
     nextPlayer = comfortApplied.player;
     comfortNeedsDelta = comfortApplied.needsDelta;
+    const householdPenalty = getHouseholdSleepPenalty(household, elapsedMinutes);
+    if (Object.keys(householdPenalty).length > 0) {
+      const beforeHouseholdNeeds = nextPlayer.needs;
+      const penalizedNeeds = applyNeedsDelta(beforeHouseholdNeeds, householdPenalty);
+      nextPlayer = { ...nextPlayer, needs: penalizedNeeds };
+      const actualPenalty = Object.fromEntries(Object.keys(householdPenalty).map((key) => {
+        const typed = key as keyof NeedsState;
+        return [typed, penalizedNeeds[typed] - beforeHouseholdNeeds[typed]];
+      }).filter(([, value]) => value !== 0)) as Partial<NeedsState>;
+      comfortNeedsDelta = mergeNeedsDelta(comfortNeedsDelta, actualPenalty) ?? {};
+      messages.push('Состояние дома ухудшило качество сна.');
+    }
     if (Object.keys(comfortNeedsDelta).length > 0 || comfortApplied.fatigueDelta < 0) {
       const parts = [
         comfortNeedsDelta.energy ? `энергия +${comfortNeedsDelta.energy}` : undefined,
@@ -659,7 +682,8 @@ export function advanceWorldTime(input: AdvanceWorldTimeInput): AdvanceWorldTime
     atlas: atlasApplied.atlas,
     dynamics: dynamicsApplied.state,
     opportunities: opportunityApplied.state,
-    organizations: organizationApplied.state
+    organizations: organizationApplied.state,
+    household
   };
 
   return {
@@ -679,6 +703,7 @@ export function advanceWorldTime(input: AdvanceWorldTimeInput): AdvanceWorldTime
     dynamics: world.dynamics,
     opportunities: world.opportunities,
     organizations: world.organizations,
+    household: world.household,
     lifeLogEntries,
     needsDelta: mergeNeedsDelta(decayApplied.delta, comfortNeedsDelta),
     messages

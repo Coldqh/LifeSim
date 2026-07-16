@@ -15,6 +15,7 @@ import type { WorldAtlasState } from '../types/worldAtlas';
 import type { WorldDynamicsState } from '../types/worldDynamics';
 import type { OpportunityWorldState } from '../types/opportunity';
 import type { OrganizationWorldState } from '../types/organization';
+import type { HouseholdState } from '../types/household';
 import type { LifeGoalsState } from '../types/lifeGoal';
 import type { LifeProgressionState } from '../types/lifeProgression';
 import { calculateAge, createInitialTime, formatGameTime, getTotalMinutes, normalizeGameTime } from '../core/time';
@@ -39,11 +40,12 @@ import { createInitialWorldAtlasState, getRegionalCityIds, normalizeWorldAtlasSt
 import { createInitialWorldDynamicsState, normalizeWorldDynamicsState } from '../core/world-dynamics';
 import { createInitialOpportunityState, normalizeOpportunityState } from '../core/opportunity-lifecycle';
 import { createInitialOrganizationState, normalizeOrganizationState } from '../core/organizations';
+import { createInitialHouseholdState, normalizeHouseholdState } from '../core/household';
 import { createInitialLifeGoalsState, normalizeLifeGoalsState } from '../core/life-goals';
 import { createInitialLifeProgressionState, normalizeLifeProgressionState } from '../core/life-progression';
 import { usedVehicleListingTemplates } from '../data/vehicles/usedListingTemplates';
 import { cityRegistry } from '../data/cities';
-import { getAllBusinessPremises, getAllHousing, getAllJobs, getDegreeProgramById, getUniversityById } from '../data/cities/contentSelectors';
+import { getAllBusinessPremises, getAllHousing, getAllJobs, getDegreeProgramById, getHousingById, getUniversityById } from '../data/cities/contentSelectors';
 import { intercityNetwork } from '../data/intercity/routes';
 import { opportunityLifecycleRules } from '../data/opportunityLifecycle';
 import { organizationDefinitions } from '../data/organizations';
@@ -87,6 +89,7 @@ export type WorldState = {
   dynamics: WorldDynamicsState;
   opportunities: OpportunityWorldState;
   organizations: OrganizationWorldState;
+  household: HouseholdState;
 };
 
 export type GameState = {
@@ -296,6 +299,11 @@ export function createInitialGameState(): GameState {
         jobs: jobsCatalogue,
         getJobCityId: (job) => cityRegistry.getLocation(job.locationId)?.cityId,
         rules: opportunityLifecycleRules
+      }),
+      household: createInitialHouseholdState({
+        housingId: player.housingId,
+        day: time.day,
+        housing: getHousingById(player.housingId)
       })
     },
     lifeGoals: createInitialLifeGoalsState(),
@@ -794,6 +802,12 @@ function normalizeLoadedGameState(value: unknown): GameState | undefined {
         jobs: jobsCatalogue,
         getJobCityId: (job) => cityRegistry.getLocation(job.locationId)?.cityId,
         rules: opportunityLifecycleRules
+      }),
+      household: normalizeHouseholdState({
+        value: parsed.world?.household,
+        housingId: playerHousingId,
+        day: time.day,
+        housing: getHousingById(playerHousingId)
       })
     },
     player: normalizedPlayer

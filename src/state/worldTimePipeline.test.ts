@@ -71,9 +71,10 @@ describe('advanceWorldTime', () => {
     expect(result.lifeLogEntries.some((entry) => result.world.dynamics.history.some((news) => news.title === entry.title))).toBe(true);
   });
 
-  it('records day expenses after housing consequences and does not apply them twice', () => {
+  it('accrues household bills after a day passes and does not apply them twice', () => {
     const state = createInitialGameState();
     const nextTime = addMinutes(state.time, 24 * 60);
+    const initialOutstanding = state.world.household.bills.reduce((sum, bill) => sum + bill.accrued + bill.debt, 0);
 
     const first = advanceWorldTime({
       state,
@@ -82,12 +83,11 @@ describe('advanceWorldTime', () => {
       decayProfile: 'resting',
       actionTitle: 'Ожидание'
     });
-    const housingTransaction = first.world.finance.transactions.find((entry) => (
-      entry.title === 'Жильё и регулярные платежи'
-    ));
+    const firstOutstanding = first.world.household.bills.reduce((sum, bill) => sum + bill.accrued + bill.debt, 0);
 
     expect(first.world.finance.lastProcessedDay).toBe(nextTime.day);
-    expect(housingTransaction?.amount).toBeLessThan(0);
+    expect(first.world.household.lastProcessedDay).toBe(nextTime.day);
+    expect(firstOutstanding).toBeGreaterThan(initialOutstanding);
 
     const committedState = {
       ...state,
@@ -102,8 +102,10 @@ describe('advanceWorldTime', () => {
       decayProfile: 'resting',
       actionTitle: 'Ожидание'
     });
+    const secondOutstanding = second.world.household.bills.reduce((sum, bill) => sum + bill.accrued + bill.debt, 0);
 
     expect(second.player.money).toBe(first.player.money);
+    expect(secondOutstanding).toBe(firstOutstanding);
     expect(second.world.finance.transactions).toHaveLength(first.world.finance.transactions.length);
     expect(second.world.phone.lastProcessedTotalMinutes).toBe(getTotalMinutes(nextTime));
   });

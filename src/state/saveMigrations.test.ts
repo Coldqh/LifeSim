@@ -178,6 +178,23 @@ describe('save migrations', () => {
     expect(migrated.world.organizations).toEqual({ version: 1, seed: 101 ^ 0x61c88647, lastProcessedDay: 21, organizations: {}, history: [] });
   });
 
+  it('adds household economy state when migrating v33 to v34', () => {
+    const migrated = migrateSaveState({
+      player: { housingId: 'housing_room_danilovsky' },
+      time: { day: 24 },
+      world: {}
+    }, 33).state as {
+      world: { household: { version: number; housingId: string; cleanliness: number; pantry: unknown[]; bills: Array<{ kind: string; dueDay: number }> } };
+    };
+
+    expect(migrated.world.household.version).toBe(1);
+    expect(migrated.world.household.housingId).toBe('housing_room_danilovsky');
+    expect(migrated.world.household.cleanliness).toBe(72);
+    expect(migrated.world.household.pantry).toHaveLength(1);
+    expect(migrated.world.household.bills.map((bill) => bill.kind)).toEqual(['electricity', 'water', 'internet']);
+    expect(migrated.world.household.bills[0].dueDay).toBe(31);
+  });
+
   it('decodes both legacy raw states and the current versioned envelope', () => {
     const legacy = decodeSavePayload(JSON.stringify({ player: { inventory: [] } }), 23);
     const encoded = encodeSavePayload({ marker: 'current' });

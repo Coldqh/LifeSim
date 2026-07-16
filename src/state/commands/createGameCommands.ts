@@ -18,6 +18,7 @@ import { createTimeCommands } from './timeCommands';
 import { createSystemCommands } from './systemCommands';
 import { createDailyLifeCommands } from './dailyLifeCommands';
 import { createLifeGoalCommands } from './lifeGoalCommands';
+import { createHouseholdCommands } from './householdCommands';
 
 export function createGameCommands(setGameState: GameStateSetter) {
   return {
@@ -39,7 +40,8 @@ export function createGameCommands(setGameState: GameStateSetter) {
     ...createTimeCommands(setGameState),
     ...createSystemCommands(setGameState),
     ...createDailyLifeCommands(setGameState),
-    ...createLifeGoalCommands(setGameState)
+    ...createLifeGoalCommands(setGameState),
+    ...createHouseholdCommands(setGameState)
   };
 }
 

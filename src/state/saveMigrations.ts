@@ -1,6 +1,6 @@
 import { getCalendarDateForDay } from '../core/time';
 export const MIN_SUPPORTED_SAVE_VERSION = 7;
-export const CURRENT_SAVE_VERSION = 33;
+export const CURRENT_SAVE_VERSION = 34;
 export const SAVE_ENVELOPE_FORMAT = 'lifesim-save';
 
 export const getGameStateStorageKey = (version: number): string => `lifesim.gameState.v${version}`;
@@ -323,6 +323,35 @@ function migrateV32ToV33(state: unknown): unknown {
   return { ...root, world: { ...world, organizations: { version: 1, seed: seed ^ 0x61c88647, lastProcessedDay: day, organizations: {}, history: [] } } };
 }
 
+
+function migrateV33ToV34(state: unknown): unknown {
+  const root = asRecord(state);
+  const world = asRecord(root?.world);
+  const player = asRecord(root?.player);
+  const time = asRecord(root?.time);
+  if (!root || !world || asRecord(world.household)) return state;
+  const day = typeof time?.day === 'number' ? Math.max(1, Math.floor(time.day)) : 1;
+  const housingId = typeof player?.housingId === 'string' ? player.housingId : 'housing_room_danilovsky';
+  const seed = [...housingId].reduce((hash, char) => Math.imul(hash ^ char.charCodeAt(0), 16777619), 2166136261) >>> 0;
+  return {
+    ...root,
+    world: {
+      ...world,
+      household: {
+        version: 1,
+        seed: seed ^ day,
+        housingId,
+        cleanliness: 72,
+        condition: 65,
+        cleaningSupplies: 1,
+        pantry: [{ id: `pantry_starter_${day}`, productId: 'groceries_basic', units: 2, storedDay: day, expiresDay: day + 5 }],
+        bills: ['electricity', 'water', 'internet'].map((kind) => ({ kind, accrued: 0, debt: 0, dueDay: day + 7, overdueDays: 0 })),
+        lastProcessedDay: day
+      }
+    }
+  };
+}
+
 const SAVE_MIGRATIONS = new Map<number, SaveMigration>([
   [7, identityMigration],
   [8, identityMigration],
@@ -349,7 +378,8 @@ const SAVE_MIGRATIONS = new Map<number, SaveMigration>([
   [29, migrateV29ToV30],
   [30, migrateV30ToV31],
   [31, migrateV31ToV32],
-  [32, migrateV32ToV33]
+  [32, migrateV32ToV33],
+  [33, migrateV33ToV34]
 ]);
 
 function assertSupportedVersion(version: number): void {

@@ -56,6 +56,7 @@ describe('game command registry', () => {
       'moveToDistrict',
       'moveToLocation',
       'openCoffeeBusiness',
+      'payHouseholdBills',
       'performAction',
       'performBoxingTraining',
       'performDegreeCampusActivity',
@@ -132,6 +133,31 @@ describe('game command registry', () => {
 
     expect(housingHarness.getState().lastResult?.ok).toBe(false);
     expect(housingHarness.getState().lastResult?.messages.join(' ')).toContain('уровень самостоятельности');
+  });
+
+  it('runs household actions through the command registry and consumes home supplies', () => {
+    const harness = createStateHarness();
+    const beforeFood = harness.getState().world.household.pantry.reduce((sum, batch) => sum + batch.units, 0);
+
+    harness.commands.performAction('cook_simple_meal' as never);
+
+    const after = harness.getState();
+    expect(after.lastResult?.ok).toBe(true);
+    expect(after.lastResult?.timeDeltaMinutes).toBe(45);
+    expect(after.world.household.pantry.reduce((sum, batch) => sum + batch.units, 0)).toBe(beforeFood - 1);
+  });
+
+  it('pays accrued household bills without bypassing the economy command', () => {
+    const initial = createInitialGameState();
+    initial.world.household.bills = initial.world.household.bills.map((bill) => ({ ...bill, accrued: 100 }));
+    const harness = createStateHarness(initial);
+    const beforeMoney = harness.getState().player.money;
+
+    harness.commands.payHouseholdBills();
+
+    expect(harness.getState().lastResult?.ok).toBe(true);
+    expect(harness.getState().player.money).toBe(beforeMoney - 300);
+    expect(harness.getState().world.household.bills.every((bill) => bill.accrued === 0 && bill.debt === 0)).toBe(true);
   });
 
   it('persists the player decision for the daily opportunity', () => {

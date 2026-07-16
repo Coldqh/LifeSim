@@ -3,6 +3,7 @@ import type { Housing } from '../../types/housing';
 import type { Player } from '../../types/player';
 import { Icon } from '../icons';
 import { HousingScene } from '../visuals';
+import type { HouseholdPanelState } from '../../types/household';
 
 const CONDITION_LABELS: Record<Housing['condition'], string> = {
   poor: 'плохое состояние',
@@ -14,9 +15,10 @@ const CONDITION_LABELS: Record<Housing['condition'], string> = {
 type HousingPanelProps = {
   housing?: Housing;
   player: Player;
+  household: HouseholdPanelState;
 };
 
-export function HousingPanel({ housing, player }: HousingPanelProps) {
+export function HousingPanel({ housing, player, household }: HousingPanelProps) {
   if (!housing) {
     return (
       <section className="panel housing-panel">
@@ -47,10 +49,11 @@ export function HousingPanel({ housing, player }: HousingPanelProps) {
 
         <dl className="data-ledger housing-ledger">
           <div><dt>Аренда</dt><dd>{formatRubles(housing.rentPerWeek)}</dd><small>раз в {housing.rentPeriodDays} дней</small></div>
-          <div><dt>Бытовые расходы</dt><dd>{formatRubles(housing.dailyUtilities)}</dd><small>в сутки</small></div>
+          <div><dt>Счета</dt><dd>{formatRubles(household.outstandingBills)}</dd><small>{household.debt > 0 ? 'есть просрочка' : 'начислено'}</small></div>
           <div><dt>Залог</dt><dd>{formatRubles(player.rentalContract.depositPaid)}</dd><small>возврат при переезде</small></div>
           <div><dt>Долг</dt><dd className={player.rentDebt > 0 ? 'text-negative' : ''}>{formatRubles(player.rentDebt)}</dd><small>по жилью</small></div>
-          <div><dt>Комфорт</dt><dd>{housing.comfort}</dd><small>из 100</small></div>
+          <div><dt>Чистота</dt><dd>{household.state.cleanliness}</dd><small>из 100</small></div>
+          <div><dt>Исправность</dt><dd>{household.state.condition}</dd><small>{household.activeBreakdownLabel ?? 'без поломок'}</small></div>
           <div><dt>Площадь</dt><dd>{housing.areaSqm} м²</dd><small>{CONDITION_LABELS[housing.condition]}</small></div>
         </dl>
       </div>

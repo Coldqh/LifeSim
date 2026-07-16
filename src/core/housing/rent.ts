@@ -77,19 +77,6 @@ export function applyHousingDayChanges(input: ApplyHousingDayChangesInput): Appl
   const events: HousingChargeEvent[] = [];
 
   for (let dayIndex = 0; dayIndex < elapsedDays; dayIndex += 1) {
-    const upkeep = applyHousingCharge({
-      money,
-      debt: rentDebt,
-      amount: input.housing.dailyUtilities,
-      paidTitle: 'Бытовые расходы',
-      paidText: `Жильё: бытовые расходы ${input.housing.dailyUtilities} ₽.`,
-      debtText: `Бытовые расходы ${input.housing.dailyUtilities} ₽ ушли в долг.`
-    });
-
-    money = upkeep.money;
-    rentDebt = upkeep.debt;
-    events.push(upkeep.event);
-
     daysUntilRent -= 1;
 
     if (daysUntilRent <= 0) {

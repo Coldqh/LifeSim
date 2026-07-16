@@ -4,6 +4,7 @@ import { selectDailyLifeState } from '../core/daily-life';
 import { getLifeGoalProgress } from '../core/life-goals';
 import { getBusinessHireCandidates, getBusinessLaunchFailure, getBusinessStartupCost, isBusinessEmployeeOnShift } from '../core/business';
 import { getHousingAffordability, isHousingViewed, scheduleHousingViewing } from '../core/housing';
+import { getHouseholdActionFailure, getHouseholdDebt, getHouseholdFoodUnits, getHouseholdOutstandingBills } from '../core/household';
 import { canAfford } from '../core/economy';
 import { getEducationProgramFailure } from '../core/education';
 import { getJobApplicationFailure, getJobProgress, getJobPromotionFailure, getJobShiftFailure } from '../core/jobs';
@@ -45,6 +46,7 @@ import { calculateVehicleTravelQuote } from '../core/vehicles';
 import { createDistrictTravelOption, createLocationTravelOptions } from '../core/travel';
 import { allLocations } from '../data/locations';
 import { LIFE_ACTION_IDS } from '../data/lifeActions';
+import { getHouseholdActionKind, HOUSEHOLD_BILL_LABELS } from '../data/household';
 import { lifeGoalDefinitions } from '../data/lifeGoals';
 import { lifeProgressionTrackDefinitions } from '../data/lifeProgression';
 import {
@@ -267,7 +269,8 @@ export function useGameController() {
     skipGameTime,
     resetGame,
     resolveDailyOpportunity,
-    selectLifeGoal
+    selectLifeGoal,
+    payHouseholdBills
   } = useMemo(() => createGameCommands(setGameState), []);
 
   function executeDailyOpportunity(opportunity: DailyOpportunity): void {
@@ -288,6 +291,24 @@ export function useGameController() {
     gameState.player.cityId,
     gameState.time.day
   ), [gameState.player.cityId, gameState.time.day, gameState.world.dynamics]);
+
+  const householdState = useMemo(() => {
+    const household = gameState.world.household;
+    const housing = getHousingById(gameState.player.housingId);
+    const homeLocationId = housing?.locationId;
+    const breakdownLabels = { fridge: 'Сломан холодильник', plumbing: 'Проблема с сантехникой', power: 'Проблема с электрикой' } as const;
+    return {
+      state: household,
+      foodUnits: getHouseholdFoodUnits(household, gameState.time.day),
+      cleaningSupplies: household.cleaningSupplies,
+      nextExpiryDay: household.pantry.length ? Math.min(...household.pantry.map((batch) => batch.expiresDay)) : undefined,
+      outstandingBills: getHouseholdOutstandingBills(household),
+      debt: getHouseholdDebt(household),
+      isAtHome: Boolean(homeLocationId && gameState.player.locationId === homeLocationId),
+      activeBreakdownLabel: household.activeBreakdown ? breakdownLabels[household.activeBreakdown.kind] : undefined,
+      bills: household.bills.map((bill) => ({ ...bill, label: HOUSEHOLD_BILL_LABELS[bill.kind] }))
+    };
+  }, [gameState.player.housingId, gameState.player.locationId, gameState.time.day, gameState.world.household]);
 
   const locationState = useMemo(() => {
     const city = getCityById(gameState.player.cityId);
@@ -315,11 +336,21 @@ export function useGameController() {
       ? getTemporaryStayFailure({ state: gameState.world.intercity, locationId: location?.id, day: gameState.time.day })
       : undefined;
     const actionScheduleFailure = commerceModifier.failure ?? getScheduleActivityFailure(location?.openingHours, gameState.time, 0, 'Действие') ?? lodgingFailure;
-    const actionFailures = Object.fromEntries(actions.map((action) => [
-      String(action.id),
-      commerceModifier.failure ?? getScheduleActivityFailure(location?.openingHours, gameState.time, action.durationMinutes, 'Действие')
-        ?? ((action.category === 'sleep' || action.category === 'rest') ? lodgingFailure : undefined)
-    ]));
+    const actionFailures = Object.fromEntries(actions.map((action) => {
+      const householdKind = getHouseholdActionKind(action.id);
+      return [
+        String(action.id),
+        commerceModifier.failure ?? getScheduleActivityFailure(location?.openingHours, gameState.time, action.durationMinutes, 'Действие')
+          ?? ((action.category === 'sleep' || action.category === 'rest') ? lodgingFailure : undefined)
+          ?? (householdKind ? getHouseholdActionFailure({
+            state: gameState.world.household,
+            player: gameState.player,
+            kind: householdKind,
+            atHome: householdState.isAtHome,
+            day: gameState.time.day
+          }) : undefined)
+      ];
+    }));
     const shopScheduleFailure = shop
       ? commerceModifier.failure ?? getScheduleActivityFailure(location?.openingHours, gameState.time, 0, 'Магазин')
       : undefined;
@@ -363,7 +394,7 @@ export function useGameController() {
       locationTravelOptions,
       districtTravelOptions
     };
-  }, [gameState.player.cityId, gameState.player.districtId, gameState.player.locationId, gameState.player.money, gameState.player.needs, gameState.time, gameState.world.vehicles, gameState.world.intercity, gameState.world.organizations, worldDynamicsState]);
+  }, [gameState.player.cityId, gameState.player.districtId, gameState.player.locationId, gameState.player.money, gameState.player.needs, gameState.time, gameState.world.vehicles, gameState.world.intercity, gameState.world.organizations, gameState.world.household, householdState, worldDynamicsState]);
 
   const jobState = useMemo(() => {
     const currentJob = getJobById(gameState.player.currentJobId);
@@ -463,13 +494,13 @@ export function useGameController() {
         dueDay: gameState.player.rentalContract.nextPaymentDay,
         category: 'housing'
       });
-      upcomingPayments.push({
-        id: 'housing_upkeep',
-        title: 'Бытовые расходы',
-        amount: housing.dailyUtilities,
-        dueDay: gameState.time.day + 1,
+      householdState.bills.forEach((bill) => upcomingPayments.push({
+        id: `household_${bill.kind}`,
+        title: bill.label,
+        amount: bill.accrued + bill.debt,
+        dueDay: bill.dueDay,
         category: 'housing'
-      });
+      }));
     }
     const business = gameState.world.business.ownedBusiness;
     const premises = getBusinessPremisesById(business?.premisesId);
@@ -486,10 +517,10 @@ export function useGameController() {
       finance,
       bankBalance: gameState.player.money,
       totalAssets: gameState.player.money + finance.cash + finance.savings,
-      totalDebt: gameState.player.rentDebt + (business?.debt ?? 0),
+      totalDebt: gameState.player.rentDebt + householdState.debt + (business?.debt ?? 0),
       upcomingPayments: upcomingPayments.sort((a, b) => a.dueDay - b.dueDay)
     };
-  }, [gameState.player.money, gameState.player.housingId, gameState.player.rentalContract.nextPaymentDay, gameState.player.rentDebt, gameState.time.day, gameState.world.finance, gameState.world.business]);
+  }, [gameState.player.money, gameState.player.housingId, gameState.player.rentalContract.nextPaymentDay, gameState.player.rentDebt, gameState.time.day, gameState.world.finance, gameState.world.business, householdState]);
 
 
   const vehicleState = useMemo(() => {
@@ -913,12 +944,13 @@ export function useGameController() {
       dailyLife: dailyLifeState,
       worldDynamics: worldDynamicsState,
       opportunities: createOpportunityPanelState({ state: gameState.world.opportunities, cityId: gameState.player.cityId }),
+      household: householdState,
       organizations: createOrganizationPanelState({ state: gameState.world.organizations, definitions: organizationDefinitions, cityId: gameState.player.cityId }),
       lifeProgression: lifeProgressionState,
       social: { groups: socialGroups, contacts, meetingOptions: socialMeetingOptions, invitations: socialInvitations, meetings: socialMeetings },
       districtTravelOptions: locationState.districtTravelOptions
     };
-  }, [gameState.player, gameState.progression, gameState.time, gameState.world.phone, gameState.world.vehicles, gameState.world.social, gameState.world.population, gameState.world.business, gameState.world.opportunities, gameState.world.organizations, financeState, vehicleState, intercityState, universityState, lifeGoalsState, lifeProgressionState, dailyLifeState, worldDynamicsState, locationState.districtTravelOptions]);
+  }, [gameState.player, gameState.progression, gameState.time, gameState.world.phone, gameState.world.vehicles, gameState.world.social, gameState.world.population, gameState.world.business, gameState.world.opportunities, gameState.world.organizations, financeState, vehicleState, intercityState, universityState, lifeGoalsState, lifeProgressionState, dailyLifeState, worldDynamicsState, householdState, locationState.districtTravelOptions]);
 
   const educationState = useMemo(() => {
     const skills = basicSkills.map((skill) => ({
@@ -1137,9 +1169,10 @@ export function useGameController() {
       contract: gameState.player.rentalContract,
       market: gameState.world.housingMarket,
       listings,
-      daysUntilRefresh: Math.max(0, gameState.world.housingMarket.lastRefreshDay + 4 - gameState.time.day)
+      daysUntilRefresh: Math.max(0, gameState.world.housingMarket.lastRefreshDay + 4 - gameState.time.day),
+      household: householdState
     };
-  }, [gameState.player, gameState.progression, gameState.time.day, gameState.world.housingMarket, worldDynamicsState]);
+  }, [gameState.player, gameState.progression, gameState.time.day, gameState.world.housingMarket, householdState, worldDynamicsState]);
 
   const businessState = useMemo(() => {
     const world = gameState.world.business;
@@ -1403,6 +1436,7 @@ export function useGameController() {
     skipGameTime,
     resolveDailyOpportunity,
     selectLifeGoal,
+    payHouseholdBills,
     executeDailyOpportunity,
     resetGame
   };
