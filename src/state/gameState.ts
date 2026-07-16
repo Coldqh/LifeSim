@@ -19,6 +19,7 @@ import type { HouseholdState } from '../types/household';
 import type { LifeGoalsState } from '../types/lifeGoal';
 import type { LifeProgressionState } from '../types/lifeProgression';
 import type { LifePhasesState } from '../types/lifePhase';
+import type { DistrictEcosystemState } from '../types/districtEcosystem';
 import { calculateAge, createInitialTime, formatGameTime, getTotalMinutes, normalizeGameTime } from '../core/time';
 import { createInitialBoxingProfile } from '../core/sport';
 import { createInitialCareerState, issueDegreeQualification, normalizePlayerCareerState, normalizePlayerQualifications } from '../core/career';
@@ -45,6 +46,7 @@ import { createInitialHouseholdState, normalizeHouseholdState } from '../core/ho
 import { createInitialLifeGoalsState, normalizeLifeGoalsState } from '../core/life-goals';
 import { createInitialLifeProgressionState, normalizeLifeProgressionState } from '../core/life-progression';
 import { createInitialLifePhasesState, createLifePhaseSnapshot, normalizeLifePhasesState } from '../core/life-phases';
+import { createInitialDistrictEcosystemState, normalizeDistrictEcosystemState } from '../core/district-ecosystem';
 import { usedVehicleListingTemplates } from '../data/vehicles/usedListingTemplates';
 import { cityRegistry } from '../data/cities';
 import { getAllBusinessPremises, getAllHousing, getAllJobs, getDegreeProgramById, getHousingById, getUniversityById } from '../data/cities/contentSelectors';
@@ -93,6 +95,7 @@ export type WorldState = {
   organizations: OrganizationWorldState;
   household: HouseholdState;
   lifePhases: LifePhasesState;
+  districtEcosystem: DistrictEcosystemState;
 };
 
 export type GameState = {
@@ -287,6 +290,15 @@ export function createInitialGameState(): GameState {
     social,
     lifeGoals
   }));
+  const districtEcosystem = createInitialDistrictEcosystemState({
+    seed: atlas.seed ^ 0x27d4eb2d,
+    day: time.day,
+    districts: cityRegistry.districts,
+    locations: cityRegistry.locations,
+    jobs: jobsCatalogue,
+    housing: housingCatalogue,
+    npcs: population.npcs
+  });
 
   return {
     player,
@@ -322,7 +334,8 @@ export function createInitialGameState(): GameState {
         day: time.day,
         housing: getHousingById(player.housingId)
       }),
-      lifePhases
+      lifePhases,
+      districtEcosystem
     },
     lifeGoals,
     progression: createInitialLifeProgressionState(time.day),
@@ -803,6 +816,16 @@ function normalizeLoadedGameState(value: unknown): GameState | undefined {
     parsed.world?.lifePhases,
     createLifePhaseSnapshot({ day: time.day, player: normalizedPlayer, university, business, medical, social, lifeGoals })
   );
+  const districtEcosystem = normalizeDistrictEcosystemState({
+    value: parsed.world?.districtEcosystem,
+    seed: atlas.seed ^ 0x27d4eb2d,
+    day: time.day,
+    districts: cityRegistry.districts,
+    locations: cityRegistry.locations,
+    jobs: jobsCatalogue,
+    housing: housingCatalogue,
+    npcs: population.npcs
+  });
 
   return {
     ...parsed,
@@ -837,7 +860,8 @@ function normalizeLoadedGameState(value: unknown): GameState | undefined {
         day: time.day,
         housing: getHousingById(playerHousingId)
       }),
-      lifePhases
+      lifePhases,
+      districtEcosystem
     },
     player: normalizedPlayer
   };

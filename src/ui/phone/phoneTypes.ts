@@ -51,6 +51,7 @@ import type { WorldDynamicsPanelState } from '../../types/worldDynamics';
 import type { OpportunityJobView, OpportunityPanelState } from '../../types/opportunity';
 import type { OrganizationPanelState } from '../../types/organization';
 import type { HouseholdPanelState } from '../../types/household';
+import type { DistrictEcosystemPanelState } from '../../types/districtEcosystem';
 
 export type PhoneVacancyView = {
   job: Job;
@@ -214,6 +215,7 @@ export type PhonePanelState = {
   organizations: OrganizationPanelState;
   household: HouseholdPanelState;
   lifePhases: LifePhasesPanelState;
+  districtEcosystem: DistrictEcosystemPanelState;
   social: PhoneSocialState;
 };
 

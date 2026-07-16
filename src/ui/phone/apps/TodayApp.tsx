@@ -144,6 +144,27 @@ export default function TodayApp(props: {
         ) : null}
       </section>
 
+      {props.state.districtEcosystem.current ? (
+        <section className="phone-section-card phone-today__world phone-today__district">
+          <header><div><span>Район сейчас</span><strong>{props.state.districtEcosystem.current.districtName} · {props.state.districtEcosystem.current.trendLabel}</strong></div><Icon name="pin" size={20}/></header>
+          <p>{props.state.districtEcosystem.current.trendDescription}</p>
+          <div className="phone-today__district-grid">
+            <div><span>Аренда</span><strong>×{props.state.districtEcosystem.current.modifiers.rentMultiplier.toFixed(2)}</strong></div>
+            <div><span>Поездки</span><strong>×{props.state.districtEcosystem.current.modifiers.travelDurationMultiplier.toFixed(2)}</strong></div>
+            <div><span>Работа</span><strong>{props.state.districtEcosystem.current.state.jobAccessIndex}</strong></div>
+            <div><span>Сервисы</span><strong>{props.state.districtEcosystem.current.state.servicesIndex}</strong></div>
+          </div>
+          {props.state.districtEcosystem.recentChanges.length ? (
+            <details className="phone-today-world-news">
+              <summary>Изменения районов</summary>
+              {props.state.districtEcosystem.recentChanges.slice(0, 5).map((entry) => (
+                <div key={entry.id}><span>День {entry.day}</span><strong>{entry.title}</strong><p>{entry.text}</p></div>
+              ))}
+            </details>
+          ) : null}
+        </section>
+      ) : null}
+
       <section className="phone-section-card phone-today__world">
         <header><div><span>Организации города</span><strong>{props.state.organizations.organizations.filter((entry) => entry.state.status !== 'stable').length ? 'Есть изменения' : 'Работают стабильно'}</strong></div><Icon name="building" size={20}/></header>
         {props.state.organizations.organizations.filter((entry) => entry.state.status !== 'stable').slice(0, 5).map((entry) => (

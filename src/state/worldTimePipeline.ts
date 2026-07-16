@@ -1,5 +1,6 @@
 import { simulateBusinessTime } from '../core/business';
 import { processCareerTime } from '../core/career';
+import { getDistrictEcosystemModifiers, processDistrictEcosystemTime } from '../core/district-ecosystem';
 import { processFinanceDay, reconcileExternalBankBalance } from '../core/finance';
 import { applyHousingDayChanges, applyHousingSleepRecovery, refreshHousingMarket } from '../core/housing';
 import { getHouseholdSleepPenalty, processHouseholdDays } from '../core/household';
@@ -97,6 +98,7 @@ export type AdvanceWorldTimeResult = {
   organizations: WorldState['organizations'];
   household: WorldState['household'];
   lifePhases: WorldState['lifePhases'];
+  districtEcosystem: WorldState['districtEcosystem'];
   lifeLogEntries: LifeLogEntry[];
   needsDelta?: Partial<NeedsState>;
   messages: string[];
@@ -301,9 +303,11 @@ export function advanceWorldTime(input: AdvanceWorldTimeInput): AdvanceWorldTime
       const currentRentContractKey = nextPlayer.rentalContract
         ? `${String(nextPlayer.housingId)}:${nextPlayer.rentalContract.startedDay}`
         : undefined;
-      const rentMultiplier = sourceWorld.lifePhases.rentContractKey === currentRentContractKey
+      const lifePhaseRentMultiplier = sourceWorld.lifePhases.rentContractKey === currentRentContractKey
         ? sourceWorld.lifePhases.rentMultiplier
         : 1;
+      const districtRentMultiplier = getDistrictEcosystemModifiers(sourceWorld.districtEcosystem, housing.districtId).rentMultiplier;
+      const rentMultiplier = lifePhaseRentMultiplier * districtRentMultiplier;
       const applied = applyHousingDayChanges({ player: nextPlayer, housing, elapsedDays, rentMultiplier });
       nextPlayer = applied.player;
       lifeLogEntries.push(...applied.events.map((event) => (
@@ -415,7 +419,16 @@ export function advanceWorldTime(input: AdvanceWorldTimeInput): AdvanceWorldTime
     getNpcCityId: (npc) => cityRegistry.getDistrict(npc.homeDistrictId)?.cityId
       ?? cityRegistry.getLocation(npc.employment?.locationId)?.cityId,
     getNpcRoleId: (job) => jobCategoryNpcRoles[job.category],
-    getJobLifecycleModifier: (job) => getOrganizationJobModifier({ state: organizationApplied.state, definition: getOrganizationForJob(job.id) }),
+    getJobLifecycleModifier: (job) => {
+      const organizationModifier = getOrganizationJobModifier({ state: organizationApplied.state, definition: getOrganizationForJob(job.id) });
+      const jobDistrictId = cityRegistry.getLocation(job.locationId)?.districtId;
+      const districtModifier = getDistrictEcosystemModifiers(sourceWorld.districtEcosystem, jobDistrictId);
+      return {
+        openDaysDelta: organizationModifier.openDaysDelta + districtModifier.opportunityOpenDaysDelta,
+        closedDaysDelta: organizationModifier.closedDaysDelta + districtModifier.opportunityClosedDaysDelta,
+        npcFillChanceDelta: organizationModifier.npcFillChanceDelta + districtModifier.npcFillChanceDelta
+      };
+    },
     rules: opportunityLifecycleRules
   });
   population = { ...population, npcs: opportunityApplied.npcs };
@@ -442,6 +455,27 @@ export function advanceWorldTime(input: AdvanceWorldTimeInput): AdvanceWorldTime
     regionalCityIds,
     toTime: nextTime
   });
+  const districtEcosystemApplied = processDistrictEcosystemTime({
+    state: sourceWorld.districtEcosystem,
+    fromDay: state.time.day,
+    toDay: nextTime.day,
+    districts: cityRegistry.districts,
+    locations: cityRegistry.locations,
+    jobs: jobsCatalogue,
+    housing: housingCatalogue,
+    population: population.npcs,
+    opportunities: opportunityApplied.state,
+    organizations: organizationApplied.state,
+    organizationDefinitions,
+    atlas: atlasApplied.atlas
+  });
+  population = { ...population, npcs: districtEcosystemApplied.npcs };
+  const visibleDistrictEvents = districtEcosystemApplied.events.filter((event) => event.cityId === activeCityId).slice(-5);
+  for (const event of visibleDistrictEvents) {
+    messages.push(event.text);
+    lifeLogEntries.push(createLifeLogEntry({ time: nextTime }, event.title, event.text));
+  }
+
   const dynamicsApplied = processWorldDynamicsTime({
     state: sourceWorld.dynamics,
     fromDay: state.time.day,
@@ -459,6 +493,7 @@ export function advanceWorldTime(input: AdvanceWorldTimeInput): AdvanceWorldTime
   const ownedBusiness = sourceWorld.business.ownedBusiness;
   const ownedBusinessPremises = getBusinessPremisesById(ownedBusiness?.premisesId);
   const businessCompetitionMultiplier = getBusinessCompetitionMultiplier({ state: organizationApplied.state, definitions: organizationDefinitions, cityId: ownedBusinessPremises ? cityRegistry.getDistrict(ownedBusinessPremises.districtId)?.cityId : undefined, day: nextTime.day });
+  const districtBusinessMultiplier = getDistrictEcosystemModifiers(districtEcosystemApplied.state, ownedBusinessPremises?.districtId).businessDemandMultiplier;
   const businessApplied = simulateBusinessTime({
     world: sourceWorld.business,
     fromTime: state.time,
@@ -470,7 +505,7 @@ export function advanceWorldTime(input: AdvanceWorldTimeInput): AdvanceWorldTime
     menuItems: businessMenuItems,
     supplies: businessSupplies,
     upgrades: businessUpgrades,
-    demandMultiplier: dynamicsModifiers.businessDemandMultiplier * businessCompetitionMultiplier
+    demandMultiplier: dynamicsModifiers.businessDemandMultiplier * businessCompetitionMultiplier * districtBusinessMultiplier
   });
   for (const event of businessApplied.events) {
     messages.push(event.text);
@@ -601,6 +636,16 @@ export function advanceWorldTime(input: AdvanceWorldTimeInput): AdvanceWorldTime
     phone = pushPhoneNotification(phone, { appId: 'today', title: event.title, body: event.text, createdAtTotalMinutes: currentTotalMinutes, locationId: organizationDefinitions.find((definition) => definition.id === event.organizationId)?.locationId });
   }
 
+  for (const event of visibleDistrictEvents) {
+    phone = pushPhoneNotification(phone, {
+      appId: 'today',
+      title: event.title,
+      body: event.text,
+      createdAtTotalMinutes: currentTotalMinutes,
+      npcId: event.npcId
+    });
+  }
+
   for (const news of [...dynamicsApplied.started, ...dynamicsApplied.ended]) {
     phone = pushPhoneNotification(phone, {
       appId: 'today',
@@ -726,7 +771,8 @@ export function advanceWorldTime(input: AdvanceWorldTimeInput): AdvanceWorldTime
     opportunities: opportunityApplied.state,
     organizations: organizationApplied.state,
     household,
-    lifePhases: lifePhasesApplied.state
+    lifePhases: lifePhasesApplied.state,
+    districtEcosystem: districtEcosystemApplied.state
   };
 
   return {
@@ -748,6 +794,7 @@ export function advanceWorldTime(input: AdvanceWorldTimeInput): AdvanceWorldTime
     organizations: world.organizations,
     household: world.household,
     lifePhases: world.lifePhases,
+    districtEcosystem: world.districtEcosystem,
     lifeLogEntries,
     needsDelta: mergeNeedsDelta(decayApplied.delta, comfortNeedsDelta),
     messages

@@ -1,4 +1,5 @@
 import { HOUSING_MOVING_DURATION_MINUTES, HOUSING_VIEWING_DURATION_MINUTES, isHousingListingActive, markHousingViewed, moveIntoHousing, scheduleHousingViewing } from '../../core/housing';
+import { getDistrictEcosystemModifiers } from '../../core/district-ecosystem';
 import { moveHouseholdToHousing } from '../../core/household';
 import { getHousingProgressionFailure } from '../../core/life-progression';
 import { addMinutes } from '../../core/time';
@@ -93,11 +94,13 @@ export function createHousingCommands(setGameState: GameStateSetter) {
           lifeLog: mergeLifeLog([logEntry], currentState.lifeLog)
         };
       }
+      const districtRentMultiplier = getDistrictEcosystemModifiers(currentState.world.districtEcosystem, housing.districtId).rentMultiplier;
       const moved = moveIntoHousing({
         player: currentState.player,
         market: currentState.world.housingMarket,
         housing,
-        currentDay: currentState.time.day
+        currentDay: currentState.time.day,
+        rentMultiplier: districtRentMultiplier
       });
       if (!moved.result.ok) {
         const logEntry = createLifeLogEntry(currentState, 'Переезд недоступен', moved.result.messages.join(' '));

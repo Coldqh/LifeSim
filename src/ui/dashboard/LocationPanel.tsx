@@ -8,6 +8,7 @@ import type { City, District, Location, LocationType } from '../../types/locatio
 import type { DistrictTravelOption, LocationTravelOption } from '../../types/travel';
 import type { ScheduleStatus } from '../../types/schedule';
 import type { OpportunityJobView } from '../../types/opportunity';
+import type { DistrictEcosystemPanelState } from '../../types/districtEcosystem';
 import { Icon, type IconName } from '../icons';
 import { LocationScene } from '../visuals';
 import { LocationTravelModal } from './LocationTravelModal';
@@ -41,6 +42,7 @@ type LocationPanelProps = {
   locationJobs: LocationJobView[];
   currentScheduleStatus: ScheduleStatus;
   locationScheduleStatuses: Record<string, ScheduleStatus>;
+  districtEcosystem: DistrictEcosystemPanelState;
   onMoveDistrict: (districtId: DistrictId, modeId: TravelModeId) => void;
   onMoveLocation: (locationId: LocationId, modeId: TravelModeId) => void;
   onApplyForJob: (jobId: JobId) => void;
@@ -134,6 +136,7 @@ export function LocationPanel({
   locationJobs,
   currentScheduleStatus,
   locationScheduleStatuses,
+  districtEcosystem,
   onMoveDistrict,
   onMoveLocation,
   onApplyForJob
@@ -218,6 +221,29 @@ export function LocationPanel({
             </button>
           </div>
         </header>
+
+        {districtEcosystem.current ? (
+          <section className={`district-ecosystem-card district-ecosystem-card--${districtEcosystem.current.state.trend}`}>
+            <div className="district-ecosystem-card__heading">
+              <div><span className="section-kicker">Район сейчас</span><h3>{districtEcosystem.current.districtName}</h3></div>
+              <span>{districtEcosystem.current.trendLabel}</span>
+            </div>
+            <p>{districtEcosystem.current.trendDescription}</p>
+            <div className="district-ecosystem-metrics">
+              <div><span>Жизнь</span><strong>{districtEcosystem.current.state.costOfLivingIndex}</strong></div>
+              <div><span>Жильё</span><strong>{districtEcosystem.current.state.housingDemandIndex}</strong></div>
+              <div><span>Работа</span><strong>{districtEcosystem.current.state.jobAccessIndex}</strong></div>
+              <div><span>Популярность</span><strong>{districtEcosystem.current.state.popularityIndex}</strong></div>
+              <div><span>Транспорт</span><strong>{districtEcosystem.current.state.transportLoadIndex}</strong></div>
+              <div><span>Сервисы</span><strong>{districtEcosystem.current.state.servicesIndex}</strong></div>
+            </div>
+            <footer>
+              <span>Аренда ×{districtEcosystem.current.modifiers.rentMultiplier.toFixed(2)}</span>
+              <span>Поездки ×{districtEcosystem.current.modifiers.travelDurationMultiplier.toFixed(2)}</span>
+              <span>Спрос ×{districtEcosystem.current.modifiers.businessDemandMultiplier.toFixed(2)}</span>
+            </footer>
+          </section>
+        ) : null}
 
         <div className="location-toolbar">
           <label className="search-field location-search-field">

@@ -211,6 +211,20 @@ describe('save migrations', () => {
     expect(migrated.world.lifePhases.lastMonthlySnapshot).toMatchObject({ money: 12000, completedGoalMilestones: 1, knownContacts: 1 });
   });
 
+  it('adds district ecosystem state when migrating v35 to v36', () => {
+    const migrated = migrateSaveState({ time: { day: 32 }, world: { atlas: { seed: 77 } } }, 35).state as {
+      world: { districtEcosystem: { version: number; seed: number; lastProcessedDay: number; districts: Record<string, unknown>; history: unknown[] } };
+    };
+
+    expect(migrated.world.districtEcosystem).toEqual({
+      version: 1,
+      seed: 77 ^ 0x27d4eb2d,
+      lastProcessedDay: 32,
+      districts: {},
+      history: []
+    });
+  });
+
   it('decodes both legacy raw states and the current versioned envelope', () => {
     const legacy = decodeSavePayload(JSON.stringify({ player: { inventory: [] } }), 23);
     const encoded = encodeSavePayload({ marker: 'current' });

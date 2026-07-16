@@ -1,0 +1,129 @@
+/* City ecosystem and district evolution */
+.district-ecosystem-card {
+  margin: 0 0 18px;
+  padding: 18px;
+  border: 1px solid var(--border-soft);
+  border-radius: 18px;
+  background: color-mix(in srgb, var(--surface-raised) 92%, transparent);
+}
+
+.district-ecosystem-card--rising {
+  border-color: color-mix(in srgb, var(--positive) 42%, var(--border-soft));
+}
+
+.district-ecosystem-card--declining {
+  border-color: color-mix(in srgb, var(--negative) 42%, var(--border-soft));
+}
+
+.district-ecosystem-card__heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.district-ecosystem-card__heading h3 {
+  margin: 3px 0 0;
+  font-size: 20px;
+}
+
+.district-ecosystem-card__heading > span {
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: var(--surface-muted);
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.district-ecosystem-card > p {
+  margin: 10px 0 14px;
+  color: var(--text-secondary);
+}
+
+.district-ecosystem-metrics {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.district-ecosystem-metrics > div,
+.phone-today__district-grid > div {
+  display: grid;
+  gap: 4px;
+  padding: 10px;
+  border-radius: 12px;
+  background: var(--surface-muted);
+}
+
+.district-ecosystem-metrics span,
+.phone-today__district-grid span {
+  color: var(--text-tertiary);
+  font-size: 11px;
+}
+
+.district-ecosystem-metrics strong,
+.phone-today__district-grid strong {
+  font-size: 16px;
+}
+
+.district-ecosystem-card footer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.district-ecosystem-card footer span {
+  padding: 5px 8px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.phone-today__district-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 7px;
+  margin: 12px 0;
+}
+
+.housing-district-price-note {
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--accent) 9%, transparent);
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+@media (max-width: 980px) {
+  .district-ecosystem-metrics {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 620px) {
+  .district-ecosystem-card {
+    margin-bottom: 12px;
+    padding: 13px;
+    border-radius: 15px;
+  }
+
+  .district-ecosystem-card__heading h3 {
+    font-size: 17px;
+  }
+
+  .district-ecosystem-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .district-ecosystem-card footer {
+    gap: 5px;
+  }
+
+  .phone-today__district-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

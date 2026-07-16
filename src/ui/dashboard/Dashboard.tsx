@@ -43,6 +43,7 @@ import type { NeedCondition, NeedsConsequences } from '../../types/needs';
 import type { LocationPopulationPresence, PopulationSummary } from '../../types/population';
 import type { LifeProgressionPanelState } from '../../types/lifeProgression';
 import type { OpportunityJobView } from '../../types/opportunity';
+import type { DistrictEcosystemPanelState } from '../../types/districtEcosystem';
 import type { SocialNpcView } from '../../types/relationship';
 import type { ActiveSocialEvent, SocialHistoryEntry } from '../../types/socialEvent';
 import type { Npc } from '../../types/npc';
@@ -123,6 +124,7 @@ type DashboardProps = {
     shopScheduleFailure?: string;
     locationTravelOptions: LocationTravelOption[];
     districtTravelOptions: DistrictTravelOption[];
+    districtEcosystem: DistrictEcosystemPanelState;
     campusActivities: Array<{ activity: UniversityCampusActivityDefinition; failure?: string }>;
   };
   jobState: {
@@ -411,7 +413,7 @@ export function Dashboard({
               </section>
 
               <div className="character-data-grid">
-                <HousingPanel housing={housing} player={player} household={housingState.household} />
+                <HousingPanel housing={housing} player={player} household={housingState.household} effectiveRentPerWeek={housingState.currentEffectiveRentPerWeek} />
                 <InventoryPanel inventory={player.inventory} onUseInventoryItem={onUseInventoryItem} />
               </div>
             </section>
@@ -429,6 +431,7 @@ export function Dashboard({
                   locationJobs={jobState.currentLocationJobs}
                   currentScheduleStatus={locationState.locationScheduleStatus}
                   locationScheduleStatuses={locationState.locationScheduleStatuses}
+                  districtEcosystem={locationState.districtEcosystem}
                   onMoveDistrict={onMoveDistrict}
                   onMoveLocation={onMoveLocation}
                   onApplyForJob={onApplyForJob}

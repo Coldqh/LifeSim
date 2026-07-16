@@ -19,6 +19,8 @@ import { TransportOptionCard } from './TransportOptionCard';
 
 export type HousingListingView = {
   housing: Housing;
+  effectiveRentPerWeek: number;
+  rentMultiplier: number;
   location?: Location;
   district?: District;
   route?: LocationTravelOption;
@@ -31,6 +33,7 @@ export type HousingListingView = {
 export type HousingMarketPanelState = {
   currentHousing?: Housing;
   currentDistrict?: District;
+  currentEffectiveRentPerWeek?: number;
   contract: RentalContract;
   market: HousingMarketState;
   listings: HousingListingView[];
@@ -93,7 +96,7 @@ export function HousingMarketPanel({
   const filteredListings = useMemo(() => state.listings.filter((listing) => (
     (districtFilter === 'all' || listing.housing.districtId === districtFilter)
     && (kindFilter === 'all' || listing.housing.kind === kindFilter)
-    && listing.housing.rentPerWeek <= maxRent
+    && listing.effectiveRentPerWeek <= maxRent
   )), [state.listings, districtFilter, kindFilter, maxRent]);
 
   const selected = state.listings.find((listing) => listing.housing.id === selectedHousingId);
@@ -120,7 +123,7 @@ export function HousingMarketPanel({
           {state.currentHousing ? (
             <dl className="data-ledger housing-market-ledger">
               <div><dt>Район</dt><dd>{state.currentDistrict?.name ?? '—'}</dd><small>{state.currentHousing.areaSqm} м²</small></div>
-              <div><dt>Аренда</dt><dd>{formatRubles(state.currentHousing.rentPerWeek)}</dd><small>в неделю</small></div>
+              <div><dt>Аренда</dt><dd>{formatRubles(state.currentEffectiveRentPerWeek ?? state.currentHousing.rentPerWeek)}</dd><small>с учётом района</small></div>
               <div><dt>Залог</dt><dd>{formatRubles(state.contract.depositPaid)}</dd><small>возврат при переезде</small></div>
               <div><dt>Комфорт</dt><dd>{state.currentHousing.comfort}</dd><small>из 100</small></div>
             </dl>
@@ -198,7 +201,7 @@ export function HousingMarketPanel({
                   <div><dt>Состояние</dt><dd>{CONDITION_LABELS[listing.housing.condition]}</dd></div>
                 </dl>
                 <footer>
-                  <div><strong>{formatRubles(listing.housing.rentPerWeek)}</strong><span>в неделю</span></div>
+                  <div><strong>{formatRubles(listing.effectiveRentPerWeek)}</strong><span>в неделю</span></div>
                   <button type="button" onClick={() => setSelectedHousingId(listing.housing.id)}>Подробнее <Icon name="arrow" size={14} /></button>
                 </footer>
               </div>
@@ -222,6 +225,7 @@ export function HousingMarketPanel({
               <h2>{selected.housing.name}</h2>
               <p className="housing-details-dialog__address"><Icon name="pin" size={15} /> {selected.housing.address}</p>
               <p>{selected.housing.description}</p>
+              {Math.abs(selected.rentMultiplier - 1) >= 0.02 ? <p className="housing-district-price-note">Район изменил базовую аренду {formatRubles(selected.housing.rentPerWeek)} до {formatRubles(selected.effectiveRentPerWeek)}.</p> : null}
 
               <dl className="housing-details-specs">
                 <div><dt>Площадь</dt><dd>{selected.housing.areaSqm} м²</dd></div>
@@ -231,7 +235,7 @@ export function HousingMarketPanel({
               </dl>
 
               <div className="housing-cost-breakdown">
-                <div><span>Первая неделя</span><strong>{formatRubles(selected.housing.rentPerWeek)}</strong></div>
+                <div><span>Первая неделя</span><strong>{formatRubles(selected.effectiveRentPerWeek)}</strong></div>
                 <div><span>Залог</span><strong>{formatRubles(selected.housing.deposit)}</strong></div>
                 <div><span>Переезд</span><strong>{formatRubles(selected.housing.movingCost)}</strong></div>
                 {selected.affordability.depositRefund > 0 ? <div className="text-positive"><span>Возврат старого залога</span><strong>−{formatRubles(selected.affordability.depositRefund)}</strong></div> : null}

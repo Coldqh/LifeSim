@@ -5,6 +5,7 @@ import { addMinutes } from '../../core/time';
 import { applyVehicleTravel, calculateVehicleTravelQuote } from '../../core/vehicles';
 import { calculateDistrictTravel, calculateLocationTravel, getTravelDurationMinutes } from '../../core/travel';
 import { getWorldDynamicsModifiers } from '../../core/world-dynamics';
+import { getRouteDistrictDurationMultiplier } from '../../core/district-ecosystem';
 import { getVehicleModelById } from '../../data/vehicles/vehicleModels';
 import type { DistrictId, LocationId } from '../../types/ids';
 import type { TravelModeId } from '../../types/transport';
@@ -28,12 +29,14 @@ export function createTravelCommands(setGameState: GameStateSetter) {
       }
       const currentLocation = getLocationById(currentState.player.locationId);
       const worldModifiers = getWorldDynamicsModifiers(currentState.world.dynamics, currentState.player.cityId, currentState.time.day);
+      const districtDurationMultiplier = getRouteDistrictDurationMultiplier(currentState.world.districtEcosystem, currentLocation?.districtId, defaultLocation.districtId);
       const travel = modeId === 'car'
         ? calculatePersonalCarTravel({
             world: currentState.world.vehicles,
             fromLocation: currentLocation,
             toLocation: defaultLocation,
-            kind: 'district'
+            kind: 'district',
+            durationMultiplier: districtDurationMultiplier
           })
         : calculateDistrictTravel({
             fromLocation: currentLocation,
@@ -43,7 +46,8 @@ export function createTravelCommands(setGameState: GameStateSetter) {
             context: {
               playerMoney: currentState.player.money,
               playerNeeds: currentState.player.needs,
-              publicTransportDurationMultiplier: worldModifiers.publicTransportDurationMultiplier
+              publicTransportDurationMultiplier: worldModifiers.publicTransportDurationMultiplier,
+              districtDurationMultiplier
             }
           });
 
@@ -128,12 +132,14 @@ export function createTravelCommands(setGameState: GameStateSetter) {
       }
       const currentLocation = getLocationById(currentState.player.locationId);
       const worldModifiers = getWorldDynamicsModifiers(currentState.world.dynamics, currentState.player.cityId, currentState.time.day);
+      const districtDurationMultiplier = getRouteDistrictDurationMultiplier(currentState.world.districtEcosystem, currentLocation?.districtId, location.districtId);
       const travel = modeId === 'car'
         ? calculatePersonalCarTravel({
             world: currentState.world.vehicles,
             fromLocation: currentLocation,
             toLocation: location,
-            kind: 'location'
+            kind: 'location',
+            durationMultiplier: districtDurationMultiplier
           })
         : calculateLocationTravel({
             fromLocation: currentLocation,
@@ -142,7 +148,8 @@ export function createTravelCommands(setGameState: GameStateSetter) {
             context: {
               playerMoney: currentState.player.money,
               playerNeeds: currentState.player.needs,
-              publicTransportDurationMultiplier: worldModifiers.publicTransportDurationMultiplier
+              publicTransportDurationMultiplier: worldModifiers.publicTransportDurationMultiplier,
+              districtDurationMultiplier
             }
           });
 

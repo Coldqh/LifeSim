@@ -131,6 +131,7 @@ export function calculatePersonalCarTravel(input: {
   fromLocation: ReturnType<typeof getLocationById>;
   toLocation: ReturnType<typeof getLocationById>;
   kind: 'location' | 'district';
+  durationMultiplier?: number;
 }): TravelResult {
   const model = getVehicleModelById(input.world.ownedVehicle?.modelId);
   const baseDurationMinutes = input.fromLocation && input.toLocation
@@ -170,7 +171,7 @@ export function calculatePersonalCarTravel(input: {
     kind: input.kind,
     modeId: 'car',
     modeName: 'Личный автомобиль',
-    durationMinutes: quote.durationMinutes,
+    durationMinutes: Math.max(1, Math.round(quote.durationMinutes * Math.max(0.75, Math.min(1.3, input.durationMultiplier ?? 1)))),
     moneyCost: quote.parkingCost,
     fromLocationId: input.fromLocation.id,
     toLocationId: input.toLocation.id,

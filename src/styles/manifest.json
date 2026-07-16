@@ -166,6 +166,14 @@
       "originalStartLine": 8404,
       "originalEndLine": 8625,
       "lines": 222
+    },
+    {
+      "order": 20,
+      "file": "parts/20-city-ecosystem.css",
+      "heading": "City ecosystem and district evolution",
+      "originalStartLine": 8625,
+      "originalEndLine": 8754,
+      "lines": 129
     }
   ]
 }

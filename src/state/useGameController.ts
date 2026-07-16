@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { getCareerApplicationFailure, getCareerResume } from '../core/career';
+import { createDistrictEcosystemPanelState, getDistrictEcosystemModifiers, getRouteDistrictDurationMultiplier } from '../core/district-ecosystem';
 import { selectDailyLifeState } from '../core/daily-life';
 import { getLifeGoalProgress } from '../core/life-goals';
 import { getBusinessHireCandidates, getBusinessLaunchFailure, getBusinessStartupCost, isBusinessEmployeeOnShift } from '../core/business';
@@ -44,7 +45,7 @@ import {
   getUniversitySemesterSummary
 } from '../core/university';
 import { calculateVehicleTravelQuote } from '../core/vehicles';
-import { createDistrictTravelOption, createLocationTravelOptions } from '../core/travel';
+import { createDistrictTravelOption, createLocationTravelOptions, getTravelDurationMinutes } from '../core/travel';
 import { allLocations } from '../data/locations';
 import { LIFE_ACTION_IDS } from '../data/lifeActions';
 import { getHouseholdActionKind, HOUSEHOLD_BILL_LABELS } from '../data/household';
@@ -121,7 +122,7 @@ function createPersonalCarTransportOption(input: {
   world: VehicleWorldState;
   fromLocation: ReturnType<typeof getLocationById>;
   toLocation: ReturnType<typeof getLocationById>;
-  baseDurationMinutes: number;
+  durationMultiplier?: number;
 }): TransportOption {
   const model = getVehicleModelById(input.world.ownedVehicle?.modelId);
   const quote = calculateVehicleTravelQuote({
@@ -131,7 +132,7 @@ function createPersonalCarTransportOption(input: {
     toLocationId: input.toLocation?.id,
     fromDistrictId: input.fromLocation?.districtId,
     toDistrictId: input.toLocation?.districtId,
-    baseDurationMinutes: input.baseDurationMinutes
+    baseDurationMinutes: input.fromLocation && input.toLocation ? getTravelDurationMinutes(input.fromLocation, input.toLocation) : 0
   });
   return {
     modeId: 'car',
@@ -139,7 +140,7 @@ function createPersonalCarTransportOption(input: {
     description: quote.available
       ? `${quote.distanceKm.toFixed(1)} км · топливо ${quote.fuelLiters.toFixed(1)} л · парковка ${quote.parkingCost} ₽`
       : quote.unavailableReason ?? 'Автомобиль недоступен.',
-    durationMinutes: quote.durationMinutes,
+    durationMinutes: Math.max(1, Math.round(quote.durationMinutes * Math.max(0.75, Math.min(1.3, input.durationMultiplier ?? 1)))),
     moneyCost: quote.parkingCost,
     available: quote.available,
     unavailableReason: quote.unavailableReason
@@ -149,7 +150,8 @@ function createPersonalCarTransportOption(input: {
 function addPersonalCarToLocationOptions(
   options: LocationTravelOption[],
   fromLocation: ReturnType<typeof getLocationById>,
-  world: VehicleWorldState
+  world: VehicleWorldState,
+  getDurationMultiplier?: (fromDistrictId: import('../types/ids').DistrictId, toDistrictId: import('../types/ids').DistrictId) => number
 ): LocationTravelOption[] {
   return options.map((option) => ({
     ...option,
@@ -159,7 +161,7 @@ function addPersonalCarToLocationOptions(
         world,
         fromLocation,
         toLocation: option.location,
-        baseDurationMinutes: option.durationMinutes
+        durationMultiplier: fromLocation ? getDurationMultiplier?.(fromLocation.districtId, option.location.districtId) : 1
       })
     ]
   }));
@@ -168,7 +170,8 @@ function addPersonalCarToLocationOptions(
 function addPersonalCarToDistrictOptions(
   options: DistrictTravelOption[],
   fromLocation: ReturnType<typeof getLocationById>,
-  world: VehicleWorldState
+  world: VehicleWorldState,
+  getDurationMultiplier?: (fromDistrictId: import('../types/ids').DistrictId, toDistrictId: import('../types/ids').DistrictId) => number
 ): DistrictTravelOption[] {
   return options.map((option) => ({
     ...option,
@@ -179,7 +182,7 @@ function addPersonalCarToDistrictOptions(
             world,
             fromLocation,
             toLocation: option.defaultLocation,
-            baseDurationMinutes: option.durationMinutes
+            durationMultiplier: fromLocation ? getDurationMultiplier?.(fromLocation.districtId, option.defaultLocation.districtId) : 1
           })
         ]
       : option.transportOptions
@@ -299,6 +302,13 @@ export function useGameController() {
     [gameState.world.lifePhases]
   );
 
+  const districtEcosystemState = useMemo(() => createDistrictEcosystemPanelState({
+    state: gameState.world.districtEcosystem,
+    cityId: gameState.player.cityId,
+    currentDistrictId: gameState.player.districtId,
+    districts: getDistrictsForCity(gameState.player.cityId)
+  }), [gameState.player.cityId, gameState.player.districtId, gameState.world.districtEcosystem]);
+
   const householdState = useMemo(() => {
     const household = gameState.world.household;
     const housing = getHousingById(gameState.player.housingId);
@@ -364,12 +374,16 @@ export function useGameController() {
     const travelContext = {
       playerMoney: gameState.player.money,
       playerNeeds: gameState.player.needs,
-      publicTransportDurationMultiplier: worldDynamicsState.modifiers.publicTransportDurationMultiplier
+      publicTransportDurationMultiplier: worldDynamicsState.modifiers.publicTransportDurationMultiplier,
+      getDistrictDurationMultiplier: (fromDistrictId: import('../types/ids').DistrictId, toDistrictId: import('../types/ids').DistrictId) => (
+        getRouteDistrictDurationMultiplier(gameState.world.districtEcosystem, fromDistrictId, toDistrictId)
+      )
     };
     const locationTravelOptions = addPersonalCarToLocationOptions(
       createLocationTravelOptions(location, locations, travelContext),
       location,
-      gameState.world.vehicles
+      gameState.world.vehicles,
+      (fromDistrictId, toDistrictId) => getRouteDistrictDurationMultiplier(gameState.world.districtEcosystem, fromDistrictId, toDistrictId)
     );
     const districtTravelOptions = addPersonalCarToDistrictOptions(
       districts.map((candidateDistrict) =>
@@ -381,7 +395,8 @@ export function useGameController() {
         })
       ),
       location,
-      gameState.world.vehicles
+      gameState.world.vehicles,
+      (fromDistrictId, toDistrictId) => getRouteDistrictDurationMultiplier(gameState.world.districtEcosystem, fromDistrictId, toDistrictId)
     );
 
     return {
@@ -399,9 +414,10 @@ export function useGameController() {
       actionFailures,
       shopScheduleFailure,
       locationTravelOptions,
-      districtTravelOptions
+      districtTravelOptions,
+      districtEcosystem: districtEcosystemState
     };
-  }, [gameState.player.cityId, gameState.player.districtId, gameState.player.locationId, gameState.player.money, gameState.player.needs, gameState.time, gameState.world.vehicles, gameState.world.intercity, gameState.world.organizations, gameState.world.household, householdState, worldDynamicsState]);
+  }, [gameState.player.cityId, gameState.player.districtId, gameState.player.locationId, gameState.player.money, gameState.player.needs, gameState.time, gameState.world.vehicles, gameState.world.intercity, gameState.world.organizations, gameState.world.household, householdState, worldDynamicsState, districtEcosystemState]);
 
   const jobState = useMemo(() => {
     const currentJob = getJobById(gameState.player.currentJobId);
@@ -767,7 +783,10 @@ export function useGameController() {
     const travelContext = {
       playerMoney: gameState.player.money,
       playerNeeds: gameState.player.needs,
-      publicTransportDurationMultiplier: worldDynamicsState.modifiers.publicTransportDurationMultiplier
+      publicTransportDurationMultiplier: worldDynamicsState.modifiers.publicTransportDurationMultiplier,
+      getDistrictDurationMultiplier: (fromDistrictId: import('../types/ids').DistrictId, toDistrictId: import('../types/ids').DistrictId) => (
+        getRouteDistrictDurationMultiplier(gameState.world.districtEcosystem, fromDistrictId, toDistrictId)
+      )
     };
     const jobs = jobsCatalogue.map((job) => {
       const location = getLocationById(job.locationId);
@@ -821,7 +840,8 @@ export function useGameController() {
       ? addPersonalCarToLocationOptions(
           createLocationTravelOptions(currentLocation, [mapTarget], travelContext),
           currentLocation,
-          gameState.world.vehicles
+          gameState.world.vehicles,
+          (fromDistrictId, toDistrictId) => getRouteDistrictDurationMultiplier(gameState.world.districtEcosystem, fromDistrictId, toDistrictId)
         )[0]
       : undefined;
 
@@ -953,12 +973,13 @@ export function useGameController() {
       opportunities: createOpportunityPanelState({ state: gameState.world.opportunities, cityId: gameState.player.cityId }),
       household: householdState,
       lifePhases: lifePhasesState,
+      districtEcosystem: districtEcosystemState,
       organizations: createOrganizationPanelState({ state: gameState.world.organizations, definitions: organizationDefinitions, cityId: gameState.player.cityId }),
       lifeProgression: lifeProgressionState,
       social: { groups: socialGroups, contacts, meetingOptions: socialMeetingOptions, invitations: socialInvitations, meetings: socialMeetings },
       districtTravelOptions: locationState.districtTravelOptions
     };
-  }, [gameState.player, gameState.progression, gameState.time, gameState.world.phone, gameState.world.vehicles, gameState.world.social, gameState.world.population, gameState.world.business, gameState.world.opportunities, gameState.world.organizations, financeState, vehicleState, intercityState, universityState, lifeGoalsState, lifeProgressionState, dailyLifeState, worldDynamicsState, householdState, lifePhasesState, locationState.districtTravelOptions]);
+  }, [gameState.player, gameState.progression, gameState.time, gameState.world.phone, gameState.world.vehicles, gameState.world.social, gameState.world.population, gameState.world.business, gameState.world.opportunities, gameState.world.organizations, financeState, vehicleState, intercityState, universityState, lifeGoalsState, lifeProgressionState, dailyLifeState, worldDynamicsState, householdState, lifePhasesState, districtEcosystemState, locationState.districtTravelOptions]);
 
   const educationState = useMemo(() => {
     const skills = basicSkills.map((skill) => ({
@@ -1138,10 +1159,15 @@ export function useGameController() {
     const currentHousing = getHousingById(gameState.player.housingId);
     const currentDistrict = currentHousing ? getDistrictById(currentHousing.districtId) : undefined;
     const currentLocation = getLocationById(gameState.player.locationId);
+    const currentRentMultiplier = getDistrictEcosystemModifiers(gameState.world.districtEcosystem, currentHousing?.districtId).rentMultiplier;
+    const currentEffectiveRentPerWeek = currentHousing ? Math.round(currentHousing.rentPerWeek * currentRentMultiplier) : undefined;
     const travelContext = {
       playerMoney: gameState.player.money,
       playerNeeds: gameState.player.needs,
-      publicTransportDurationMultiplier: worldDynamicsState.modifiers.publicTransportDurationMultiplier
+      publicTransportDurationMultiplier: worldDynamicsState.modifiers.publicTransportDurationMultiplier,
+      getDistrictDurationMultiplier: (fromDistrictId: import('../types/ids').DistrictId, toDistrictId: import('../types/ids').DistrictId) => (
+        getRouteDistrictDurationMultiplier(gameState.world.districtEcosystem, fromDistrictId, toDistrictId)
+      )
     };
     const listings = gameState.world.housingMarket.activeHousingIds
       .map((id) => getHousingById(id))
@@ -1153,13 +1179,17 @@ export function useGameController() {
         const route = location
           ? createLocationTravelOptions(currentLocation, [location], travelContext)[0]
           : undefined;
+        const rentMultiplier = getDistrictEcosystemModifiers(gameState.world.districtEcosystem, housing.districtId).rentMultiplier;
+        const effectiveRentPerWeek = Math.round(housing.rentPerWeek * rentMultiplier);
         return {
           housing,
+          effectiveRentPerWeek,
+          rentMultiplier,
           location,
           district,
           route,
           affordability: {
-            ...getHousingAffordability(gameState.player, housing),
+            ...getHousingAffordability(gameState.player, housing, rentMultiplier),
             ...(getHousingProgressionFailure(gameState.progression, housing)
               ? { canAfford: false, failure: getHousingProgressionFailure(gameState.progression, housing) }
               : {})
@@ -1169,18 +1199,19 @@ export function useGameController() {
           isAtLocation: gameState.player.locationId === housing.locationId
         };
       })
-      .sort((left, right) => left.housing.rentPerWeek - right.housing.rentPerWeek);
+      .sort((left, right) => left.effectiveRentPerWeek - right.effectiveRentPerWeek);
 
     return {
       currentHousing,
       currentDistrict,
+      currentEffectiveRentPerWeek,
       contract: gameState.player.rentalContract,
       market: gameState.world.housingMarket,
       listings,
       daysUntilRefresh: Math.max(0, gameState.world.housingMarket.lastRefreshDay + 4 - gameState.time.day),
       household: householdState
     };
-  }, [gameState.player, gameState.progression, gameState.time.day, gameState.world.housingMarket, householdState, worldDynamicsState]);
+  }, [gameState.player, gameState.progression, gameState.time.day, gameState.world.housingMarket, gameState.world.districtEcosystem, householdState, worldDynamicsState]);
 
   const businessState = useMemo(() => {
     const world = gameState.world.business;

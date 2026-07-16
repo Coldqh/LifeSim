@@ -35,6 +35,8 @@ type TravelContext = {
   playerMoney: number;
   playerNeeds: NeedsState;
   publicTransportDurationMultiplier?: number;
+  districtDurationMultiplier?: number;
+  getDistrictDurationMultiplier?: (fromDistrictId: District['id'], toDistrictId: District['id']) => number;
 };
 
 function getSameDistrictDuration(fromLocation: Location, toLocation: Location): number {
@@ -140,8 +142,9 @@ export function createTransportOptions(input: {
   const { baseDurationMinutes, isCrossDistrict, context } = input;
 
   if (baseDurationMinutes <= 0) return [];
+  const effectiveBaseDurationMinutes = Math.max(1, Math.round(baseDurationMinutes * Math.max(0.75, Math.min(1.3, context.districtDurationMultiplier ?? 1))));
 
-  const walkEnergyCost = getWalkEnergyCost(baseDurationMinutes, isCrossDistrict);
+  const walkEnergyCost = getWalkEnergyCost(effectiveBaseDurationMinutes, isCrossDistrict);
   const walkNeedsDelta = adjustActivityNeedsDelta(
     context.playerNeeds,
     { energy: -walkEnergyCost },
@@ -160,7 +163,7 @@ export function createTransportOptions(input: {
       modeId: 'walk',
       name: TRANSPORT_LABELS.walk.name,
       description: TRANSPORT_LABELS.walk.description,
-      durationMinutes: isCrossDistrict ? baseDurationMinutes * 2 : baseDurationMinutes,
+      durationMinutes: isCrossDistrict ? effectiveBaseDurationMinutes * 2 : effectiveBaseDurationMinutes,
       moneyCost: 0,
       needsDelta: walkNeedsDelta
     },
@@ -169,28 +172,28 @@ export function createTransportOptions(input: {
           modeId: 'bus' as const,
           name: TRANSPORT_LABELS.bus.name,
           description: TRANSPORT_LABELS.bus.description,
-          durationMinutes: applyPublicTransportDelay('bus', getBusDuration(baseDurationMinutes, false)),
+          durationMinutes: applyPublicTransportDelay('bus', getBusDuration(effectiveBaseDurationMinutes, false)),
           moneyCost: 60
         }]
       : [{
           modeId: 'metro' as const,
           name: TRANSPORT_LABELS.metro.name,
           description: TRANSPORT_LABELS.metro.description,
-          durationMinutes: applyPublicTransportDelay('metro', getMetroDuration(baseDurationMinutes)),
+          durationMinutes: applyPublicTransportDelay('metro', getMetroDuration(effectiveBaseDurationMinutes)),
           moneyCost: 65
         }, {
           modeId: 'bus' as const,
           name: TRANSPORT_LABELS.bus.name,
           description: 'Дешевле такси, но медленнее метро.',
-          durationMinutes: applyPublicTransportDelay('bus', getBusDuration(baseDurationMinutes, true)),
+          durationMinutes: applyPublicTransportDelay('bus', getBusDuration(effectiveBaseDurationMinutes, true)),
           moneyCost: 75
         }]),
     {
       modeId: 'taxi',
       name: TRANSPORT_LABELS.taxi.name,
       description: TRANSPORT_LABELS.taxi.description,
-      durationMinutes: applyPublicTransportDelay('taxi', getTaxiDuration(baseDurationMinutes, isCrossDistrict)),
-      moneyCost: getTaxiCost(baseDurationMinutes, isCrossDistrict)
+      durationMinutes: applyPublicTransportDelay('taxi', getTaxiDuration(effectiveBaseDurationMinutes, isCrossDistrict)),
+      moneyCost: getTaxiCost(effectiveBaseDurationMinutes, isCrossDistrict)
     }
   ];
 
@@ -377,7 +380,11 @@ export function createLocationTravelOptions(
   context: TravelContext
 ): LocationTravelOption[] {
   return locations.map((location) => {
-    const durationMinutes = currentLocation ? getTravelDurationMinutes(currentLocation, location) : 0;
+    const baseDurationMinutes = currentLocation ? getTravelDurationMinutes(currentLocation, location) : 0;
+    const districtDurationMultiplier = currentLocation
+      ? context.getDistrictDurationMultiplier?.(currentLocation.districtId, location.districtId) ?? context.districtDurationMultiplier ?? 1
+      : 1;
+    const durationMinutes = Math.max(0, Math.round(baseDurationMinutes * districtDurationMultiplier));
 
     return {
       location,
@@ -385,9 +392,9 @@ export function createLocationTravelOptions(
       isCurrent: currentLocation?.id === location.id,
       transportOptions: currentLocation
         ? createTransportOptions({
-            baseDurationMinutes: durationMinutes,
+            baseDurationMinutes,
             isCrossDistrict: currentLocation.districtId !== location.districtId,
-            context
+            context: { ...context, districtDurationMultiplier }
           })
         : []
     };
@@ -401,7 +408,11 @@ export function createDistrictTravelOption(input: {
   context: TravelContext;
 }): DistrictTravelOption {
   const { currentLocation, district, defaultLocation, context } = input;
-  const durationMinutes = currentLocation && defaultLocation ? getTravelDurationMinutes(currentLocation, defaultLocation) : 0;
+  const baseDurationMinutes = currentLocation && defaultLocation ? getTravelDurationMinutes(currentLocation, defaultLocation) : 0;
+  const districtDurationMultiplier = currentLocation && defaultLocation
+    ? context.getDistrictDurationMultiplier?.(currentLocation.districtId, defaultLocation.districtId) ?? context.districtDurationMultiplier ?? 1
+    : 1;
+  const durationMinutes = Math.max(0, Math.round(baseDurationMinutes * districtDurationMultiplier));
 
   return {
     district,
@@ -411,9 +422,9 @@ export function createDistrictTravelOption(input: {
     transportOptions:
       currentLocation && defaultLocation
         ? createTransportOptions({
-            baseDurationMinutes: durationMinutes,
+            baseDurationMinutes,
             isCrossDistrict: currentLocation.districtId !== defaultLocation.districtId,
-            context
+            context: { ...context, districtDurationMultiplier }
           })
         : []
   };

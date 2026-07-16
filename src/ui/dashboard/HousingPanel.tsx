@@ -16,9 +16,10 @@ type HousingPanelProps = {
   housing?: Housing;
   player: Player;
   household: HouseholdPanelState;
+  effectiveRentPerWeek?: number;
 };
 
-export function HousingPanel({ housing, player, household }: HousingPanelProps) {
+export function HousingPanel({ housing, player, household, effectiveRentPerWeek }: HousingPanelProps) {
   if (!housing) {
     return (
       <section className="panel housing-panel">
@@ -48,7 +49,7 @@ export function HousingPanel({ housing, player, household }: HousingPanelProps) 
         </div>
 
         <dl className="data-ledger housing-ledger">
-          <div><dt>Аренда</dt><dd>{formatRubles(housing.rentPerWeek)}</dd><small>раз в {housing.rentPeriodDays} дней</small></div>
+          <div><dt>Аренда</dt><dd>{formatRubles(effectiveRentPerWeek ?? housing.rentPerWeek)}</dd><small>раз в {housing.rentPeriodDays} дней · район</small></div>
           <div><dt>Счета</dt><dd>{formatRubles(household.outstandingBills)}</dd><small>{household.debt > 0 ? 'есть просрочка' : 'начислено'}</small></div>
           <div><dt>Залог</dt><dd>{formatRubles(player.rentalContract.depositPaid)}</dd><small>возврат при переезде</small></div>
           <div><dt>Долг</dt><dd className={player.rentDebt > 0 ? 'text-negative' : ''}>{formatRubles(player.rentDebt)}</dd><small>по жилью</small></div>

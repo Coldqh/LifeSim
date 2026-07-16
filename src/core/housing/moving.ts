@@ -12,9 +12,10 @@ import { isHousingListingActive, isHousingViewed } from './market';
 export const HOUSING_VIEWING_DURATION_MINUTES = 40;
 export const HOUSING_MOVING_DURATION_MINUTES = 120;
 
-export function getHousingAffordability(player: Player, housing: Housing): HousingAffordability {
+export function getHousingAffordability(player: Player, housing: Housing, rentMultiplier = 1): HousingAffordability {
   const depositRefund = player.rentalContract?.depositPaid ?? 0;
-  const moveInCost = housing.deposit + housing.rentPerWeek + housing.movingCost;
+  const effectiveRent = Math.round(housing.rentPerWeek * Math.max(0.5, rentMultiplier));
+  const moveInCost = housing.deposit + effectiveRent + housing.movingCost;
   const netCost = Math.max(0, moveInCost - depositRefund);
 
   if (player.rentDebt > 0) {
@@ -44,11 +45,12 @@ export function getHousingMoveFailure(input: {
   player: Player;
   market: HousingMarketState;
   housing: Housing;
+  rentMultiplier?: number;
 }): string | undefined {
   if (input.player.housingId === input.housing.id) return 'Ты уже живёшь здесь.';
   if (!isHousingListingActive(input.market, input.housing.id)) return 'Объявление больше не активно.';
   if (!isHousingViewed(input.market, input.housing.id)) return 'Сначала осмотри жильё.';
-  return getHousingAffordability(input.player, input.housing).failure;
+  return getHousingAffordability(input.player, input.housing, input.rentMultiplier).failure;
 }
 
 export function moveIntoHousing(input: {
@@ -56,6 +58,7 @@ export function moveIntoHousing(input: {
   market: HousingMarketState;
   housing: Housing;
   currentDay: number;
+  rentMultiplier?: number;
 }): HousingMoveResult {
   const failure = getHousingMoveFailure(input);
   if (failure) {
@@ -72,7 +75,7 @@ export function moveIntoHousing(input: {
     };
   }
 
-  const affordability = getHousingAffordability(input.player, input.housing);
+  const affordability = getHousingAffordability(input.player, input.housing, input.rentMultiplier);
   const moneyWithRefund = applyMoneyDelta(input.player.money, affordability.depositRefund);
   const nextMoney = applyMoneyDelta(moneyWithRefund, -affordability.moveInCost);
   const contract: RentalContract = {

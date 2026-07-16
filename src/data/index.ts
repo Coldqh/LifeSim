@@ -46,3 +46,5 @@ export * from './organizations';
 export * from './household';
 
 export * from './lifePhases';
+
+export * from './districtEcosystem';

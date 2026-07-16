@@ -33,3 +33,5 @@ export * from './organizations';
 export * as household from './household';
 
 export * from './life-phases';
+
+export * as districtEcosystem from './district-ecosystem';
