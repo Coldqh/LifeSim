@@ -21,6 +21,7 @@ import { createSocialGroupMemberMap, createSocialGroupView } from '../core/socia
 import { getContactExchangeFailure, getNpcSocialCircles, getSocialMeetingFailure, getSocialQuickMessageFailure } from '../core/social-life';
 import { getBoxingFatigueLabel, getBoxingLevelProgress, getBoxingMembershipFailure, getBoxingSparringFailure, getBoxingTournamentFailure, getBoxingTrainerSelectionFailure, getBoxingTrainingFailure, hasActiveBoxingMembership } from '../core/sport';
 import { getTotalMinutes } from '../core/time';
+import { createWorldDynamicsPanelState } from '../core/world-dynamics';
 import {
   getEntranceExamFailure,
   getUniversityApplicationForProgram,
@@ -268,6 +269,12 @@ export function useGameController() {
   }
 
 
+  const worldDynamicsState = useMemo(() => createWorldDynamicsPanelState(
+    gameState.world.dynamics,
+    gameState.player.cityId,
+    gameState.time.day
+  ), [gameState.player.cityId, gameState.time.day, gameState.world.dynamics]);
+
   const locationState = useMemo(() => {
     const city = getCityById(gameState.player.cityId);
     const district = getDistrictById(gameState.player.districtId);
@@ -302,7 +309,8 @@ export function useGameController() {
       : undefined;
     const travelContext = {
       playerMoney: gameState.player.money,
-      playerNeeds: gameState.player.needs
+      playerNeeds: gameState.player.needs,
+      publicTransportDurationMultiplier: worldDynamicsState.modifiers.publicTransportDurationMultiplier
     };
     const locationTravelOptions = addPersonalCarToLocationOptions(
       createLocationTravelOptions(location, locations, travelContext),
@@ -339,7 +347,7 @@ export function useGameController() {
       locationTravelOptions,
       districtTravelOptions
     };
-  }, [gameState.player.cityId, gameState.player.districtId, gameState.player.locationId, gameState.player.money, gameState.player.needs, gameState.time, gameState.world.vehicles, gameState.world.intercity]);
+  }, [gameState.player.cityId, gameState.player.districtId, gameState.player.locationId, gameState.player.money, gameState.player.needs, gameState.time, gameState.world.vehicles, gameState.world.intercity, worldDynamicsState]);
 
   const jobState = useMemo(() => {
     const currentJob = getJobById(gameState.player.currentJobId);
@@ -685,7 +693,11 @@ export function useGameController() {
   const phoneState = useMemo(() => {
     const phone = gameState.world.phone;
     const currentLocation = getLocationById(gameState.player.locationId);
-    const travelContext = { playerMoney: gameState.player.money, playerNeeds: gameState.player.needs };
+    const travelContext = {
+      playerMoney: gameState.player.money,
+      playerNeeds: gameState.player.needs,
+      publicTransportDurationMultiplier: worldDynamicsState.modifiers.publicTransportDurationMultiplier
+    };
     const jobs = jobsCatalogue.map((job) => {
       const location = getLocationById(job.locationId);
       const district = location ? getDistrictById(location.districtId) : undefined;
@@ -847,10 +859,11 @@ export function useGameController() {
       university: universityState,
       lifeGoals: lifeGoalsState,
       dailyLife: dailyLifeState,
+      worldDynamics: worldDynamicsState,
       social: { groups: socialGroups, contacts, meetingOptions: socialMeetingOptions, invitations: socialInvitations, meetings: socialMeetings },
       districtTravelOptions: locationState.districtTravelOptions
     };
-  }, [gameState.player, gameState.time, gameState.world.phone, gameState.world.vehicles, gameState.world.social, gameState.world.population, gameState.world.business, financeState, vehicleState, intercityState, universityState, lifeGoalsState, dailyLifeState, locationState.districtTravelOptions]);
+  }, [gameState.player, gameState.time, gameState.world.phone, gameState.world.vehicles, gameState.world.social, gameState.world.population, gameState.world.business, financeState, vehicleState, intercityState, universityState, lifeGoalsState, dailyLifeState, worldDynamicsState, locationState.districtTravelOptions]);
 
   const educationState = useMemo(() => {
     const skills = basicSkills.map((skill) => ({
@@ -1032,7 +1045,8 @@ export function useGameController() {
     const currentLocation = getLocationById(gameState.player.locationId);
     const travelContext = {
       playerMoney: gameState.player.money,
-      playerNeeds: gameState.player.needs
+      playerNeeds: gameState.player.needs,
+      publicTransportDurationMultiplier: worldDynamicsState.modifiers.publicTransportDurationMultiplier
     };
     const listings = gameState.world.housingMarket.activeHousingIds
       .map((id) => getHousingById(id))
@@ -1065,7 +1079,7 @@ export function useGameController() {
       listings,
       daysUntilRefresh: Math.max(0, gameState.world.housingMarket.lastRefreshDay + 4 - gameState.time.day)
     };
-  }, [gameState.player, gameState.time.day, gameState.world.housingMarket]);
+  }, [gameState.player, gameState.time.day, gameState.world.housingMarket, worldDynamicsState]);
 
   const businessState = useMemo(() => {
     const world = gameState.world.business;

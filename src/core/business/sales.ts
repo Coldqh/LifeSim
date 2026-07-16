@@ -197,8 +197,9 @@ function simulateHour(input: {
   time: GameTime;
   seed: number;
   ownerWorking: boolean;
+  worldDemandMultiplier: number;
 }): OwnedBusiness {
-  const { premises, businessType, equipment, menuItems, supplies, upgrades, population, time, seed, ownerWorking } = input;
+  const { premises, businessType, equipment, menuItems, supplies, upgrades, population, time, seed, ownerWorking, worldDemandMultiplier } = input;
   let business = input.business;
   if (!getScheduleStatus(business.schedule, time).isOpen) return business;
 
@@ -210,7 +211,7 @@ function simulateHour(input: {
   const priceFactor = clamp(1.45 - averagePriceRatio * 0.45, 0.55, 1.15);
   const reputationFactor = 0.65 + business.reputation / 100 * 0.7;
   const demandMultiplier = getUpgradeDemandMultiplier(business, upgrades);
-  const rawDemand = premises.footTraffic * 2.2 * getPeakMultiplier(time) * priceFactor * reputationFactor * demandMultiplier;
+  const rawDemand = premises.footTraffic * 2.2 * getPeakMultiplier(time) * priceFactor * reputationFactor * demandMultiplier * worldDemandMultiplier;
   const demandVariance = 0.8 + deterministicUnit(seed, `${business.id}:${time.day}:${time.hour}:demand`) * 0.45;
   const visitors = Math.max(0, Math.round(rawDemand * demandVariance));
   const candidates = getCandidates(population, business, premises, time, seed).slice(0, visitors);
@@ -283,6 +284,7 @@ export function simulateBusinessTime(input: {
   supplies: BusinessSupplyDefinition[];
   upgrades: BusinessUpgradeDefinition[];
   ownerWorking?: boolean;
+  demandMultiplier?: number;
 }): BusinessSimulationResult {
   const business = input.world.ownedBusiness;
   if (!business || !input.premises || !input.businessType) return { world: input.world, events: [] };
@@ -306,7 +308,8 @@ export function simulateBusinessTime(input: {
       population: input.population,
       time: stepTime,
       seed: input.world.seed,
-      ownerWorking: Boolean(input.ownerWorking)
+      ownerWorking: Boolean(input.ownerWorking),
+      worldDemandMultiplier: Math.max(0.5, Math.min(1.5, input.demandMultiplier ?? 1))
     });
     cursor += STEP_MINUTES;
   }

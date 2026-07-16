@@ -12,6 +12,7 @@ import type { MedicalState } from '../types/healthcare';
 import type { IntercityTravelState } from '../types/intercity';
 import type { UniversityState } from '../types/university';
 import type { WorldAtlasState } from '../types/worldAtlas';
+import type { WorldDynamicsState } from '../types/worldDynamics';
 import type { LifeGoalsState } from '../types/lifeGoal';
 import { calculateAge, createInitialTime, formatGameTime, getTotalMinutes, normalizeGameTime } from '../core/time';
 import { createInitialBoxingProfile } from '../core/sport';
@@ -31,6 +32,7 @@ import { createInitialMedicalState } from '../core/healthcare';
 import { createInitialIntercityState } from '../core/intercity';
 import { createInitialUniversityState } from '../core/university';
 import { createInitialWorldAtlasState, getRegionalCityIds, normalizeWorldAtlasState } from '../core/world-atlas';
+import { createInitialWorldDynamicsState, normalizeWorldDynamicsState } from '../core/world-dynamics';
 import { createInitialLifeGoalsState, normalizeLifeGoalsState } from '../core/life-goals';
 import { usedVehicleListingTemplates } from '../data/vehicles/usedListingTemplates';
 import { cityRegistry } from '../data/cities';
@@ -72,6 +74,7 @@ export type WorldState = {
   intercity: IntercityTravelState;
   university: UniversityState;
   atlas: WorldAtlasState;
+  dynamics: WorldDynamicsState;
 };
 
 export type GameState = {
@@ -271,7 +274,8 @@ export function createInitialGameState(): GameState {
       medical: createInitialMedicalState(getTotalMinutes(time)),
       intercity: createInitialIntercityState(getTotalMinutes(time)),
       university: createInitialUniversityState(getTotalMinutes(time)),
-      atlas
+      atlas,
+      dynamics: createInitialWorldDynamicsState(atlas.seed, time.day)
     },
     lifeGoals: createInitialLifeGoalsState(),
     lifeLog: [
@@ -747,7 +751,8 @@ function normalizeLoadedGameState(value: unknown): GameState | undefined {
       medical: normalizeMedicalState(parsed.world?.medical, time),
       intercity: normalizeIntercityState(parsed.world?.intercity, time),
       university,
-      atlas
+      atlas,
+      dynamics: normalizeWorldDynamicsState(parsed.world?.dynamics, atlas.seed, time.day)
     },
     player: normalizedPlayer
   };

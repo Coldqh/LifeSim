@@ -4,6 +4,7 @@ import { applyNeedsDelta, getNeedWarning } from '../../core/needs';
 import { addMinutes } from '../../core/time';
 import { applyVehicleTravel, calculateVehicleTravelQuote } from '../../core/vehicles';
 import { calculateDistrictTravel, calculateLocationTravel, getTravelDurationMinutes } from '../../core/travel';
+import { getWorldDynamicsModifiers } from '../../core/world-dynamics';
 import { getVehicleModelById } from '../../data/vehicles/vehicleModels';
 import type { DistrictId, LocationId } from '../../types/ids';
 import type { TravelModeId } from '../../types/transport';
@@ -26,6 +27,7 @@ export function createTravelCommands(setGameState: GameStateSetter) {
         };
       }
       const currentLocation = getLocationById(currentState.player.locationId);
+      const worldModifiers = getWorldDynamicsModifiers(currentState.world.dynamics, currentState.player.cityId, currentState.time.day);
       const travel = modeId === 'car'
         ? calculatePersonalCarTravel({
             world: currentState.world.vehicles,
@@ -40,7 +42,8 @@ export function createTravelCommands(setGameState: GameStateSetter) {
             modeId,
             context: {
               playerMoney: currentState.player.money,
-              playerNeeds: currentState.player.needs
+              playerNeeds: currentState.player.needs,
+              publicTransportDurationMultiplier: worldModifiers.publicTransportDurationMultiplier
             }
           });
 
@@ -124,6 +127,7 @@ export function createTravelCommands(setGameState: GameStateSetter) {
         };
       }
       const currentLocation = getLocationById(currentState.player.locationId);
+      const worldModifiers = getWorldDynamicsModifiers(currentState.world.dynamics, currentState.player.cityId, currentState.time.day);
       const travel = modeId === 'car'
         ? calculatePersonalCarTravel({
             world: currentState.world.vehicles,
@@ -137,7 +141,8 @@ export function createTravelCommands(setGameState: GameStateSetter) {
             modeId,
             context: {
               playerMoney: currentState.player.money,
-              playerNeeds: currentState.player.needs
+              playerNeeds: currentState.player.needs,
+              publicTransportDurationMultiplier: worldModifiers.publicTransportDurationMultiplier
             }
           });
 

@@ -54,7 +54,7 @@ export function pushPhoneNotification(
   state: PhoneState,
   notification: Omit<PhoneNotification, 'id' | 'read'>
 ): PhoneState {
-  const key = String(notification.jobId ?? notification.npcId ?? notification.locationId ?? 'general');
+  const key = String(notification.worldNewsId ?? notification.jobId ?? notification.npcId ?? notification.locationId ?? 'general');
   const id = notificationId(createId('notification', key, notification.createdAtTotalMinutes));
   if (state.notifications.some((entry) => entry.id === id)) return state;
   return {
@@ -89,7 +89,8 @@ function createInterviewTime(responseAtTotalMinutes: number, jobId: JobId): numb
 
 function shouldInvite(application: PhoneJobApplication, applicationIndex: number): boolean {
   if (applicationIndex === 0) return true;
-  return hashString(`${String(application.jobId)}:${application.submittedAtTotalMinutes}`) % 100 < 78;
+  const threshold = Math.min(95, Math.max(35, 78 + (application.inviteChanceDelta ?? 0)));
+  return hashString(`${String(application.jobId)}:${application.submittedAtTotalMinutes}`) % 100 < threshold;
 }
 
 function formatClock(totalMinutes: number): string {
@@ -132,6 +133,8 @@ export function submitPhoneJobApplication(input: {
   currentTotalMinutes: number;
   applicationFailure?: string;
   employerName: string;
+  responseDelayMultiplier?: number;
+  inviteChanceDelta?: number;
 }): { state: PhoneState; result: PhoneOperationResult } {
   if (input.applicationFailure) {
     return {
@@ -150,13 +153,15 @@ export function submitPhoneJobApplication(input: {
     return { state: input.state, result: { ok: false, title: 'Отклик уже существует', message } };
   }
 
-  const responseDelay = 6 * 60 + hashString(`${String(input.job.id)}:${input.currentTotalMinutes}`) % (13 * 60);
+  const baseResponseDelay = 6 * 60 + hashString(`${String(input.job.id)}:${input.currentTotalMinutes}`) % (13 * 60);
+  const responseDelay = Math.max(120, Math.round(baseResponseDelay * Math.max(0.5, Math.min(2, input.responseDelayMultiplier ?? 1))));
   const application: PhoneJobApplication = {
     id: applicationId(createId('application', input.job.id, input.currentTotalMinutes)),
     jobId: input.job.id,
     status: 'submitted',
     submittedAtTotalMinutes: input.currentTotalMinutes,
-    responseAtTotalMinutes: input.currentTotalMinutes + responseDelay
+    responseAtTotalMinutes: input.currentTotalMinutes + responseDelay,
+    inviteChanceDelta: input.inviteChanceDelta
   };
 
   let nextState: PhoneState = {

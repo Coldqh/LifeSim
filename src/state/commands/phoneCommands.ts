@@ -2,6 +2,7 @@ import { getCareerApplicationFailure, startCareerEmployment } from '../../core/c
 import { applyForJob as applyJob, getJobApplicationFailure } from '../../core/jobs';
 import { getLocationById } from '../../core/location';
 import { completeJobInterview, markPhoneMessageRead, markPhoneNotificationRead, setPhoneMapTarget, submitPhoneJobApplication, toggleSavedPhoneJob } from '../../core/phone';
+import { getWorldDynamicsModifiers } from '../../core/world-dynamics';
 import { addMinutes, getTotalMinutes } from '../../core/time';
 import { getCareerCompanyById, getJobById } from '../../data/cities/contentSelectors';
 import type { JobId, PhoneMessageId, PhoneNotificationId, LocationId } from '../../types/ids';
@@ -18,12 +19,19 @@ export function createPhoneCommands(setGameState: GameStateSetter) {
       const company = getCareerCompanyById(job.companyId);
       const applicationFailure = getJobApplicationFailure(currentState.player, job)
         ?? getCareerApplicationFailure(currentState.player, job, 'phone');
+      const worldModifiers = getWorldDynamicsModifiers(
+        currentState.world.dynamics,
+        currentState.player.cityId,
+        currentState.time.day
+      );
       const applied = submitPhoneJobApplication({
         state: currentState.world.phone,
         job,
         currentTotalMinutes: getTotalMinutes(currentState.time),
         applicationFailure,
-        employerName: company?.name ?? location?.name ?? 'Работодатель'
+        employerName: company?.name ?? location?.name ?? 'Работодатель',
+        responseDelayMultiplier: worldModifiers.jobResponseDelayMultiplier,
+        inviteChanceDelta: worldModifiers.jobInviteChanceDelta
       });
       const logEntry = createLifeLogEntry(
         currentState,

@@ -96,6 +96,26 @@ describe('save migrations', () => {
     expect(migrated.lifeGoals).toEqual({ completedMilestoneIds: [], completedGoalIds: [] });
   });
 
+
+  it('adds autonomous world dynamics when migrating v28 to v29', () => {
+    const migrated = migrateSaveState({
+      player: { cityId: 'moscow' },
+      time: { day: 9 },
+      world: { atlas: { seed: 77 } },
+      lifeGoals: { completedMilestoneIds: [], completedGoalIds: [] }
+    }, 28).state as {
+      world: { dynamics: { version: number; seed: number; lastProcessedDay: number; activeConditions: unknown[]; history: unknown[] } };
+    };
+
+    expect(migrated.world.dynamics).toEqual({
+      version: 1,
+      seed: 77,
+      lastProcessedDay: 9,
+      activeConditions: [],
+      history: []
+    });
+  });
+
   it('decodes both legacy raw states and the current versioned envelope', () => {
     const legacy = decodeSavePayload(JSON.stringify({ player: { inventory: [] } }), 23);
     const encoded = encodeSavePayload({ marker: 'current' });

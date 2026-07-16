@@ -2062,3 +2062,80 @@
     gap: 5px;
   }
 }
+
+.phone-today__world > p {
+  margin: 0;
+  color: var(--muted-text, #7d8491);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.phone-today-world-condition {
+  display: grid;
+  gap: 6px;
+  padding: 11px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.phone-today-world-condition + .phone-today-world-condition {
+  margin-top: 8px;
+}
+
+.phone-today-world-condition > div {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.phone-today-world-condition strong {
+  font-size: 13px;
+}
+
+.phone-today-world-condition small,
+.phone-today-world-news span {
+  color: var(--muted-text, #7d8491);
+  font-size: 11px;
+}
+
+.phone-today-world-condition p,
+.phone-today-world-news p {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.phone-today-world-condition--hiring_wave,
+.phone-today-world-condition--consumer_boom {
+  border-color: rgba(91, 203, 132, 0.25);
+}
+
+.phone-today-world-condition--hiring_slowdown,
+.phone-today-world-condition--consumer_slump,
+.phone-today-world-condition--transit_disruption {
+  border-color: rgba(238, 166, 71, 0.28);
+}
+
+.phone-today-world-news {
+  margin-top: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+  padding-top: 9px;
+}
+
+.phone-today-world-news summary {
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.phone-today-world-news > div {
+  display: grid;
+  gap: 3px;
+  padding: 9px 0;
+}
+
+.phone-today-world-news > div + div {
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}

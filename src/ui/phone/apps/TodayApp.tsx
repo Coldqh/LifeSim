@@ -78,6 +78,24 @@ export default function TodayApp(props: {
         )}
       </section>
 
+      <section className="phone-section-card phone-today__world">
+        <header><div><span>Город сейчас</span><strong>{props.state.worldDynamics.activeConditions.length ? 'Мир меняется' : 'Спокойный период'}</strong></div><Icon name="city" size={20}/></header>
+        {props.state.worldDynamics.activeConditions.length ? props.state.worldDynamics.activeConditions.map((condition) => (
+          <article className={`phone-today-world-condition phone-today-world-condition--${condition.kind}`} key={condition.id}>
+            <div><strong>{condition.title}</strong><small>До дня {condition.endsDay}</small></div>
+            <p>{condition.description}</p>
+          </article>
+        )) : <p>Сейчас в городе нет крупных временных изменений.</p>}
+        {props.state.worldDynamics.recentNews.length ? (
+          <details className="phone-today-world-news">
+            <summary>Последние новости мира</summary>
+            {props.state.worldDynamics.recentNews.slice(0, 4).map((entry) => (
+              <div key={entry.id}><span>День {entry.day}</span><strong>{entry.title}</strong><p>{entry.text}</p></div>
+            ))}
+          </details>
+        ) : null}
+      </section>
+
       <section className="phone-section-card phone-today__agenda">
         <header><div><span>План</span><strong>Сегодня</strong></div><Icon name="calendar" size={20}/></header>
         {daily.agenda.length ? daily.agenda.map((item) => (

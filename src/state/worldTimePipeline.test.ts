@@ -31,6 +31,24 @@ describe('advanceWorldTime', () => {
     expect(result.player.needs.hunger).toBeLessThan(state.player.needs.hunger);
   });
 
+
+  it('creates visible autonomous world news when several days pass', () => {
+    const state = createInitialGameState();
+    const nextTime = addMinutes(state.time, 5 * 24 * 60);
+    const result = advanceWorldTime({
+      state,
+      player: state.player,
+      nextTime,
+      decayProfile: 'resting',
+      actionTitle: 'Ожидание'
+    });
+
+    expect(result.world.dynamics.lastProcessedDay).toBe(nextTime.day);
+    expect(result.world.dynamics.history.length).toBeGreaterThan(0);
+    expect(result.world.phone.notifications.some((entry) => Boolean(entry.worldNewsId))).toBe(true);
+    expect(result.lifeLogEntries.some((entry) => result.world.dynamics.history.some((news) => news.title === entry.title))).toBe(true);
+  });
+
   it('records day expenses after housing consequences and does not apply them twice', () => {
     const state = createInitialGameState();
     const nextTime = addMinutes(state.time, 24 * 60);

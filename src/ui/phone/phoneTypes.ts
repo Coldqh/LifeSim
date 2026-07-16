@@ -45,6 +45,7 @@ import type { Npc, NpcRoleDefinition } from '../../types/npc';
 import type { NpcRelationship, RelationshipStatus } from '../../types/relationship';
 import type { SocialContact, SocialCircleTag, SocialInvitation, SocialMeeting, SocialMeetingDefinition, SocialMeetingSlot, SocialMessageActionId, SocialQuickMessageDefinition } from '../../types/socialLife';
 import type { SocialGroupView } from '../../types/socialGroup';
+import type { WorldDynamicsPanelState } from '../../types/worldDynamics';
 
 export type PhoneVacancyView = {
   job: Job;
@@ -196,6 +197,7 @@ export type PhonePanelState = {
   university: UniversityPanelState;
   lifeGoals: LifeGoalsPanelState;
   dailyLife: DailyLifePanelState;
+  worldDynamics: WorldDynamicsPanelState;
   social: PhoneSocialState;
 };
 

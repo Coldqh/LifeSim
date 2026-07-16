@@ -11,7 +11,7 @@ import {
   getConditionTransitionMessages,
   type NeedsDecayProfile
 } from '../core/needs';
-import { processPhoneTime } from '../core/phone';
+import { processPhoneTime, pushPhoneNotification } from '../core/phone';
 import { processSocialLifeTime } from '../core/social-life';
 import { expireActiveSocialEvent, maybeActivateSocialEvent, processScheduledSocialEvents } from '../core/events';
 import { maybeActivateNpcStory } from '../core/npc-stories';
@@ -21,6 +21,7 @@ import { calculateAge, formatGameDate, fromTotalMinutes, getElapsedMinutes, getT
 import { processUniversityTime } from '../core/university';
 import { refreshVehicleMarket } from '../core/vehicles';
 import { getRegionalCityIds, processWorldAtlasTime, simulateActiveCityPopulation } from '../core/world-atlas';
+import { getWorldDynamicsModifiers, processWorldDynamicsTime } from '../core/world-dynamics';
 import { businessEquipment } from '../data/business/equipment';
 import {
   getAllHousing,
@@ -48,6 +49,7 @@ import { socialGroupDefinitions, socialGroupEventTemplates } from '../data/socia
 import { socialEventTemplates } from '../data/social/socialEventTemplates';
 import { getBoxingGymById } from '../data/sports';
 import { usedVehicleListingTemplates } from '../data/vehicles/usedListingTemplates';
+import { worldDynamicsTemplates } from '../data/worldDynamics';
 import type { PhoneNotificationId } from '../types/ids';
 import type { NeedsState } from '../types/needs';
 import type { Player } from '../types/player';
@@ -82,6 +84,7 @@ export type AdvanceWorldTimeResult = {
   intercity: WorldState['intercity'];
   university: WorldState['university'];
   atlas: WorldState['atlas'];
+  dynamics: WorldState['dynamics'];
   lifeLogEntries: LifeLogEntry[];
   needsDelta?: Partial<NeedsState>;
   messages: string[];
@@ -345,6 +348,19 @@ export function advanceWorldTime(input: AdvanceWorldTimeInput): AdvanceWorldTime
     regionalCityIds,
     toTime: nextTime
   });
+  const dynamicsApplied = processWorldDynamicsTime({
+    state: sourceWorld.dynamics,
+    fromDay: state.time.day,
+    toDay: nextTime.day,
+    activeCityId,
+    atlas: atlasApplied.atlas,
+    templates: worldDynamicsTemplates
+  });
+  const dynamicsModifiers = getWorldDynamicsModifiers(dynamicsApplied.state, activeCityId, nextTime.day);
+  for (const news of [...dynamicsApplied.started, ...dynamicsApplied.ended]) {
+    messages.push(news.text);
+    lifeLogEntries.push(createLifeLogEntry({ time: nextTime }, news.title, news.text));
+  }
 
   const ownedBusiness = sourceWorld.business.ownedBusiness;
   const businessApplied = simulateBusinessTime({
@@ -357,7 +373,8 @@ export function advanceWorldTime(input: AdvanceWorldTimeInput): AdvanceWorldTime
     equipment: businessEquipment,
     menuItems: businessMenuItems,
     supplies: businessSupplies,
-    upgrades: businessUpgrades
+    upgrades: businessUpgrades,
+    demandMultiplier: dynamicsModifiers.businessDemandMultiplier
   });
   for (const event of businessApplied.events) {
     messages.push(event.text);
@@ -458,6 +475,15 @@ export function advanceWorldTime(input: AdvanceWorldTimeInput): AdvanceWorldTime
     jobs: jobsCatalogue,
     getEmployerName: (job) => getCareerCompanyById(job.companyId)?.name ?? getLocationById(job.locationId)?.name ?? 'Работодатель'
   });
+  for (const news of [...dynamicsApplied.started, ...dynamicsApplied.ended]) {
+    phone = pushPhoneNotification(phone, {
+      appId: 'today',
+      title: news.title,
+      body: news.text,
+      createdAtTotalMinutes: currentTotalMinutes,
+      worldNewsId: news.id
+    });
+  }
 
   const socialLifeApplied = processSocialLifeTime({
     social,
@@ -535,7 +561,8 @@ export function advanceWorldTime(input: AdvanceWorldTimeInput): AdvanceWorldTime
     medical: medicalApplied.state,
     intercity: intercityApplied.intercity,
     university: universityApplied.state,
-    atlas: atlasApplied.atlas
+    atlas: atlasApplied.atlas,
+    dynamics: dynamicsApplied.state
   };
 
   return {
@@ -552,6 +579,7 @@ export function advanceWorldTime(input: AdvanceWorldTimeInput): AdvanceWorldTime
     intercity: world.intercity,
     university: world.university,
     atlas: world.atlas,
+    dynamics: world.dynamics,
     lifeLogEntries,
     needsDelta: mergeNeedsDelta(decayApplied.delta, comfortNeedsDelta),
     messages

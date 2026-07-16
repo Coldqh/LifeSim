@@ -34,6 +34,7 @@ const TRANSPORT_LABELS: Record<TravelModeId, { name: string; description: string
 type TravelContext = {
   playerMoney: number;
   playerNeeds: NeedsState;
+  publicTransportDurationMultiplier?: number;
 };
 
 function getSameDistrictDuration(fromLocation: Location, toLocation: Location): number {
@@ -147,6 +148,13 @@ export function createTransportOptions(input: {
     { scaleEnergyCost: true }
   );
 
+  const publicTransportDurationMultiplier = Math.max(1, Math.min(1.75, context.publicTransportDurationMultiplier ?? 1));
+  const applyPublicTransportDelay = (modeId: TravelModeId, durationMinutes: number): number => (
+    modeId === 'bus' || modeId === 'metro' || modeId === 'taxi'
+      ? Math.max(1, Math.round(durationMinutes * publicTransportDurationMultiplier))
+      : durationMinutes
+  );
+
   const rawOptions: Omit<TransportOption, 'available' | 'unavailableReason'>[] = [
     {
       modeId: 'walk',
@@ -161,27 +169,27 @@ export function createTransportOptions(input: {
           modeId: 'bus' as const,
           name: TRANSPORT_LABELS.bus.name,
           description: TRANSPORT_LABELS.bus.description,
-          durationMinutes: getBusDuration(baseDurationMinutes, false),
+          durationMinutes: applyPublicTransportDelay('bus', getBusDuration(baseDurationMinutes, false)),
           moneyCost: 60
         }]
       : [{
           modeId: 'metro' as const,
           name: TRANSPORT_LABELS.metro.name,
           description: TRANSPORT_LABELS.metro.description,
-          durationMinutes: getMetroDuration(baseDurationMinutes),
+          durationMinutes: applyPublicTransportDelay('metro', getMetroDuration(baseDurationMinutes)),
           moneyCost: 65
         }, {
           modeId: 'bus' as const,
           name: TRANSPORT_LABELS.bus.name,
           description: 'Дешевле такси, но медленнее метро.',
-          durationMinutes: getBusDuration(baseDurationMinutes, true),
+          durationMinutes: applyPublicTransportDelay('bus', getBusDuration(baseDurationMinutes, true)),
           moneyCost: 75
         }]),
     {
       modeId: 'taxi',
       name: TRANSPORT_LABELS.taxi.name,
       description: TRANSPORT_LABELS.taxi.description,
-      durationMinutes: getTaxiDuration(baseDurationMinutes, isCrossDistrict),
+      durationMinutes: applyPublicTransportDelay('taxi', getTaxiDuration(baseDurationMinutes, isCrossDistrict)),
       moneyCost: getTaxiCost(baseDurationMinutes, isCrossDistrict)
     }
   ];

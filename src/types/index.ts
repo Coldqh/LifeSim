@@ -34,6 +34,7 @@ export * from './intercity';
 export * from './university';
 export * from './socialLife';
 export * from './worldAtlas';
+export * from './worldDynamics';
 export * from './dailyLife';
 
 export * from './lifeGoal';

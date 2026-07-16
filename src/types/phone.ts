@@ -26,6 +26,7 @@ export type PhoneJobApplication = {
   status: JobApplicationStatus;
   submittedAtTotalMinutes: number;
   responseAtTotalMinutes: number;
+  inviteChanceDelta?: number;
   interviewAtTotalMinutes?: number;
   reminderSent?: boolean;
   resolvedAtTotalMinutes?: number;
@@ -48,6 +49,7 @@ export type PhoneNotification = {
   npcId?: NpcId;
   socialInvitationId?: SocialInvitationId;
   socialMeetingId?: SocialMeetingId;
+  worldNewsId?: string;
 };
 
 export type PhoneMessage = {
