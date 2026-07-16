@@ -1,18 +1,21 @@
 import { getLocationById } from '../../core/location';
+import { applyNpcStoryEffect } from '../../core/npc-stories';
 import { applyNpcInteraction } from '../../core/relationships';
 import { attendSocialMeeting, cancelSocialMeeting, createOutgoingSocialInvitation, exchangeSocialContact, getDefaultMeetingStart, respondToSocialInvitation, sendSocialQuickMessage } from '../../core/social-life';
-import { applySocialEventChoice, maybeActivateSocialEvent } from '../../core/events';
+import { applySocialEventChoice, expireActiveSocialEvent, maybeActivateSocialEvent } from '../../core/events';
 import { getTotalMinutes } from '../../core/time';
 import { getNpcInteractionById } from '../../data/social/interactionTemplates';
 import { socialEventTemplates } from '../../data/social/socialEventTemplates';
 import { getSocialMeetingType, getSocialQuickMessage, socialMeetingTypes } from '../../data/social/meetingTypes';
-import { getHousingById, getJobById } from '../../data/cities/contentSelectors';
+import { getAllUniversitySubjects, getHousingById, getJobById } from '../../data/cities/contentSelectors';
 import type { LocationId, NpcId, NpcInteractionId, SocialEventChoiceId, SocialInvitationId, SocialMeetingId, SocialMeetingTypeId } from '../../types/ids';
 import type { SocialMeetingSlot, SocialMessageActionId } from '../../types/socialLife';
 import { createLifeLogEntry } from '../gameState';
 import { mergeNeedsDelta } from '../worldTimePipeline';
 import type { GameStateSetter } from './commandSupport';
 import { applyElapsedTimeConsequences, mergeLifeLog, getNpcSocialContext } from './commandSupport';
+
+const universitySubjectsCatalogue = getAllUniversitySubjects();
 
 export function createSocialCommands(setGameState: GameStateSetter) {
   function interactWithNpc(npcId: NpcId, interactionId: NpcInteractionId): void {
@@ -256,6 +259,20 @@ export function createSocialCommands(setGameState: GameStateSetter) {
     setGameState((currentState) => {
       const event = currentState.world.social.activeEvent;
       if (!event) return currentState;
+      const expired = expireActiveSocialEvent({
+        social: currentState.world.social,
+        currentTotalMinutes: getTotalMinutes(currentState.time),
+        npcs: currentState.world.population.npcs
+      });
+      if (!expired.social.activeEvent || expired.social.activeEvent.instanceId !== event.instanceId) {
+        const message = expired.message ?? 'Срок ответа уже истёк.';
+        return {
+          ...currentState,
+          world: { ...currentState.world, social: expired.social },
+          lastResult: { ok: false, actionName: event.title, timeDeltaMinutes: 0, messages: [message] },
+          lifeLog: mergeLifeLog([createLifeLogEntry(currentState, 'История', message)], currentState.lifeLog)
+        };
+      }
       const npc = currentState.world.population.npcs.find((candidate) => candidate.id === event.npcId);
       if (!npc) {
         return {
@@ -286,14 +303,25 @@ export function createSocialCommands(setGameState: GameStateSetter) {
         };
       }
 
+      const storyApplied = applyNpcStoryEffect({
+        effect: applied.choice?.storyEffect,
+        player: applied.player,
+        university: currentState.world.university,
+        universitySubjects: universitySubjectsCatalogue,
+        currentTotalMinutes: getTotalMinutes(applied.time)
+      });
       const elapsedApplied = applyElapsedTimeConsequences(
         currentState,
-        applied.player,
+        storyApplied.player,
         applied.time,
         'active',
-        { social: applied.social, actionTitle: applied.result.actionName }
+        {
+          social: applied.social,
+          university: storyApplied.university,
+          actionTitle: applied.result.actionName
+        }
       );
-      const messages = [...applied.result.messages, ...elapsedApplied.messages];
+      const messages = [...applied.result.messages, ...storyApplied.messages, ...elapsedApplied.messages];
       const logEntry = createLifeLogEntry({ time: applied.time }, 'Социальное событие', messages.join(' '));
 
       return {

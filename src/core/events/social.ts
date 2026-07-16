@@ -1,7 +1,7 @@
 import { applyMoneyDelta, canAfford } from '../economy';
 import { applyActivityNeedsDelta, getNeedWarning, getNeedsRequirementFailure } from '../needs';
-import { addMinutes } from '../time';
 import { addNpcMemory, applyRelationshipDelta, getNpcRelationship } from '../relationships';
+import { addMinutes, fromTotalMinutes, getTotalMinutes } from '../time';
 import type { Npc } from '../../types/npc';
 import type { Player } from '../../types/player';
 import type { SocialContext } from '../../types/relationship';
@@ -31,7 +31,13 @@ function formatEventText(text: string, npc: Npc): string {
   return text.split('{npc}').join(`${npc.firstName} ${npc.lastName}`);
 }
 
-function createActiveEvent(template: SocialEventTemplate, npc: Npc, day: number, source: ActiveSocialEvent['source']): ActiveSocialEvent {
+function createActiveEvent(
+  template: SocialEventTemplate,
+  npc: Npc,
+  currentTotalMinutes: number,
+  source: ActiveSocialEvent['source']
+): ActiveSocialEvent {
+  const day = fromTotalMinutes(currentTotalMinutes).day;
   return {
     instanceId: `social_${String(template.id)}_${String(npc.id)}_${day}_${source}`,
     templateId: template.id,
@@ -39,7 +45,37 @@ function createActiveEvent(template: SocialEventTemplate, npc: Npc, day: number,
     title: template.title,
     text: formatEventText(template.text, npc),
     choices: template.choices,
-    source
+    source,
+    expiresAtTotalMinutes: template.story
+      ? currentTotalMinutes + Math.max(60, template.story.responseWindowMinutes)
+      : undefined,
+    storyChainId: template.story?.chainId,
+    storyStep: template.story?.step,
+    expiryChoiceId: template.story?.expiryChoiceId
+  };
+}
+
+export function activateSocialEvent(input: {
+  social: SocialState;
+  npc: Npc;
+  template: SocialEventTemplate;
+  currentTotalMinutes: number;
+  source?: ActiveSocialEvent['source'];
+}): SocialState {
+  if (input.social.activeEvent) return input.social;
+  const day = fromTotalMinutes(input.currentTotalMinutes).day;
+  return {
+    ...input.social,
+    activeEvent: createActiveEvent(
+      input.template,
+      input.npc,
+      input.currentTotalMinutes,
+      input.source ?? (input.template.story ? 'story' : 'scheduled')
+    ),
+    eventCooldowns: {
+      ...input.social.eventCooldowns,
+      [String(input.template.id)]: day
+    }
   };
 }
 
@@ -54,6 +90,7 @@ export function getEligibleSocialEvents(input: {
   const relationship = getNpcRelationship(social, npc.id);
 
   return templates.filter((template) => {
+    if (template.story) return false;
     if (String(template.id).startsWith('social_followup_')) return false;
     if (!template.contexts.includes('general') && !template.contexts.includes(context)) return false;
     if ((template.minFamiliarity ?? 0) > relationship.familiarity) return false;
@@ -83,23 +120,23 @@ export function maybeActivateSocialEvent(input: {
   if (eligible.length === 0) return social;
   const selected = eligible[Math.floor(deterministicUnit(`${npc.id}:${day}:event`) * eligible.length)] ?? eligible[0];
 
-  return {
-    ...social,
-    activeEvent: createActiveEvent(selected, npc, day, 'interaction'),
-    eventCooldowns: {
-      ...social.eventCooldowns,
-      [String(selected.id)]: day
-    }
-  };
+  return activateSocialEvent({
+    social,
+    npc,
+    template: selected,
+    currentTotalMinutes: (day - 1) * 1440,
+    source: 'interaction'
+  });
 }
 
 export function processScheduledSocialEvents(input: {
   social: SocialState;
   currentDay: number;
+  currentTotalMinutes: number;
   npcs: Npc[];
   templates: SocialEventTemplate[];
 }): SocialState {
-  const { social, currentDay, npcs, templates } = input;
+  const { social, currentDay, currentTotalMinutes, npcs, templates } = input;
   if (social.activeEvent) return social;
   const due = [...social.scheduledEvents]
     .filter((event) => event.dueDay <= currentDay)
@@ -115,18 +152,74 @@ export function processScheduledSocialEvents(input: {
     };
   }
 
-  return {
+  const withoutDue = {
     ...social,
-    activeEvent: createActiveEvent(template, npc, currentDay, 'scheduled'),
-    scheduledEvents: social.scheduledEvents.filter((event) => event.id !== due.id),
-    eventCooldowns: {
-      ...social.eventCooldowns,
-      [String(template.id)]: currentDay
-    }
+    scheduledEvents: social.scheduledEvents.filter((event) => event.id !== due.id)
+  };
+  return activateSocialEvent({
+    social: withoutDue,
+    npc,
+    template,
+    currentTotalMinutes,
+    source: template.story ? 'story' : 'scheduled'
+  });
+}
+
+export function expireActiveSocialEvent(input: {
+  social: SocialState;
+  currentTotalMinutes: number;
+  npcs: Npc[];
+}): { social: SocialState; message?: string } {
+  const event = input.social.activeEvent;
+  if (!event?.expiresAtTotalMinutes || input.currentTotalMinutes < event.expiresAtTotalMinutes) {
+    return { social: input.social };
+  }
+
+  const npc = input.npcs.find((entry) => entry.id === event.npcId);
+  const expiryChoice = event.choices.find((choice) => choice.id === event.expiryChoiceId || choice.expiryOnly);
+  if (!npc || !expiryChoice) {
+    return { social: { ...input.social, activeEvent: undefined } };
+  }
+
+  const day = fromTotalMinutes(input.currentTotalMinutes).day;
+  const relationship = getNpcRelationship(input.social, npc.id);
+  let nextRelationship = applyRelationshipDelta(relationship, expiryChoice.relationshipDelta);
+  nextRelationship = {
+    ...nextRelationship,
+    lastInteractionDay: day,
+    lastInteractionTotalMinutes: input.currentTotalMinutes
+  };
+  if (expiryChoice.memoryKey && expiryChoice.memoryText) {
+    nextRelationship = addNpcMemory(nextRelationship, {
+      key: expiryChoice.memoryKey,
+      day,
+      text: expiryChoice.memoryText,
+      tone: expiryChoice.memoryTone ?? 'negative'
+    });
+  }
+
+  return {
+    social: {
+      ...input.social,
+      activeEvent: undefined,
+      relationships: {
+        ...input.social.relationships,
+        [String(npc.id)]: nextRelationship
+      },
+      history: [{
+        id: `social_history_expired_${event.instanceId}`,
+        day,
+        npcId: npc.id,
+        title: event.title,
+        text: expiryChoice.resultText
+      }, ...input.social.history].slice(0, 40)
+    },
+    message: expiryChoice.resultText
   };
 }
 
 export function getSocialEventChoiceFailure(player: Player, choice: SocialEventChoiceDefinition): string | undefined {
+  if (choice.expiryOnly) return 'Этот вариант применяется только после истечения срока.';
   if ((choice.moneyDelta ?? 0) < 0 && !canAfford(player.money, Math.abs(choice.moneyDelta ?? 0))) {
     return `Деньги: ${player.money}/${Math.abs(choice.moneyDelta ?? 0)} ₽.`;
   }
@@ -141,6 +234,7 @@ export type ApplySocialEventChoiceOutput = {
   player: Player;
   time: GameTime;
   social: SocialState;
+  choice?: SocialEventChoiceDefinition;
   result: {
     ok: boolean;
     actionName: string;
@@ -169,6 +263,14 @@ export function applySocialEventChoice(input: {
       result: { ok: false, actionName: 'Социальное событие', timeDeltaMinutes: 0, messages: ['Событие больше недоступно.'] }
     };
   }
+  if (event.expiresAtTotalMinutes !== undefined && getTotalMinutes(time) >= event.expiresAtTotalMinutes) {
+    return {
+      player,
+      time,
+      social,
+      result: { ok: false, actionName: event.title, timeDeltaMinutes: 0, messages: ['Срок ответа уже истёк.'] }
+    };
+  }
 
   const failure = getSocialEventChoiceFailure(player, choice);
   if (failure) {
@@ -182,6 +284,13 @@ export function applySocialEventChoice(input: {
 
   const relationship = getNpcRelationship(social, npc.id);
   let nextRelationship = applyRelationshipDelta(relationship, choice.relationshipDelta);
+  nextRelationship = {
+    ...nextRelationship,
+    interactionCount: relationship.interactionCount + 1,
+    firstMetDay: relationship.firstMetDay ?? time.day,
+    lastInteractionDay: time.day,
+    lastInteractionTotalMinutes: getTotalMinutes(time) + (choice.durationMinutes ?? 0)
+  };
   if (choice.memoryKey && choice.memoryText) {
     nextRelationship = addNpcMemory(nextRelationship, {
       key: choice.memoryKey,
@@ -230,6 +339,7 @@ export function applySocialEventChoice(input: {
     player: nextPlayer,
     time: nextTime,
     social: nextSocial,
+    choice,
     result: {
       ok: true,
       actionName: event.title,

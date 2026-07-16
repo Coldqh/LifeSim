@@ -559,3 +559,26 @@ export type {
   BoxingTrainer,
   BoxingTraining
 } from '../../types/boxing';
+
+export function applyBoxingStoryProgress(input: {
+  profile: BoxingProfile;
+  stat: BoxingStatId;
+  statDelta: number;
+  formDelta?: number;
+  fatigueDelta?: number;
+}): { profile: BoxingProfile; message?: string } {
+  const statGain = Math.max(0, input.statDelta);
+  const currentStat = input.profile.stats[input.stat];
+  const nextStat = clamp(currentStat + statGain, STAT_MIN, STAT_MAX);
+  const actualGain = nextStat - currentStat;
+  const nextProfile: BoxingProfile = {
+    ...input.profile,
+    stats: { ...input.profile.stats, [input.stat]: nextStat },
+    form: clamp(input.profile.form + (input.formDelta ?? 0)),
+    fatigue: clamp(input.profile.fatigue + (input.fatigueDelta ?? 0))
+  };
+  return {
+    profile: nextProfile,
+    message: actualGain > 0 ? `Бокс: ${input.stat} +${actualGain}.` : undefined
+  };
+}

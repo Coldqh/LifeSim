@@ -20,7 +20,7 @@ function choiceEffects(choice: ActiveSocialEvent['choices'][number]): EffectList
 }
 
 export function SocialEventModal({ event, npc, onChoose }: SocialEventModalProps) {
-  if (!event || !npc) return null;
+  if (!event || !npc || event.source === 'story') return null;
 
   return (
     <div className="social-event-backdrop" role="presentation">
@@ -37,7 +37,7 @@ export function SocialEventModal({ event, npc, onChoose }: SocialEventModalProps
         <div className="social-event-modal__body">
           <p>{event.text}</p>
           <div className="social-event-modal__choices">
-            {event.choices.map((choice) => (
+            {event.choices.filter((choice) => !choice.expiryOnly).map((choice) => (
               <button key={choice.id} type="button" onClick={() => onChoose(choice.id)}>
                 <span className="social-event-modal__choice-title"><strong>{choice.label}</strong><Icon name="arrow" size={16} /></span>
                 <small>{choice.resultText}</small>

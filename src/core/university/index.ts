@@ -673,3 +673,46 @@ export function processUniversityTime(input: {
     messages
   };
 }
+
+export function applyUniversityStoryKnowledge(input: {
+  state: UniversityState;
+  subjects: UniversitySubjectDefinition[];
+  knowledgeDelta: number;
+  studyLoadDelta?: number;
+  currentTotalMinutes: number;
+}): { state: UniversityState; message?: string } {
+  const enrollment = input.state.enrollment;
+  if (!enrollment || enrollment.completed || input.knowledgeDelta <= 0) return { state: input.state };
+
+  const focus = input.subjects
+    .map((subject) => ({ subject, progress: enrollment.subjectProgress[subject.id] ?? createProgress() }))
+    .sort((left, right) => left.progress.knowledge - right.progress.knowledge)[0];
+  if (!focus) return { state: input.state };
+
+  const gained = Math.max(1, Math.round(input.knowledgeDelta));
+  const nextKnowledge = Math.min(100, focus.progress.knowledge + gained);
+  const actualGain = nextKnowledge - focus.progress.knowledge;
+  if (actualGain <= 0) return { state: input.state };
+
+  const message = `${focus.subject.title}: знания +${actualGain}.`;
+  return {
+    state: {
+      ...input.state,
+      enrollment: {
+        ...enrollment,
+        studyLoad: Math.max(0, Math.min(100, enrollment.studyLoad + (input.studyLoadDelta ?? 0))),
+        subjectProgress: {
+          ...enrollment.subjectProgress,
+          [focus.subject.id]: { ...focus.progress, knowledge: nextKnowledge }
+        }
+      },
+      history: [{
+        id: `university_history_story_${input.currentTotalMinutes}_${String(focus.subject.id)}`,
+        totalMinutes: input.currentTotalMinutes,
+        title: 'Совместная подготовка',
+        text: message
+      }, ...input.state.history].slice(0, 40)
+    },
+    message
+  };
+}

@@ -1,5 +1,6 @@
 import type { SocialEventTemplate } from '../../types/socialEvent';
 import type { SocialEventChoiceId, SocialEventId } from '../../types/ids';
+import { npcStoryEventTemplates } from './npcStoryChains';
 
 function eventId(value: string): SocialEventId {
   return value as SocialEventId;
@@ -274,7 +275,8 @@ export const socialEventTemplates: SocialEventTemplate[] = [
     id: eventId('social_followup_education_discount'), title: 'Полезная информация',
     text: '{npc} сообщает о скидке на следующее занятие.', contexts: ['education', 'general'], minFamiliarity: 0, cooldownDays: 20,
     choices: [positiveChoice('discount_thank', 'Поблагодарить', 'Ты запомнил информацию о скидке.', { relationshipDelta: { affinity: 3, trust: 4 }, memoryKey: 'education_discount_tip', memoryText: 'Ты получил информацию о скидке на обучение.', memoryTone: 'positive' })]
-  }
+  },
+  ...npcStoryEventTemplates
 ];
 
 export function getSocialEventTemplateById(id: SocialEventId): SocialEventTemplate | undefined {

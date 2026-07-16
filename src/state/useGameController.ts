@@ -579,7 +579,7 @@ export function useGameController() {
     const currentJob = getJobById(gameState.player.currentJobId);
     const jobLocation = getLocationById(currentJob?.locationId);
     const universityLocation = getLocationById(universityState.activeUniversity?.locationId);
-    return selectDailyLifeState({
+    const base = selectDailyLifeState({
       time: gameState.time,
       money: gameState.player.money,
       currentLocation,
@@ -598,7 +598,29 @@ export function useGameController() {
       recoveryActionId: LIFE_ACTION_IDS.walkOneHour,
       lifeLog: gameState.lifeLog
     });
-  }, [gameState.lifeLog, gameState.player.currentJobId, gameState.player.locationId, gameState.player.money, gameState.time, gameState.world.phone.calendarEvents, gameState.world.phone.dailyOpportunityResolutions, financeState.upcomingPayments, jobState.currentJobView?.jobLevel.wagePerShift, universityState.activeUniversity?.locationId, universityState.classes, universityState.enrollment?.attendedSessionKeys, universityState.enrollment?.missedSessionKeys]);
+    const activeStory = gameState.world.social.activeEvent?.source === 'story'
+      ? gameState.world.social.activeEvent
+      : undefined;
+    const storyNpc = activeStory
+      ? gameState.world.population.npcs.find((npc) => npc.id === activeStory.npcId)
+      : undefined;
+    return {
+      ...base,
+      storyEvent: activeStory?.storyChainId && activeStory.storyStep && activeStory.expiresAtTotalMinutes !== undefined && storyNpc
+        ? {
+            instanceId: activeStory.instanceId,
+            chainId: activeStory.storyChainId,
+            step: activeStory.storyStep,
+            npcId: storyNpc.id,
+            npcName: `${storyNpc.firstName} ${storyNpc.lastName}`,
+            title: activeStory.title,
+            text: activeStory.text,
+            expiresAtTotalMinutes: activeStory.expiresAtTotalMinutes,
+            choices: activeStory.choices.filter((choice) => !choice.expiryOnly)
+          }
+        : undefined
+    };
+  }, [gameState.lifeLog, gameState.player.currentJobId, gameState.player.locationId, gameState.player.money, gameState.time, gameState.world.phone.calendarEvents, gameState.world.phone.dailyOpportunityResolutions, gameState.world.population.npcs, gameState.world.social.activeEvent, financeState.upcomingPayments, jobState.currentJobView?.jobLevel.wagePerShift, universityState.activeUniversity?.locationId, universityState.classes, universityState.enrollment?.attendedSessionKeys, universityState.enrollment?.missedSessionKeys]);
 
   const scheduledWaitState = useMemo(() => selectScheduledWaitState({
     currentTotalMinutes: getTotalMinutes(gameState.time),

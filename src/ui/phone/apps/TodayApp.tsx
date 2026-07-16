@@ -1,10 +1,16 @@
 import type { DailyOpportunityDecision } from '../../../types/dailyLife';
-import type { LocationId } from '../../../types/ids';
+import type { LocationId, SocialEventChoiceId } from '../../../types/ids';
 import type { GameTime } from '../../../types/time';
-import { formatGameDate, formatGameTime, formatWeekday } from '../../../core/time';
+import { formatGameDate, formatGameTime, formatWeekday, getTotalMinutes } from '../../../core/time';
 import { Icon } from '../../icons';
 import type { PhonePanelState } from '../phoneTypes';
 import { formatRubles, formatTotalMinutes } from '../phoneShared';
+
+const STORY_LABELS = {
+  university_peer: 'Университет',
+  work_colleague: 'Работа',
+  boxing_partner: 'Боксёрский зал'
+} as const;
 
 const STATUS_LABELS = {
   upcoming: 'Впереди',
@@ -25,6 +31,7 @@ export default function TodayApp(props: {
   onResolve: (opportunityId: string, decision: DailyOpportunityDecision) => void;
   onExecute: () => void;
   onOpenApp: (app: 'jobs' | 'education') => void;
+  onChooseStory: (choiceId: SocialEventChoiceId) => void;
   onClose: () => void;
 }) {
   const daily = props.state.dailyLife;
@@ -70,6 +77,30 @@ export default function TodayApp(props: {
           </article>
         )) : <div className="phone-empty-state">Обязательных дел на сегодня нет</div>}
       </section>
+
+      {daily.storyEvent ? (
+        <section className="phone-section-card phone-today__story">
+          <header>
+            <div><span>{STORY_LABELS[daily.storyEvent.chainId]} · этап {daily.storyEvent.step}</span><strong>{daily.storyEvent.title}</strong></div>
+            <Icon name="users" size={20}/>
+          </header>
+          <div className="phone-today__story-person"><strong>{daily.storyEvent.npcName}</strong><small>Ответить до {formatTotalMinutes(daily.storyEvent.expiresAtTotalMinutes)}</small></div>
+          <p>{daily.storyEvent.text}</p>
+          <div className="phone-today__story-choices">
+            {daily.storyEvent.choices.map((choice) => (
+              <button type="button" key={choice.id} onClick={() => props.onChooseStory(choice.id)}>
+                <strong>{choice.label}</strong>
+                <span>{choice.resultText}</span>
+                <small>{[
+                  choice.durationMinutes ? `${choice.durationMinutes} мин` : undefined,
+                  choice.moneyDelta ? `${choice.moneyDelta > 0 ? '+' : ''}${formatRubles(choice.moneyDelta)}` : undefined
+                ].filter(Boolean).join(' · ') || 'Решение без затрат времени'}</small>
+              </button>
+            ))}
+          </div>
+          <small className="phone-today__story-deadline">Осталось {Math.max(0, Math.ceil((daily.storyEvent.expiresAtTotalMinutes - getTotalMinutes(props.time)) / 60))} ч.</small>
+        </section>
+      ) : null}
 
       {daily.payments.length ? (
         <section className="phone-section-card phone-today__payments">

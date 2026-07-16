@@ -13,7 +13,8 @@ import {
 } from '../core/needs';
 import { processPhoneTime } from '../core/phone';
 import { processSocialLifeTime } from '../core/social-life';
-import { maybeActivateSocialEvent, processScheduledSocialEvents } from '../core/events';
+import { expireActiveSocialEvent, maybeActivateSocialEvent, processScheduledSocialEvents } from '../core/events';
+import { maybeActivateNpcStory } from '../core/npc-stories';
 import { applyBoxingRecovery } from '../core/sport';
 import { calculateAge, formatGameDate, fromTotalMinutes, getElapsedMinutes, getTotalMinutes } from '../core/time';
 import { processUniversityTime } from '../core/university';
@@ -29,7 +30,8 @@ import {
   getDegreeProgramById,
   getHousingById,
   getJobById,
-  getMedicalServiceById
+  getMedicalServiceById,
+  getUniversityById
 } from '../data/cities/contentSelectors';
 import { businessMenuItems } from '../data/business/menu';
 import { businessSupplies } from '../data/business/supplies';
@@ -40,7 +42,9 @@ import { allLocations } from '../data/locations';
 import { cityRegistry } from '../data/cities';
 import { populationDataSource } from '../data/population/config';
 import { socialMeetingTypes } from '../data/social/meetingTypes';
+import { npcStoryChains } from '../data/social/npcStoryChains';
 import { socialEventTemplates } from '../data/social/socialEventTemplates';
+import { getBoxingGymById } from '../data/sports';
 import { usedVehicleListingTemplates } from '../data/vehicles/usedListingTemplates';
 import type { PhoneNotificationId } from '../types/ids';
 import type { NeedsState } from '../types/needs';
@@ -358,12 +362,48 @@ export function advanceWorldTime(input: AdvanceWorldTimeInput): AdvanceWorldTime
     lifeLogEntries.push(createLifeLogEntry({ time: nextTime }, event.title, event.text));
   }
 
-  let social = processScheduledSocialEvents({
+  const expiredSocialEvent = expireActiveSocialEvent({
     social: sourceWorld.social,
+    currentTotalMinutes,
+    npcs: population.npcs
+  });
+  let social = expiredSocialEvent.social;
+  if (expiredSocialEvent.message) {
+    messages.push(expiredSocialEvent.message);
+    lifeLogEntries.push(createLifeLogEntry({ time: nextTime }, 'История', expiredSocialEvent.message));
+  }
+  social = processScheduledSocialEvents({
+    social,
     currentDay: nextTime.day,
+    currentTotalMinutes,
     npcs: population.npcs,
     templates: socialEventTemplates
   });
+
+  const currentJob = getJobById(nextPlayer.currentJobId);
+  const enrolledProgram = getDegreeProgramById(sourceWorld.university.enrollment?.programId);
+  const enrolledUniversity = getUniversityById(enrolledProgram?.universityId);
+  const universityCityId = getLocationById(enrolledUniversity?.locationId)?.cityId;
+  const boxingGym = getBoxingGymById(nextPlayer.boxing.membership?.gymId);
+  social = maybeActivateNpcStory({
+    social,
+    currentTotalMinutes,
+    templates: socialEventTemplates,
+    chains: npcStoryChains,
+    universityCandidates: enrolledUniversity
+      ? population.npcs.filter((npc) => (
+          npc.activityProfile === 'student'
+          && cityRegistry.getDistrict(npc.homeDistrictId)?.cityId === universityCityId
+        ))
+      : [],
+    workCandidates: currentJob
+      ? population.npcs.filter((npc) => npc.employment?.locationId === currentJob.locationId)
+      : [],
+    boxingCandidates: boxingGym
+      ? population.npcs.filter((npc) => npc.employment?.locationId === boxingGym.locationId)
+      : []
+  });
+
   const currentLocation = getLocationById(state.player.locationId);
   if (!social.activeEvent && elapsedMinutes >= 60 && currentLocation?.type === 'home') {
     const neighbors = population.npcs.filter((npc) => (

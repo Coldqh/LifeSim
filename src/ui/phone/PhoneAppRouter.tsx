@@ -26,7 +26,7 @@ export function PhoneAppRouter(props: PhoneShellProps) {
   let content = null;
   switch (props.activeApp) {
     case 'today':
-      content = <TodayApp state={props.state} time={props.time} onRoute={openMap} onResolve={props.onResolveDailyOpportunity} onExecute={() => props.onExecuteDailyOpportunity(props.state.dailyLife.opportunity)} onOpenApp={props.onOpenApp} onClose={props.onClose}/>;
+      content = <TodayApp state={props.state} time={props.time} onRoute={openMap} onResolve={props.onResolveDailyOpportunity} onExecute={() => props.onExecuteDailyOpportunity(props.state.dailyLife.opportunity)} onOpenApp={props.onOpenApp} onChooseStory={props.onChooseSocialEvent} onClose={props.onClose}/>;
       break;
     case 'contacts':
       content = <ContactsApp state={props.state} onRoute={openMap} onSendMessage={props.onSendSocialMessage} onInvite={props.onInviteSocialMeeting} onRespond={props.onRespondSocialInvitation} onAttend={props.onAttendSocialMeeting} onCancel={props.onCancelSocialMeeting}/>;

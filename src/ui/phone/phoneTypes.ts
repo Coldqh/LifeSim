@@ -21,7 +21,8 @@ import type {
   NpcId,
   SocialInvitationId,
   SocialMeetingId,
-  SocialMeetingTypeId
+  SocialMeetingTypeId,
+  SocialEventChoiceId
 } from '../../types/ids';
 import type {
   PhoneAppId,
@@ -245,5 +246,6 @@ export type PhoneShellProps = {
   onAttendSocialMeeting: (meetingId: SocialMeetingId) => void;
   onCancelSocialMeeting: (meetingId: SocialMeetingId) => void;
   onResolveDailyOpportunity: (opportunityId: string, decision: DailyOpportunityDecision) => void;
+  onChooseSocialEvent: (choiceId: SocialEventChoiceId) => void;
   onExecuteDailyOpportunity: (opportunity: DailyOpportunity) => void;
 };

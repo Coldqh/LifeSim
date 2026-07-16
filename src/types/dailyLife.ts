@@ -1,4 +1,5 @@
-import type { ActionId, JobId, LocationId, PhoneCalendarEventId, UniversityCampusActivityId, UniversitySubjectId } from './ids';
+import type { ActionId, JobId, LocationId, NpcId, PhoneCalendarEventId, UniversityCampusActivityId, UniversitySubjectId } from './ids';
+import type { NpcStoryChainId, SocialEventChoiceDefinition } from './socialEvent';
 
 export type DailyAgendaItemKind = 'calendar' | 'university_class' | 'work_shift';
 export type DailyAgendaItemStatus = 'upcoming' | 'active' | 'completed' | 'missed' | 'flexible';
@@ -59,6 +60,19 @@ export type DailyOpportunity = {
   decision?: DailyOpportunityDecision;
 };
 
+
+export type DailyNpcStoryEvent = {
+  instanceId: string;
+  chainId: NpcStoryChainId;
+  step: number;
+  npcId: NpcId;
+  npcName: string;
+  title: string;
+  text: string;
+  expiresAtTotalMinutes: number;
+  choices: SocialEventChoiceDefinition[];
+};
+
 export type DailyLifePanelState = {
   agenda: DailyAgendaItem[];
   payments: DailyPaymentItem[];
@@ -66,5 +80,6 @@ export type DailyLifePanelState = {
   conflictCount: number;
   remainingAfterPayments: number;
   opportunity: DailyOpportunity;
+  storyEvent?: DailyNpcStoryEvent;
   recentActivity: Array<{ id: string; timeLabel: string; title: string; text: string }>;
 };

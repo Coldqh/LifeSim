@@ -205,6 +205,7 @@ export function AppShell() {
         onAttendSocialMeeting={attendNpcMeeting}
         onCancelSocialMeeting={cancelNpcMeeting}
         onResolveDailyOpportunity={resolveDailyOpportunity}
+        onChooseSocialEvent={chooseSocialEvent}
         onExecuteDailyOpportunity={executeDailyOpportunity}
       />
     </>
