@@ -42,7 +42,17 @@ describe('career commands', () => {
     for (const requirement of job.requirements?.skills ?? []) {
       skills[requirement.skillId] = { level: requirement.minLevel, experience: 0 };
     }
-    harness.setState({ ...harness.getState(), player: { ...qualified, skills } });
+    harness.setState({
+      ...harness.getState(),
+      player: { ...qualified, skills },
+      progression: {
+        ...harness.getState().progression,
+        tracks: {
+          ...harness.getState().progression.tracks,
+          career: { ...harness.getState().progression.tracks.career, xp: 50, level: 1, reputation: 55 }
+        }
+      }
+    });
 
     harness.commands.submitJobApplication(job.id);
     expect(harness.getState().lastResult?.ok).toBe(true);

@@ -39,3 +39,5 @@ export * from './dailyLife';
 
 export * from './lifeGoal';
 export * from './socialGroup';
+
+export * from './lifeProgression';

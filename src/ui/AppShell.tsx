@@ -22,6 +22,7 @@ export function AppShell() {
     vehicleState,
     healthState,
     universityState,
+    lifeProgressionState,
     performAction,
     moveToDistrict,
     moveToLocation,
@@ -116,6 +117,7 @@ export function AppShell() {
         socialState={socialState}
         housingState={housingState}
         businessState={businessState}
+        lifeProgressionState={lifeProgressionState}
         locationState={{
           ...locationState,
           campusActivities: universityState.activeUniversity?.locationId === locationState.location?.id

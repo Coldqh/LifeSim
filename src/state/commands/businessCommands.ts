@@ -1,5 +1,6 @@
 import { buyBusinessEquipment, buyBusinessSupply, buyBusinessUpgrade, fireBusinessEmployee, hireBusinessEmployee, investInBusiness, launchBusiness, setBusinessMenuPrice, simulateBusinessTime } from '../../core/business';
 import { applyWorkWhileSick, getMedicalActivityFailure } from '../../core/healthcare';
+import { getBusinessProgressionFailure } from '../../core/life-progression';
 import { applySkillExperience } from '../../core/progression';
 import { applyActivityNeedsDelta, getNeedsRequirementFailure } from '../../core/needs';
 import { getScheduleActivityFailure } from '../../core/schedule';
@@ -25,6 +26,15 @@ export function createBusinessCommands(setGameState: GameStateSetter) {
       const premises = getBusinessPremisesById(premisesId);
       const businessType = businessTypes[0];
       if (!premises || !businessType) return currentState;
+      const progressionFailure = getBusinessProgressionFailure(currentState.progression);
+      if (progressionFailure) {
+        const logEntry = createLifeLogEntry(currentState, 'Бизнес недоступен', progressionFailure);
+        return {
+          ...currentState,
+          lastResult: { ok: false, actionName: 'Открытие бизнеса', timeDeltaMinutes: 0, messages: [progressionFailure] },
+          lifeLog: mergeLifeLog([logEntry], currentState.lifeLog)
+        };
+      }
       const launched = launchBusiness({
         player: currentState.player,
         world: currentState.world.business,

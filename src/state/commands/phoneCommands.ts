@@ -1,6 +1,7 @@
 import { getCareerApplicationFailure, startCareerEmployment } from '../../core/career';
 import { applyForJob as applyJob, getJobApplicationFailure } from '../../core/jobs';
 import { getLocationById } from '../../core/location';
+import { getCareerInviteChanceDelta, getCareerProgressionFailure } from '../../core/life-progression';
 import { completeJobInterview, markPhoneMessageRead, markPhoneNotificationRead, setPhoneMapTarget, submitPhoneJobApplication, toggleSavedPhoneJob } from '../../core/phone';
 import { getWorldDynamicsModifiers } from '../../core/world-dynamics';
 import { addMinutes, getTotalMinutes } from '../../core/time';
@@ -18,7 +19,8 @@ export function createPhoneCommands(setGameState: GameStateSetter) {
       const location = getLocationById(job.locationId);
       const company = getCareerCompanyById(job.companyId);
       const applicationFailure = getJobApplicationFailure(currentState.player, job)
-        ?? getCareerApplicationFailure(currentState.player, job, 'phone');
+        ?? getCareerApplicationFailure(currentState.player, job, 'phone')
+        ?? getCareerProgressionFailure(currentState.progression, job);
       const worldModifiers = getWorldDynamicsModifiers(
         currentState.world.dynamics,
         currentState.player.cityId,
@@ -31,7 +33,7 @@ export function createPhoneCommands(setGameState: GameStateSetter) {
         applicationFailure,
         employerName: company?.name ?? location?.name ?? 'Работодатель',
         responseDelayMultiplier: worldModifiers.jobResponseDelayMultiplier,
-        inviteChanceDelta: worldModifiers.jobInviteChanceDelta
+        inviteChanceDelta: worldModifiers.jobInviteChanceDelta + getCareerInviteChanceDelta(currentState.progression)
       });
       const logEntry = createLifeLogEntry(
         currentState,
@@ -86,7 +88,8 @@ export function createPhoneCommands(setGameState: GameStateSetter) {
     setGameState((currentState) => {
       const location = getLocationById(job.locationId);
       const company = getCareerCompanyById(job.companyId);
-      const careerFailure = getCareerApplicationFailure(currentState.player, job, 'interview');
+      const careerFailure = getCareerApplicationFailure(currentState.player, job, 'interview')
+        ?? getCareerProgressionFailure(currentState.progression, job);
       if (careerFailure) {
         const logEntry = createLifeLogEntry(currentState, 'Собеседование недоступно', careerFailure);
         return {

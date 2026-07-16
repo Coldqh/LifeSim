@@ -10,6 +10,14 @@ import { getJobApplicationFailure, getJobProgress, getJobPromotionFailure, getJo
 import { getMedicalActivityFailure, getMedicalAppointmentFailure } from '../core/healthcare';
 import { bookTemporaryAccommodation, getTemporaryStayFailure } from '../core/intercity';
 import { getMissingSkillRequirements, getSkillProgress } from '../core/progression';
+import {
+  createLifeProgressionPanelState,
+  getBusinessProgressionFailure,
+  getCareerInviteChanceDelta,
+  getCareerProgressionFailure,
+  getHousingProgressionFailure,
+  getUniversityProgressionFailure
+} from '../core/life-progression';
 import { getActionsForLocation, getCityById, getDefaultLocationForDistrict, getDistrictById, getDistrictsForCity, getLocationById, getLocationsForDistrict } from '../core/location';
 import { adjustActivityNeedsDelta, getNeedConditions, getNeedsConsequences, getNeedsRequirementFailure } from '../core/needs';
 import { getShopForLocation, getShopProducts } from '../core/shop';
@@ -35,6 +43,7 @@ import { createDistrictTravelOption, createLocationTravelOptions } from '../core
 import { allLocations } from '../data/locations';
 import { LIFE_ACTION_IDS } from '../data/lifeActions';
 import { lifeGoalDefinitions } from '../data/lifeGoals';
+import { lifeProgressionTrackDefinitions } from '../data/lifeProgression';
 import {
   getAllBoxingGyms,
   getAllBoxingTrainers,
@@ -80,6 +89,7 @@ import type { VehicleWorldState } from '../types/vehicle';
 import type { DistrictTravelOption, LocationTravelOption, TransportOption } from '../types/travel';
 import { createInitialGameState, loadGameState, saveGameState, type GameState } from './gameState';
 import { applyLifeGoalProgress } from './lifeGoalProgress';
+import { applyLifeProgression } from './lifeProgression';
 import type { GameStateSetter } from './commands/commandSupport';
 import { GAS_STATION_LOCATION_IDS, SERVICE_LOCATION_IDS, getDealerLocationIdForModel } from './commands/vehicleCommands';
 import { selectIntercityState } from './selectors/intercityState';
@@ -171,11 +181,11 @@ function addPersonalCarToDistrictOptions(
 
 
 export function useGameController() {
-  const [gameState, setRawGameState] = useState<GameState>(() => applyLifeGoalProgress(resolveInitialState()));
+  const [gameState, setRawGameState] = useState<GameState>(() => applyLifeGoalProgress(applyLifeProgression(resolveInitialState())));
   const setGameState = useMemo<GameStateSetter>(() => (update) => {
     setRawGameState((currentState) => {
       const nextState = typeof update === 'function' ? update(currentState) : update;
-      return applyLifeGoalProgress(nextState);
+      return applyLifeGoalProgress(applyLifeProgression(nextState));
     });
   }, []);
 
@@ -356,7 +366,8 @@ export function useGameController() {
       const location = getLocationById(job.locationId);
       const district = location ? getDistrictById(location.districtId) : undefined;
       const applicationFailure = getJobApplicationFailure(gameState.player, job)
-        ?? getCareerApplicationFailure(gameState.player, job, 'direct');
+        ?? getCareerApplicationFailure(gameState.player, job, 'direct')
+        ?? getCareerProgressionFailure(gameState.progression, job);
       const shiftFailure = getMedicalActivityFailure(gameState.world.medical, 'work')
         ?? getJobShiftFailure(gameState.player, job, gameState.time);
       const promotionFailure = getJobPromotionFailure(gameState.player, job);
@@ -421,7 +432,7 @@ export function useGameController() {
       currentJobView,
       currentLocationJobs
     };
-  }, [gameState.player, gameState.time, gameState.world.medical]);
+  }, [gameState.player, gameState.progression, gameState.time, gameState.world.medical]);
 
   const financeState = useMemo(() => {
     const finance = gameState.world.finance;
@@ -556,7 +567,7 @@ export function useGameController() {
             player: gameState.player,
             university: activeUniversity,
             activity
-          }) ?? getScheduleActivityFailure(
+          }) ?? getUniversityProgressionFailure(gameState.progression, String(activity.id)) ?? getScheduleActivityFailure(
             activeUniversityLocation?.openingHours,
             gameState.time,
             activity.durationMinutes,
@@ -593,7 +604,7 @@ export function useGameController() {
       semesterExamFailure,
       campusPeople: [...(campusPresence?.staff ?? []), ...(campusPresence?.visitors ?? [])].slice(0, 12)
     };
-  }, [gameState.player, gameState.time, gameState.world.population, gameState.world.university]);
+  }, [gameState.player, gameState.progression, gameState.time, gameState.world.population, gameState.world.university]);
 
   const lifeGoalsState = useMemo(() => {
     const context = {
@@ -611,6 +622,11 @@ export function useGameController() {
       activeGoal: goals.find((goal) => goal.definition.id === gameState.lifeGoals.activeGoalId)
     };
   }, [gameState.lifeGoals, gameState.player, gameState.world.business, gameState.world.finance, gameState.world.university]);
+
+  const lifeProgressionState = useMemo(
+    () => createLifeProgressionPanelState(gameState.progression, lifeProgressionTrackDefinitions),
+    [gameState.progression]
+  );
 
   const dailyLifeState = useMemo(() => {
     const currentLocation = getLocationById(gameState.player.locationId);
@@ -703,7 +719,8 @@ export function useGameController() {
       const district = location ? getDistrictById(location.districtId) : undefined;
       const application = getJobApplicationForJob(phone, job.id);
       const degreeFailure = getCareerApplicationFailure(gameState.player, job, 'phone');
-      const applicationFailure = getJobApplicationFailure(gameState.player, job) ?? degreeFailure;
+      const progressionFailure = getCareerProgressionFailure(gameState.progression, job);
+      const applicationFailure = getJobApplicationFailure(gameState.player, job) ?? degreeFailure ?? progressionFailure;
       const missingSkillRequirements = getMissingSkillRequirements(gameState.player, job.requirements?.skills).map((requirement) => ({
         ...requirement,
         name: getSkillById(requirement.skillId)?.name ?? String(requirement.skillId)
@@ -860,10 +877,11 @@ export function useGameController() {
       lifeGoals: lifeGoalsState,
       dailyLife: dailyLifeState,
       worldDynamics: worldDynamicsState,
+      lifeProgression: lifeProgressionState,
       social: { groups: socialGroups, contacts, meetingOptions: socialMeetingOptions, invitations: socialInvitations, meetings: socialMeetings },
       districtTravelOptions: locationState.districtTravelOptions
     };
-  }, [gameState.player, gameState.time, gameState.world.phone, gameState.world.vehicles, gameState.world.social, gameState.world.population, gameState.world.business, financeState, vehicleState, intercityState, universityState, lifeGoalsState, dailyLifeState, worldDynamicsState, locationState.districtTravelOptions]);
+  }, [gameState.player, gameState.progression, gameState.time, gameState.world.phone, gameState.world.vehicles, gameState.world.social, gameState.world.population, gameState.world.business, financeState, vehicleState, intercityState, universityState, lifeGoalsState, lifeProgressionState, dailyLifeState, worldDynamicsState, locationState.districtTravelOptions]);
 
   const educationState = useMemo(() => {
     const skills = basicSkills.map((skill) => ({
@@ -1063,7 +1081,12 @@ export function useGameController() {
           location,
           district,
           route,
-          affordability: getHousingAffordability(gameState.player, housing),
+          affordability: {
+            ...getHousingAffordability(gameState.player, housing),
+            ...(getHousingProgressionFailure(gameState.progression, housing)
+              ? { canAfford: false, failure: getHousingProgressionFailure(gameState.progression, housing) }
+              : {})
+          },
           isViewed: isHousingViewed(gameState.world.housingMarket, housing.id),
           isScheduled: gameState.world.housingMarket.scheduledViewingHousingId === housing.id,
           isAtLocation: gameState.player.locationId === housing.locationId
@@ -1079,7 +1102,7 @@ export function useGameController() {
       listings,
       daysUntilRefresh: Math.max(0, gameState.world.housingMarket.lastRefreshDay + 4 - gameState.time.day)
     };
-  }, [gameState.player, gameState.time.day, gameState.world.housingMarket, worldDynamicsState]);
+  }, [gameState.player, gameState.progression, gameState.time.day, gameState.world.housingMarket, worldDynamicsState]);
 
   const businessState = useMemo(() => {
     const world = gameState.world.business;
@@ -1095,7 +1118,8 @@ export function useGameController() {
           ? getBusinessStartupCost({ premises, businessType: selectedType, equipment: businessEquipment, supplies: businessSupplies })
           : { equipmentCost: 0, starterInventoryCost: 0, total: 0 };
         const failure = selectedType
-          ? getBusinessLaunchFailure({ player: gameState.player, world, premises, businessType: selectedType, equipment: businessEquipment, supplies: businessSupplies })
+          ? getBusinessProgressionFailure(gameState.progression)
+            ?? getBusinessLaunchFailure({ player: gameState.player, world, premises, businessType: selectedType, equipment: businessEquipment, supplies: businessSupplies })
           : 'Формат бизнеса не найден.';
         return {
           premises,
@@ -1170,7 +1194,7 @@ export function useGameController() {
       ownerShiftFailure,
       canWorkOwnerShift: Boolean(business && premises && !ownerShiftFailure)
     };
-  }, [gameState.player, gameState.time, gameState.world.business, gameState.world.population]);
+  }, [gameState.player, gameState.progression, gameState.time, gameState.world.business, gameState.world.population]);
 
   const populationState = useMemo(() => ({
     presence: getLocationPopulationPresence(gameState.world.population, gameState.player.locationId),
@@ -1271,6 +1295,7 @@ export function useGameController() {
     healthState,
     universityState,
     lifeGoalsState,
+    lifeProgressionState,
     scheduledWaitState,
     performAction,
     moveToDistrict,

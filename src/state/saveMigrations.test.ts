@@ -116,6 +116,22 @@ describe('save migrations', () => {
     });
   });
 
+  it('adds life progression and persistent consequences state when migrating v29 to v30', () => {
+    const migrated = migrateSaveState({
+      player: {},
+      time: { day: 11 },
+      world: {}
+    }, 29).state as {
+      progression: { version: number; tracks: Record<string, { xp: number; level: number; reputation: number; lastUpdatedDay: number }>; consequences: unknown[]; handledSignalIds: unknown[] };
+    };
+
+    expect(migrated.progression.version).toBe(1);
+    expect(migrated.progression.tracks.career).toEqual({ xp: 0, level: 0, reputation: 50, lastUpdatedDay: 11 });
+    expect(migrated.progression.tracks.business.reputation).toBe(0);
+    expect(migrated.progression.consequences).toEqual([]);
+    expect(migrated.progression.handledSignalIds).toEqual([]);
+  });
+
   it('decodes both legacy raw states and the current versioned envelope', () => {
     const legacy = decodeSavePayload(JSON.stringify({ player: { inventory: [] } }), 23);
     const encoded = encodeSavePayload({ marker: 'current' });

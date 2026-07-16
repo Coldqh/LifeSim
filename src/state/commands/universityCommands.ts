@@ -1,5 +1,6 @@
 import { issueDegreeQualification } from '../../core/career';
 import { getLocationById } from '../../core/location';
+import { getUniversityProgressionFailure } from '../../core/life-progression';
 import { getScheduleActivityFailure } from '../../core/schedule';
 import { getTotalMinutes } from '../../core/time';
 import { attendEntranceExam, attendUniversityClass, completeUniversityAssignment, enrollUniversityProgram, getUniversityCampusActivityFailure, performUniversityCampusActivity, submitUniversityApplication, takeUniversitySemesterExam } from '../../core/university';
@@ -172,7 +173,7 @@ export function createUniversityCommands(setGameState: GameStateSetter) {
         player: currentState.player,
         university,
         activity
-      });
+      }) ?? getUniversityProgressionFailure(currentState.progression, activity.id);
       if (activityFailure) {
         return {
           ...currentState,

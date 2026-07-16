@@ -14,6 +14,7 @@ import type { UniversityState } from '../types/university';
 import type { WorldAtlasState } from '../types/worldAtlas';
 import type { WorldDynamicsState } from '../types/worldDynamics';
 import type { LifeGoalsState } from '../types/lifeGoal';
+import type { LifeProgressionState } from '../types/lifeProgression';
 import { calculateAge, createInitialTime, formatGameTime, getTotalMinutes, normalizeGameTime } from '../core/time';
 import { createInitialBoxingProfile } from '../core/sport';
 import { createInitialCareerState, issueDegreeQualification, normalizePlayerCareerState, normalizePlayerQualifications } from '../core/career';
@@ -34,6 +35,7 @@ import { createInitialUniversityState } from '../core/university';
 import { createInitialWorldAtlasState, getRegionalCityIds, normalizeWorldAtlasState } from '../core/world-atlas';
 import { createInitialWorldDynamicsState, normalizeWorldDynamicsState } from '../core/world-dynamics';
 import { createInitialLifeGoalsState, normalizeLifeGoalsState } from '../core/life-goals';
+import { createInitialLifeProgressionState, normalizeLifeProgressionState } from '../core/life-progression';
 import { usedVehicleListingTemplates } from '../data/vehicles/usedListingTemplates';
 import { cityRegistry } from '../data/cities';
 import { getAllBusinessPremises, getAllHousing, getDegreeProgramById, getUniversityById } from '../data/cities/contentSelectors';
@@ -82,6 +84,7 @@ export type GameState = {
   time: GameTime;
   world: WorldState;
   lifeGoals: LifeGoalsState;
+  progression: LifeProgressionState;
   lifeLog: LifeLogEntry[];
   lastResult?: ActionResult;
 };
@@ -278,6 +281,7 @@ export function createInitialGameState(): GameState {
       dynamics: createInitialWorldDynamicsState(atlas.seed, time.day)
     },
     lifeGoals: createInitialLifeGoalsState(),
+    progression: createInitialLifeProgressionState(time.day),
     lifeLog: [
       {
         id: 'log_start',
@@ -740,6 +744,7 @@ function normalizeLoadedGameState(value: unknown): GameState | undefined {
     ...parsed,
     time,
     lifeGoals: normalizeLifeGoalsState(parsed.lifeGoals),
+    progression: normalizeLifeProgressionState(parsed.progression, time.day),
     world: {
       population,
       social: normalizeSocialState(parsed.world?.social, time),

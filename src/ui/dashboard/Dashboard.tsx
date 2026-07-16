@@ -41,6 +41,7 @@ import type { SkillProgressView } from '../../core/progression';
 import type { Product, Shop } from '../../types/product';
 import type { NeedCondition, NeedsConsequences } from '../../types/needs';
 import type { LocationPopulationPresence, PopulationSummary } from '../../types/population';
+import type { LifeProgressionPanelState } from '../../types/lifeProgression';
 import type { SocialNpcView } from '../../types/relationship';
 import type { ActiveSocialEvent, SocialHistoryEntry } from '../../types/socialEvent';
 import type { Npc } from '../../types/npc';
@@ -160,6 +161,7 @@ type DashboardProps = {
   };
   housingState: HousingMarketPanelState;
   businessState: BusinessPanelState;
+  lifeProgressionState: LifeProgressionPanelState;
   onPerformAction: (actionId: ActionId) => void;
   onPerformUniversityCampusActivity: (activityId: UniversityCampusActivityId) => void;
   onMoveDistrict: (districtId: DistrictId, modeId: TravelModeId) => void;
@@ -244,6 +246,7 @@ export function Dashboard({
   socialState,
   housingState,
   businessState,
+  lifeProgressionState,
   onPerformAction,
   onPerformUniversityCampusActivity,
   onMoveDistrict,
@@ -509,7 +512,7 @@ export function Dashboard({
           ) : null}
 
           {activeTab === 'jobs' ? <section className="screen screen-enter narrow-screen"><JobPanel currentJobView={jobState.currentJobView} colleagues={socialState.colleagues} onInteract={onInteractWithNpc} onPromoteJob={onPromoteJob} onWorkShift={onWorkShift} onResignJob={onResignJob} /></section> : null}
-          {activeTab === 'development' ? <section className="screen screen-enter narrow-screen"><DevelopmentPanel skills={educationState.skills} programs={educationState.programs} onStudyProgram={onStudyProgram} /></section> : null}
+          {activeTab === 'development' ? <section className="screen screen-enter narrow-screen"><DevelopmentPanel skills={educationState.skills} programs={educationState.programs} progression={lifeProgressionState} onStudyProgram={onStudyProgram} /></section> : null}
           {activeTab === 'sport' ? <section className="screen screen-enter sport-screen"><SportPanel state={boxingState} currentDay={time.day} onBuyMembership={onBuyBoxingMembership} onChooseTrainer={onChooseBoxingTrainer} onTraining={onBoxingTraining} onSparring={onBoxingSparring} onTournament={onBoxingTournament} onOpenCity={() => setActiveTab('city')} /></section> : null}
           {activeTab === 'people' ? <section className="screen screen-enter people-screen"><PeoplePanel currentPeople={socialState.currentPeople} knownPeople={socialState.knownPeople} scheduledCount={socialState.scheduledCount} history={socialState.history} onInteract={onInteractWithNpc} onExchangeContact={onExchangeNpcContact} /></section> : null}
           {activeTab === 'log' ? <section className="screen screen-enter narrow-screen"><LifeLog entries={gameState.lifeLog} /></section> : null}

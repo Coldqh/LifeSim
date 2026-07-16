@@ -78,6 +78,18 @@ export default function TodayApp(props: {
         )}
       </section>
 
+      {props.state.lifeProgression.consequences.length ? (
+        <section className="phone-section-card phone-today__world">
+          <header><div><span>Долгие последствия</span><strong>{props.state.lifeProgression.consequences.length} активных</strong></div><Icon name="bell" size={20}/></header>
+          {props.state.lifeProgression.consequences.map((entry) => (
+            <article className={`phone-today-world-condition phone-today-world-condition--${entry.severity === 'critical' ? 'slowdown' : 'transport_delay'}`} key={entry.id}>
+              <div><strong>{entry.title}</strong><small>{entry.expiresDay ? `До дня ${entry.expiresDay}` : 'Пока причина не устранена'}</small></div>
+              <p>{entry.description}</p>
+            </article>
+          ))}
+        </section>
+      ) : null}
+
       <section className="phone-section-card phone-today__world">
         <header><div><span>Город сейчас</span><strong>{props.state.worldDynamics.activeConditions.length ? 'Мир меняется' : 'Спокойный период'}</strong></div><Icon name="city" size={20}/></header>
         {props.state.worldDynamics.activeConditions.length ? props.state.worldDynamics.activeConditions.map((condition) => (

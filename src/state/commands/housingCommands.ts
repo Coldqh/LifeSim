@@ -1,4 +1,5 @@
 import { HOUSING_MOVING_DURATION_MINUTES, HOUSING_VIEWING_DURATION_MINUTES, isHousingListingActive, markHousingViewed, moveIntoHousing, scheduleHousingViewing } from '../../core/housing';
+import { getHousingProgressionFailure } from '../../core/life-progression';
 import { addMinutes } from '../../core/time';
 import { getHousingById } from '../../data/cities/contentSelectors';
 import type { HousingId } from '../../types/housing';
@@ -82,6 +83,15 @@ export function createHousingCommands(setGameState: GameStateSetter) {
     setGameState((currentState) => {
       const housing = getHousingById(housingId);
       if (!housing) return currentState;
+      const progressionFailure = getHousingProgressionFailure(currentState.progression, housing);
+      if (progressionFailure) {
+        const logEntry = createLifeLogEntry(currentState, 'Переезд недоступен', progressionFailure);
+        return {
+          ...currentState,
+          lastResult: { ok: false, actionName: 'Переезд', timeDeltaMinutes: 0, messages: [progressionFailure] },
+          lifeLog: mergeLifeLog([logEntry], currentState.lifeLog)
+        };
+      }
       const moved = moveIntoHousing({
         player: currentState.player,
         market: currentState.world.housingMarket,

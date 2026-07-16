@@ -3,6 +3,7 @@ import type { SkillProgressView } from '../../core/progression';
 import type { EducationProgram } from '../../types/education';
 import type { EducationProgramId } from '../../types/ids';
 import type { Location } from '../../types/location';
+import type { LifeProgressionPanelState } from '../../types/lifeProgression';
 import type { NeedsState } from '../../types/needs';
 import type { SkillDefinition } from '../../types/skill';
 import type { ScheduleStatus } from '../../types/schedule';
@@ -27,6 +28,7 @@ type EducationProgramView = {
 type DevelopmentPanelProps = {
   skills: SkillView[];
   programs: EducationProgramView[];
+  progression: LifeProgressionPanelState;
   onStudyProgram: (programId: EducationProgramId) => void;
 };
 
@@ -104,7 +106,7 @@ function ProgramRow({ view, onStudyProgram }: { view: EducationProgramView; onSt
   );
 }
 
-export function DevelopmentPanel({ skills, programs, onStudyProgram }: DevelopmentPanelProps) {
+export function DevelopmentPanel({ skills, programs, progression, onStudyProgram }: DevelopmentPanelProps) {
   const selfStudy = programs.filter((view) => view.program.mode === 'self_study');
   const courses = programs.filter((view) => view.program.mode === 'course');
   const totalLevels = skills.reduce((sum, view) => sum + view.progress.level, 0);
@@ -123,6 +125,45 @@ export function DevelopmentPanel({ skills, programs, onStudyProgram }: Developme
           </div>
         </div>
         <div className="development-hero__mark"><Icon name="growth" size={54} /></div>
+      </section>
+
+      <section className="panel skill-overview-panel visual-panel">
+        <div className="section-heading">
+          <div><span className="section-kicker">Жизненный путь</span><h2>Прогрессия</h2></div>
+          <span className="section-counter">{progression.tracks.length}</span>
+        </div>
+        <div className="skills-grid">
+          {progression.tracks.map((track) => (
+            <article className="skill-card interactive-surface" key={track.definition.id}>
+              <div className="skill-card__header">
+                <span className="skill-card__icon"><Icon name={track.definition.id === 'social' ? 'users' : track.definition.id === 'business' ? 'building' : track.definition.id === 'independence' ? 'home' : 'growth'} size={19} /></span>
+                <div><span>{track.definition.title}</span><strong>{track.levelTitle}</strong></div>
+                <b>{track.level}/5</b>
+              </div>
+              <p>{track.definition.description}</p>
+              <div className="skill-card__progress" aria-label={`Прогресс направления ${track.definition.title}`}>
+                <span style={{ width: `${track.progressPercent}%` }} />
+              </div>
+              <div className="skill-card__footer">
+                <span>{track.isMaxLevel ? 'Максимальный статус' : `${track.xp} XP · репутация ${track.reputation}`}</span>
+                <strong>{track.isMaxLevel ? 'MAX' : `До уровня ${track.xpRemaining}`}</strong>
+              </div>
+            </article>
+          ))}
+        </div>
+        {progression.consequences.length ? (
+          <div className="education-list">
+            {progression.consequences.map((entry) => (
+              <article className="education-row" key={entry.id}>
+                <span className="education-row__icon"><Icon name="bell" size={20} /></span>
+                <div className="education-row__body">
+                  <div className="education-row__title"><strong>{entry.title}</strong><span>{entry.severity === 'critical' ? 'Критично' : 'Последствие'}</span></div>
+                  <small className="education-row__failure">{entry.description}{entry.expiresDay ? ` До дня ${entry.expiresDay}.` : ''}</small>
+                </div>
+              </article>
+            ))}
+          </div>
+        ) : null}
       </section>
 
       <section className="panel skill-overview-panel visual-panel">

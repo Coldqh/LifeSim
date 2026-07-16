@@ -38,3 +38,5 @@ export * from './healthcare/rybinskServices';
 export * from './business/rybinskPremises';
 
 export * from './career';
+
+export * from './lifeProgression';

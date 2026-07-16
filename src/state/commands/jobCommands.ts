@@ -2,6 +2,7 @@ import { getCareerApplicationFailure, resignCareerEmployment, startCareerEmploym
 import { accrueSalary } from '../../core/finance';
 import { applyForJob as applyJob, applyJobPromotion, applyJobShift } from '../../core/jobs';
 import { applyWorkWhileSick, getMedicalActivityFailure } from '../../core/healthcare';
+import { getCareerProgressionFailure } from '../../core/life-progression';
 import { getTotalMinutes } from '../../core/time';
 import { getJobById } from '../../data/cities/contentSelectors';
 import { getSkillById } from '../../data/skills/basicSkills';
@@ -17,7 +18,8 @@ export function createJobCommands(setGameState: GameStateSetter) {
     if (!job) return;
 
     setGameState((currentState) => {
-      const careerFailure = getCareerApplicationFailure(currentState.player, job, 'direct');
+      const careerFailure = getCareerApplicationFailure(currentState.player, job, 'direct')
+        ?? getCareerProgressionFailure(currentState.progression, job);
       if (careerFailure) {
         const logEntry = createLifeLogEntry(currentState, 'Работа недоступна', careerFailure);
         return {

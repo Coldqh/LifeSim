@@ -24,3 +24,5 @@ export * as university from './university';
 export * from './social-life';
 export * as worldAtlas from './world-atlas';
 export * as worldDynamics from './world-dynamics';
+
+export * as lifeProgression from './life-progression';

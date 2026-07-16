@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { getElapsedMinutes } from '../../core/time';
 import { createInitialGameState, type GameState } from '../gameState';
+import type { BusinessPremisesId } from '../../types/ids';
+import type { HousingId } from '../../types/housing';
 import type { GameStateSetter } from './commandSupport';
 import { createGameCommands } from './createGameCommands';
 
@@ -116,6 +118,20 @@ describe('game command registry', () => {
     expect(harness.getState().lifeGoals.activeGoalId).toBe('boxing');
     expect(harness.getState().lifeGoals.selectedDay).toBe(1);
     expect(harness.getState().lastResult?.ok).toBe(false);
+  });
+
+  it('enforces independence progression inside business and housing commands', () => {
+    const businessHarness = createStateHarness();
+    businessHarness.commands.openCoffeeBusiness('premises_danilovsky_market_kiosk' as BusinessPremisesId, 'Тестовая точка');
+
+    expect(businessHarness.getState().lastResult?.ok).toBe(false);
+    expect(businessHarness.getState().lastResult?.messages.join(' ')).toContain('уровня самостоятельности');
+
+    const housingHarness = createStateHarness();
+    housingHarness.commands.rentHousing('housing_studio_danilovsky' as HousingId);
+
+    expect(housingHarness.getState().lastResult?.ok).toBe(false);
+    expect(housingHarness.getState().lastResult?.messages.join(' ')).toContain('уровень самостоятельности');
   });
 
   it('persists the player decision for the daily opportunity', () => {

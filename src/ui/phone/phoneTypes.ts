@@ -1,6 +1,7 @@
 import type { CareerCompany, CareerResume } from '../../types/career';
 import type { DailyLifePanelState, DailyOpportunity, DailyOpportunityDecision } from '../../types/dailyLife';
 import type { LifeGoalId, LifeGoalsPanelState } from '../../types/lifeGoal';
+import type { LifeProgressionPanelState } from '../../types/lifeProgression';
 import type { Job } from '../../types/job';
 import type { City, District, Location } from '../../types/location';
 import type {
@@ -196,6 +197,7 @@ export type PhonePanelState = {
   intercity: IntercityPanelState;
   university: UniversityPanelState;
   lifeGoals: LifeGoalsPanelState;
+  lifeProgression: LifeProgressionPanelState;
   dailyLife: DailyLifePanelState;
   worldDynamics: WorldDynamicsPanelState;
   social: PhoneSocialState;
