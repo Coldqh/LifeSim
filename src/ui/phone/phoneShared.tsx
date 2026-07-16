@@ -12,6 +12,7 @@ export const APPLICATION_LABELS: Record<PhoneJobApplication['status'], string> =
 
 export const APP_META: Array<{ id: PhoneAppId; label: string; icon: IconName; tone: string }> = [
   { id: 'today', label: 'Сегодня', icon: 'sun', tone: 'amber' },
+  { id: 'goals', label: 'Цели', icon: 'star', tone: 'violet' },
   { id: 'contacts', label: 'Контакты', icon: 'users', tone: 'green' },
   { id: 'jobs', label: 'hh', icon: 'briefcase', tone: 'red' },
   { id: 'education', label: 'Учёба', icon: 'book', tone: 'violet' },

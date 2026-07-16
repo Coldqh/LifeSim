@@ -73,6 +73,7 @@ describe('game command registry', () => {
       'scheduleHousingViewingAction',
       'scheduleMedicalVisit',
       'scheduleVehicleInspectionAction',
+      'selectLifeGoal',
       'sellOwnedVehicleAction',
       'sendNpcPhoneMessage',
       'serviceOwnedVehicle',
@@ -103,6 +104,18 @@ describe('game command registry', () => {
     expect(getElapsedMinutes(before, after.time)).toBe(60);
     expect(after.lastResult?.actionName).toBe('Ожидание');
     expect(after.lastResult?.timeDeltaMinutes).toBe(60);
+  });
+
+
+  it('locks the selected life goal after the first choice', () => {
+    const harness = createStateHarness();
+
+    harness.commands.selectLifeGoal('boxing');
+    harness.commands.selectLifeGoal('career');
+
+    expect(harness.getState().lifeGoals.activeGoalId).toBe('boxing');
+    expect(harness.getState().lifeGoals.selectedDay).toBe(1);
+    expect(harness.getState().lastResult?.ok).toBe(false);
   });
 
   it('persists the player decision for the daily opportunity', () => {

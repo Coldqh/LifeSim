@@ -6,6 +6,7 @@ import { APP_META, AppBadge } from './phoneShared';
 export function PhoneHome({ state, onOpenApp }: { state: PhonePanelState; onOpenApp: (app: PhoneAppId) => void }) {
   const counts: Partial<Record<PhoneAppId, number>> = {
     today: state.dailyLife.conflictCount,
+    goals: state.lifeGoals.activeGoal ? state.lifeGoals.activeGoal.totalCount - state.lifeGoals.activeGoal.completedCount : 1,
     contacts: state.social.invitations.length + state.social.meetings.length,
     messages: state.unreadMessages,
     notifications: state.unreadNotifications,

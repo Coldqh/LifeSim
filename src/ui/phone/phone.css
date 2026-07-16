@@ -1762,3 +1762,226 @@
   display: block;
   margin-top: 9px;
 }
+
+/* Life Goals MVP */
+.phone-goals {
+  display: grid;
+  gap: 12px;
+}
+
+.phone-goals__intro,
+.phone-goals__active-hero {
+  padding: 17px;
+  border: 1px solid rgba(163, 135, 255, .24);
+  border-radius: 18px;
+  background: linear-gradient(145deg, rgba(88, 63, 151, .28), rgba(18, 22, 34, .96));
+}
+
+.phone-goals__intro > span,
+.phone-goals__active-hero span,
+.phone-goal-choice span {
+  color: rgba(191, 173, 255, .86);
+  font-size: 9px;
+  font-weight: 850;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.phone-goals__intro > strong,
+.phone-goals__active-hero strong {
+  display: block;
+  margin-top: 5px;
+  font-size: 18px;
+  line-height: 1.15;
+}
+
+.phone-goals__intro p,
+.phone-goals__active-hero p,
+.phone-goal-choice p,
+.phone-goals__milestones p,
+.phone-goals__lock-note p,
+.phone-today__goal p {
+  margin: 7px 0 0;
+  color: var(--phone-muted, rgba(255, 255, 255, .62));
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+.phone-goals__choice-list {
+  display: grid;
+  gap: 9px;
+}
+
+.phone-goal-choice {
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr);
+  gap: 11px;
+  padding: 13px;
+  border: 1px solid var(--phone-border, rgba(255, 255, 255, .09));
+  border-radius: 15px;
+  background: rgba(255, 255, 255, .045);
+}
+
+.phone-goal-choice__icon,
+.phone-goals__active-icon {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  background: rgba(159, 126, 255, .16);
+  color: #c7b4ff;
+}
+
+.phone-goal-choice h3 {
+  margin: 3px 0 0;
+  font-size: 13px;
+}
+
+.phone-goal-choice small {
+  display: block;
+  margin-top: 6px;
+  color: rgba(255, 255, 255, .48);
+  font-size: 9px;
+}
+
+.phone-goal-choice > button,
+.phone-today__goal > button {
+  grid-column: 2;
+  justify-self: start;
+  margin-top: 2px;
+  padding: 8px 11px;
+  border: 1px solid rgba(167, 138, 255, .28);
+  border-radius: 10px;
+  background: rgba(152, 118, 255, .14);
+  color: #ddcffd;
+  font-size: 9px;
+  font-weight: 850;
+}
+
+.phone-goals__active-hero {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 11px;
+}
+
+.phone-goals__active-hero > b {
+  color: #d5c6ff;
+  font-size: 16px;
+}
+
+.phone-goals__progress-track,
+.phone-goals__milestone-track,
+.phone-today__goal-track {
+  overflow: hidden;
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, .08);
+}
+
+.phone-goals__progress-track i,
+.phone-goals__milestone-track i,
+.phone-today__goal-track i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #8a6cff, #c2adff);
+}
+
+.phone-goals__progress-card > small {
+  display: block;
+  margin-top: 8px;
+  color: rgba(255, 255, 255, .58);
+  font-size: 9px;
+}
+
+.phone-goals__complete {
+  margin-top: 9px;
+  color: #6fe0bf;
+  font-size: 10px;
+  font-weight: 850;
+}
+
+.phone-goals__milestones > article {
+  display: grid;
+  grid-template-columns: 27px minmax(0, 1fr);
+  gap: 9px;
+  padding: 11px 0;
+  border-top: 1px solid var(--phone-border, rgba(255, 255, 255, .08));
+}
+
+.phone-goals__milestones > article:first-of-type {
+  border-top: 0;
+}
+
+.phone-goals__step-index {
+  display: grid;
+  place-items: center;
+  width: 25px;
+  height: 25px;
+  border: 1px solid rgba(255, 255, 255, .12);
+  border-radius: 50%;
+  color: rgba(255, 255, 255, .56);
+  font-size: 9px;
+  font-weight: 900;
+}
+
+.phone-goals__milestones article.is-complete .phone-goals__step-index {
+  border-color: rgba(93, 220, 185, .32);
+  background: rgba(93, 220, 185, .12);
+  color: #76dfc2;
+}
+
+.phone-goals__milestones article.is-complete strong {
+  color: #83dfc6;
+}
+
+.phone-goals__milestones strong {
+  font-size: 11px;
+}
+
+.phone-goals__milestones small {
+  display: block;
+  margin-top: 5px;
+  color: rgba(194, 176, 255, .78);
+  font-size: 9px;
+}
+
+.phone-goals__milestone-track {
+  height: 4px;
+  margin-top: 7px;
+}
+
+.phone-goals__lock-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  padding: 12px;
+  border-radius: 13px;
+  background: rgba(255, 255, 255, .035);
+  color: rgba(187, 169, 246, .8);
+}
+
+.phone-goals__lock-note p {
+  margin: 0;
+}
+
+.phone-today__goal {
+  border-color: rgba(160, 132, 255, .22) !important;
+  background: linear-gradient(145deg, rgba(91, 63, 151, .13), rgba(255, 255, 255, .035)) !important;
+}
+
+.phone-today__goal header > b {
+  color: #c7b3ff;
+  font-size: 14px;
+}
+
+.phone-today__goal-track {
+  margin-top: 9px;
+}
+
+.phone-today__goal > button {
+  grid-column: auto;
+  margin-top: 10px;
+}

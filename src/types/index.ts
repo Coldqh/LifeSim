@@ -35,3 +35,5 @@ export * from './university';
 export * from './socialLife';
 export * from './worldAtlas';
 export * from './dailyLife';
+
+export * from './lifeGoal';

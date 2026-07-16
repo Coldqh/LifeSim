@@ -12,6 +12,7 @@ import type { MedicalState } from '../types/healthcare';
 import type { IntercityTravelState } from '../types/intercity';
 import type { UniversityState } from '../types/university';
 import type { WorldAtlasState } from '../types/worldAtlas';
+import type { LifeGoalsState } from '../types/lifeGoal';
 import { calculateAge, createInitialTime, formatGameTime, getTotalMinutes, normalizeGameTime } from '../core/time';
 import { createInitialBoxingProfile } from '../core/sport';
 import { createInitialCareerState, issueDegreeQualification, normalizePlayerCareerState, normalizePlayerQualifications } from '../core/career';
@@ -30,6 +31,7 @@ import { createInitialMedicalState } from '../core/healthcare';
 import { createInitialIntercityState } from '../core/intercity';
 import { createInitialUniversityState } from '../core/university';
 import { createInitialWorldAtlasState, getRegionalCityIds, normalizeWorldAtlasState } from '../core/world-atlas';
+import { createInitialLifeGoalsState, normalizeLifeGoalsState } from '../core/life-goals';
 import { usedVehicleListingTemplates } from '../data/vehicles/usedListingTemplates';
 import { cityRegistry } from '../data/cities';
 import { getAllBusinessPremises, getAllHousing, getDegreeProgramById, getUniversityById } from '../data/cities/contentSelectors';
@@ -76,6 +78,7 @@ export type GameState = {
   player: Player;
   time: GameTime;
   world: WorldState;
+  lifeGoals: LifeGoalsState;
   lifeLog: LifeLogEntry[];
   lastResult?: ActionResult;
 };
@@ -270,6 +273,7 @@ export function createInitialGameState(): GameState {
       university: createInitialUniversityState(getTotalMinutes(time)),
       atlas
     },
+    lifeGoals: createInitialLifeGoalsState(),
     lifeLog: [
       {
         id: 'log_start',
@@ -731,6 +735,7 @@ function normalizeLoadedGameState(value: unknown): GameState | undefined {
   return {
     ...parsed,
     time,
+    lifeGoals: normalizeLifeGoalsState(parsed.lifeGoals),
     world: {
       population,
       social: normalizeSocialState(parsed.world?.social, time),

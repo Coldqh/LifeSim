@@ -1,5 +1,6 @@
 import type { CareerCompany, CareerResume } from '../../types/career';
 import type { DailyLifePanelState, DailyOpportunity, DailyOpportunityDecision } from '../../types/dailyLife';
+import type { LifeGoalId, LifeGoalsPanelState } from '../../types/lifeGoal';
 import type { Job } from '../../types/job';
 import type { City, District, Location } from '../../types/location';
 import type {
@@ -191,6 +192,7 @@ export type PhonePanelState = {
   health: HealthPanelState;
   intercity: IntercityPanelState;
   university: UniversityPanelState;
+  lifeGoals: LifeGoalsPanelState;
   dailyLife: DailyLifePanelState;
   social: PhoneSocialState;
 };
@@ -246,6 +248,7 @@ export type PhoneShellProps = {
   onAttendSocialMeeting: (meetingId: SocialMeetingId) => void;
   onCancelSocialMeeting: (meetingId: SocialMeetingId) => void;
   onResolveDailyOpportunity: (opportunityId: string, decision: DailyOpportunityDecision) => void;
+  onSelectLifeGoal: (goalId: LifeGoalId) => void;
   onChooseSocialEvent: (choiceId: SocialEventChoiceId) => void;
   onExecuteDailyOpportunity: (opportunity: DailyOpportunity) => void;
 };

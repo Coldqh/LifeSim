@@ -30,7 +30,7 @@ export default function TodayApp(props: {
   onRoute: (locationId: LocationId) => void;
   onResolve: (opportunityId: string, decision: DailyOpportunityDecision) => void;
   onExecute: () => void;
-  onOpenApp: (app: 'jobs' | 'education') => void;
+  onOpenApp: (app: 'jobs' | 'education' | 'goals') => void;
   onChooseStory: (choiceId: SocialEventChoiceId) => void;
   onClose: () => void;
 }) {
@@ -59,6 +59,23 @@ export default function TodayApp(props: {
         <div><span>Дела</span><strong>{daily.mandatoryCount}</strong></div>
         <div className={daily.conflictCount ? 'is-warning' : ''}><span>Конфликты</span><strong>{daily.conflictCount}</strong></div>
         <div className={daily.remainingAfterPayments < 0 ? 'is-negative' : ''}><span>После платежей</span><strong>{formatRubles(daily.remainingAfterPayments)}</strong></div>
+      </section>
+
+      <section className="phone-section-card phone-today__goal">
+        {props.state.lifeGoals.activeGoal ? (
+          <>
+            <header><div><span>Жизненная цель</span><strong>{props.state.lifeGoals.activeGoal.definition.shortTitle}</strong></div><b>{props.state.lifeGoals.activeGoal.progressPercent}%</b></header>
+            <p>{props.state.lifeGoals.activeGoal.nextMilestone?.definition.title ?? 'Все этапы завершены'}</p>
+            <div className="phone-today__goal-track"><i style={{ width: `${props.state.lifeGoals.activeGoal.progressPercent}%` }}/></div>
+            <button type="button" onClick={() => props.onOpenApp('goals')}>Открыть путь</button>
+          </>
+        ) : (
+          <>
+            <header><div><span>Жизненная цель</span><strong>Направление не выбрано</strong></div><Icon name="star" size={20}/></header>
+            <p>Выбери главный путь, чтобы видеть этапы и связать текущие действия с большим результатом.</p>
+            <button type="button" onClick={() => props.onOpenApp('goals')}>Выбрать цель</button>
+          </>
+        )}
       </section>
 
       <section className="phone-section-card phone-today__agenda">

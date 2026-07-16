@@ -89,6 +89,7 @@ export function AppShell() {
     takeDegreeSemesterExam,
     skipGameTime,
     resolveDailyOpportunity,
+    selectLifeGoal,
     executeDailyOpportunity,
     resetGame
   } = useGameController();
@@ -205,6 +206,7 @@ export function AppShell() {
         onAttendSocialMeeting={attendNpcMeeting}
         onCancelSocialMeeting={cancelNpcMeeting}
         onResolveDailyOpportunity={resolveDailyOpportunity}
+        onSelectLifeGoal={selectLifeGoal}
         onChooseSocialEvent={chooseSocialEvent}
         onExecuteDailyOpportunity={executeDailyOpportunity}
       />

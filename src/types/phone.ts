@@ -16,7 +16,7 @@ import type {
   SocialMeetingId
 } from './ids';
 
-export type PhoneAppId = 'home' | 'today' | 'contacts' | 'jobs' | 'education' | 'clock' | 'maps' | 'bank' | 'auto' | 'health' | 'trips' | 'messages' | 'calendar' | 'notifications';
+export type PhoneAppId = 'home' | 'today' | 'goals' | 'contacts' | 'jobs' | 'education' | 'clock' | 'maps' | 'bank' | 'auto' | 'health' | 'trips' | 'messages' | 'calendar' | 'notifications';
 
 export type JobApplicationStatus = 'submitted' | 'invited' | 'rejected' | 'accepted' | 'missed';
 

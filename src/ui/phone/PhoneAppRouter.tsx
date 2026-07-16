@@ -4,6 +4,7 @@ import type { PhoneShellProps } from './phoneTypes';
 import { PHONE_APP_LOADERS } from './phoneAppRegistry';
 
 const TodayApp = lazy(PHONE_APP_LOADERS.today);
+const GoalsApp = lazy(PHONE_APP_LOADERS.goals);
 const ContactsApp = lazy(PHONE_APP_LOADERS.contacts);
 const JobsApp = lazy(PHONE_APP_LOADERS.jobs);
 const EducationApp = lazy(PHONE_APP_LOADERS.education);
@@ -27,6 +28,9 @@ export function PhoneAppRouter(props: PhoneShellProps) {
   switch (props.activeApp) {
     case 'today':
       content = <TodayApp state={props.state} time={props.time} onRoute={openMap} onResolve={props.onResolveDailyOpportunity} onExecute={() => props.onExecuteDailyOpportunity(props.state.dailyLife.opportunity)} onOpenApp={props.onOpenApp} onChooseStory={props.onChooseSocialEvent} onClose={props.onClose}/>;
+      break;
+    case 'goals':
+      content = <GoalsApp state={props.state} onSelect={props.onSelectLifeGoal}/>;
       break;
     case 'contacts':
       content = <ContactsApp state={props.state} onRoute={openMap} onSendMessage={props.onSendSocialMessage} onInvite={props.onInviteSocialMeeting} onRespond={props.onRespondSocialInvitation} onAttend={props.onAttendSocialMeeting} onCancel={props.onCancelSocialMeeting}/>;

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { getCareerApplicationFailure, getCareerResume } from '../core/career';
 import { selectDailyLifeState } from '../core/daily-life';
+import { getLifeGoalProgress } from '../core/life-goals';
 import { getBusinessHireCandidates, getBusinessLaunchFailure, getBusinessStartupCost, isBusinessEmployeeOnShift } from '../core/business';
 import { getHousingAffordability, isHousingViewed, scheduleHousingViewing } from '../core/housing';
 import { canAfford } from '../core/economy';
@@ -31,6 +32,7 @@ import { calculateVehicleTravelQuote } from '../core/vehicles';
 import { createDistrictTravelOption, createLocationTravelOptions } from '../core/travel';
 import { allLocations } from '../data/locations';
 import { LIFE_ACTION_IDS } from '../data/lifeActions';
+import { lifeGoalDefinitions } from '../data/lifeGoals';
 import {
   getAllBoxingGyms,
   getAllBoxingTrainers,
@@ -74,6 +76,8 @@ import type { SocialNpcView } from '../types/relationship';
 import type { VehicleWorldState } from '../types/vehicle';
 import type { DistrictTravelOption, LocationTravelOption, TransportOption } from '../types/travel';
 import { createInitialGameState, loadGameState, saveGameState, type GameState } from './gameState';
+import { applyLifeGoalProgress } from './lifeGoalProgress';
+import type { GameStateSetter } from './commands/commandSupport';
 import { GAS_STATION_LOCATION_IDS, SERVICE_LOCATION_IDS, getDealerLocationIdForModel } from './commands/vehicleCommands';
 import { selectIntercityState } from './selectors/intercityState';
 import { selectScheduledWaitState } from './selectors/scheduledWaitState';
@@ -164,7 +168,13 @@ function addPersonalCarToDistrictOptions(
 
 
 export function useGameController() {
-  const [gameState, setGameState] = useState<GameState>(resolveInitialState);
+  const [gameState, setRawGameState] = useState<GameState>(() => applyLifeGoalProgress(resolveInitialState()));
+  const setGameState = useMemo<GameStateSetter>(() => (update) => {
+    setRawGameState((currentState) => {
+      const nextState = typeof update === 'function' ? update(currentState) : update;
+      return applyLifeGoalProgress(nextState);
+    });
+  }, []);
 
   useEffect(() => {
     saveGameState(gameState);
@@ -239,7 +249,8 @@ export function useGameController() {
     takeDegreeSemesterExam,
     skipGameTime,
     resetGame,
-    resolveDailyOpportunity
+    resolveDailyOpportunity,
+    selectLifeGoal
   } = useMemo(() => createGameCommands(setGameState), []);
 
   function executeDailyOpportunity(opportunity: DailyOpportunity): void {
@@ -574,6 +585,23 @@ export function useGameController() {
     };
   }, [gameState.player, gameState.time, gameState.world.population, gameState.world.university]);
 
+  const lifeGoalsState = useMemo(() => {
+    const context = {
+      player: gameState.player,
+      university: gameState.world.university,
+      business: gameState.world.business,
+      finance: gameState.world.finance,
+      currentHousing: getHousingById(gameState.player.housingId),
+      activeProgram: getDegreeProgramById(gameState.world.university.enrollment?.programId)
+    };
+    const goals = lifeGoalDefinitions.map((definition) => getLifeGoalProgress(definition, context));
+    return {
+      state: gameState.lifeGoals,
+      goals,
+      activeGoal: goals.find((goal) => goal.definition.id === gameState.lifeGoals.activeGoalId)
+    };
+  }, [gameState.lifeGoals, gameState.player, gameState.world.business, gameState.world.finance, gameState.world.university]);
+
   const dailyLifeState = useMemo(() => {
     const currentLocation = getLocationById(gameState.player.locationId);
     const currentJob = getJobById(gameState.player.currentJobId);
@@ -772,11 +800,12 @@ export function useGameController() {
       vehicles: vehicleState,
       intercity: intercityState,
       university: universityState,
+      lifeGoals: lifeGoalsState,
       dailyLife: dailyLifeState,
       social: { contacts, meetingOptions: socialMeetingOptions, invitations: socialInvitations, meetings: socialMeetings },
       districtTravelOptions: locationState.districtTravelOptions
     };
-  }, [gameState.player, gameState.time, gameState.world.phone, gameState.world.vehicles, gameState.world.social, gameState.world.population, gameState.world.business, financeState, vehicleState, intercityState, universityState, dailyLifeState, locationState.districtTravelOptions]);
+  }, [gameState.player, gameState.time, gameState.world.phone, gameState.world.vehicles, gameState.world.social, gameState.world.population, gameState.world.business, financeState, vehicleState, intercityState, universityState, lifeGoalsState, dailyLifeState, locationState.districtTravelOptions]);
 
   const educationState = useMemo(() => {
     const skills = basicSkills.map((skill) => ({
@@ -1182,6 +1211,7 @@ export function useGameController() {
     vehicleState,
     healthState,
     universityState,
+    lifeGoalsState,
     scheduledWaitState,
     performAction,
     moveToDistrict,
@@ -1251,6 +1281,7 @@ export function useGameController() {
     takeDegreeSemesterExam,
     skipGameTime,
     resolveDailyOpportunity,
+    selectLifeGoal,
     executeDailyOpportunity,
     resetGame
   };
