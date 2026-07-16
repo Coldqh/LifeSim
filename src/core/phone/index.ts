@@ -110,6 +110,7 @@ export function createInitialPhoneState(totalMinutes = 0): PhoneState {
     messages: [],
     calendarEvents: [],
     savedJobIds: [],
+    dailyOpportunityResolutions: [],
     lastProcessedTotalMinutes: Math.max(0, totalMinutes)
   };
 }

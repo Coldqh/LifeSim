@@ -524,6 +524,9 @@ function normalizePhoneState(value: unknown, time: GameTime): PhoneState {
     messages: Array.isArray(candidate.messages) ? candidate.messages.slice(0, 80) : [],
     calendarEvents: Array.isArray(candidate.calendarEvents) ? candidate.calendarEvents.slice(0, 60) : [],
     savedJobIds: Array.isArray(candidate.savedJobIds) ? candidate.savedJobIds : [],
+    dailyOpportunityResolutions: Array.isArray(candidate.dailyOpportunityResolutions)
+      ? candidate.dailyOpportunityResolutions.slice(0, 60)
+      : [],
     mapTargetLocationId: candidate.mapTargetLocationId,
     lastProcessedTotalMinutes: typeof candidate.lastProcessedTotalMinutes === 'number'
       ? Math.min(getTotalMinutes(time), Math.max(0, candidate.lastProcessedTotalMinutes))

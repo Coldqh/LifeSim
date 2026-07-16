@@ -5,6 +5,7 @@ import { APP_META, AppBadge } from './phoneShared';
 
 export function PhoneHome({ state, onOpenApp }: { state: PhonePanelState; onOpenApp: (app: PhoneAppId) => void }) {
   const counts: Partial<Record<PhoneAppId, number>> = {
+    today: state.dailyLife.conflictCount,
     contacts: state.social.invitations.length + state.social.meetings.length,
     messages: state.unreadMessages,
     notifications: state.unreadNotifications,
@@ -34,7 +35,7 @@ export function PhoneHome({ state, onOpenApp }: { state: PhonePanelState; onOpen
         ))}
       </div>
       <section className="phone-home-widget">
-        <div><span>Ближайшее событие</span><strong>{state.phone.calendarEvents.find((event) => event.status === 'scheduled')?.title ?? 'Планов нет'}</strong></div>
+        <div><span>Ближайшее событие</span><strong>{state.dailyLife.agenda.find((event) => ['upcoming', 'active'].includes(event.status))?.title ?? 'Планов нет'}</strong></div>
         <Icon name="calendar" size={22} />
       </section>
     </div>

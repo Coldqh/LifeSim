@@ -88,6 +88,8 @@ export function AppShell() {
     performDegreeCampusActivity,
     takeDegreeSemesterExam,
     skipGameTime,
+    resolveDailyOpportunity,
+    executeDailyOpportunity,
     resetGame
   } = useGameController();
   const [phoneOpen, setPhoneOpen] = useState(false);
@@ -196,6 +198,8 @@ export function AppShell() {
         onRespondSocialInvitation={respondNpcMeetingInvitation}
         onAttendSocialMeeting={attendNpcMeeting}
         onCancelSocialMeeting={cancelNpcMeeting}
+        onResolveDailyOpportunity={resolveDailyOpportunity}
+        onExecuteDailyOpportunity={executeDailyOpportunity}
       />
     </>
   );

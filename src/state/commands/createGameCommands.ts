@@ -16,6 +16,7 @@ import { createFinanceCommands } from './financeCommands';
 import { createUniversityCommands } from './universityCommands';
 import { createTimeCommands } from './timeCommands';
 import { createSystemCommands } from './systemCommands';
+import { createDailyLifeCommands } from './dailyLifeCommands';
 
 export function createGameCommands(setGameState: GameStateSetter) {
   return {
@@ -35,7 +36,8 @@ export function createGameCommands(setGameState: GameStateSetter) {
     ...createFinanceCommands(setGameState),
     ...createUniversityCommands(setGameState),
     ...createTimeCommands(setGameState),
-    ...createSystemCommands(setGameState)
+    ...createSystemCommands(setGameState),
+    ...createDailyLifeCommands(setGameState)
   };
 }
 

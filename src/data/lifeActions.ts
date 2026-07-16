@@ -5,9 +5,16 @@ function actionId(value: string): ActionId {
   return value as ActionId;
 }
 
+export const LIFE_ACTION_IDS = {
+  sleepEightHours: actionId('sleep_eight_hours'),
+  restOneHour: actionId('rest_one_hour'),
+  walkOneHour: actionId('walk_one_hour'),
+  lightTraining: actionId('light_training')
+} as const;
+
 export const lifeActions: LifeAction[] = [
   {
-    id: actionId('sleep_eight_hours'),
+    id: LIFE_ACTION_IDS.sleepEightHours,
     name: 'Сон 8 часов',
     description: 'Полное восстановление дома. Еда и вода расходуются только от прошедшего времени.',
     category: 'sleep',
@@ -20,7 +27,7 @@ export const lifeActions: LifeAction[] = [
     resultMessage: 'Ты поспал восемь часов.'
   },
   {
-    id: actionId('rest_one_hour'),
+    id: LIFE_ACTION_IDS.restOneHour,
     name: 'Отдохнуть 1 час',
     description: 'Короткая пауза дома. Силы возвращаются, потребности меняются от прошедшего времени.',
     category: 'rest',
@@ -32,7 +39,7 @@ export const lifeActions: LifeAction[] = [
     resultMessage: 'Ты спокойно отдохнул час.'
   },
   {
-    id: actionId('walk_one_hour'),
+    id: LIFE_ACTION_IDS.walkOneHour,
     name: 'Прогулка 1 час',
     description: 'Простая прогулка по району. Денег не даёт, но разгружает голову.',
     category: 'walk',
@@ -47,7 +54,7 @@ export const lifeActions: LifeAction[] = [
     resultMessage: 'Ты прогулялся час.'
   },
   {
-    id: actionId('light_training'),
+    id: LIFE_ACTION_IDS.lightTraining,
     name: 'Лёгкая тренировка',
     description: 'Без спорт-системы. Просто базовая физическая активность.',
     category: 'training',

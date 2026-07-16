@@ -3,6 +3,7 @@ import type { PhoneAppId } from '../../types/phone';
 type LazyPhoneAppId = Exclude<PhoneAppId, 'home'>;
 
 export const PHONE_APP_LOADERS = {
+  today: () => import('./apps/TodayApp'),
   contacts: () => import('./apps/ContactsApp'),
   jobs: () => import('./apps/JobsApp'),
   education: () => import('./apps/EducationApp'),

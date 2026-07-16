@@ -68,6 +68,7 @@ describe('game command registry', () => {
       'requestSickLeave',
       'resetGame',
       'resignCurrentJob',
+      'resolveDailyOpportunity',
       'respondNpcMeetingInvitation',
       'scheduleHousingViewingAction',
       'scheduleMedicalVisit',
@@ -103,4 +104,18 @@ describe('game command registry', () => {
     expect(after.lastResult?.actionName).toBe('Ожидание');
     expect(after.lastResult?.timeDeltaMinutes).toBe(60);
   });
+
+  it('persists the player decision for the daily opportunity', () => {
+    const harness = createStateHarness();
+
+    harness.commands.resolveDailyOpportunity('recovery_walk:1', 'accepted');
+
+    expect(harness.getState().world.phone.dailyOpportunityResolutions[0]).toMatchObject({
+      day: 1,
+      opportunityId: 'recovery_walk:1',
+      decision: 'accepted'
+    });
+    expect(harness.getState().lastResult?.actionName).toBe('План на день');
+  });
+
 });

@@ -1,3 +1,4 @@
+import type { DailyOpportunityResolution } from './dailyLife';
 import type {
   JobApplicationId,
   JobId,
@@ -15,7 +16,7 @@ import type {
   SocialMeetingId
 } from './ids';
 
-export type PhoneAppId = 'home' | 'contacts' | 'jobs' | 'education' | 'clock' | 'maps' | 'bank' | 'auto' | 'health' | 'trips' | 'messages' | 'calendar' | 'notifications';
+export type PhoneAppId = 'home' | 'today' | 'contacts' | 'jobs' | 'education' | 'clock' | 'maps' | 'bank' | 'auto' | 'health' | 'trips' | 'messages' | 'calendar' | 'notifications';
 
 export type JobApplicationStatus = 'submitted' | 'invited' | 'rejected' | 'accepted' | 'missed';
 
@@ -90,6 +91,7 @@ export type PhoneState = {
   messages: PhoneMessage[];
   calendarEvents: PhoneCalendarEvent[];
   savedJobIds: JobId[];
+  dailyOpportunityResolutions: DailyOpportunityResolution[];
   mapTargetLocationId?: LocationId;
   lastProcessedTotalMinutes: number;
 };

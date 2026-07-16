@@ -1378,3 +1378,309 @@
   white-space: nowrap;
   text-overflow: ellipsis;
 }
+
+/* Daily Life Director MVP */
+.phone-today {
+  display: grid;
+  gap: 10px;
+  padding-bottom: 18px;
+}
+
+.phone-today__hero {
+  display: flex;
+  min-height: 112px;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px;
+  border: 1px solid rgba(255, 196, 86, .24);
+  border-radius: 18px;
+  background:
+    radial-gradient(circle at 85% 15%, rgba(255, 196, 86, .2), transparent 36%),
+    linear-gradient(145deg, rgba(255, 196, 86, .1), rgba(20, 28, 34, .78));
+}
+
+.phone-today__hero span,
+.phone-today__hero strong,
+.phone-today__hero small {
+  display: block;
+}
+
+.phone-today__hero span {
+  color: rgba(255, 210, 126, .78);
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+
+.phone-today__hero strong {
+  margin-top: 5px;
+  font-size: 21px;
+  line-height: 1.1;
+}
+
+.phone-today__hero small {
+  margin-top: 6px;
+  color: var(--phone-muted, rgba(255, 255, 255, .58));
+  font-size: 10px;
+}
+
+.phone-today__hero > svg {
+  flex: 0 0 auto;
+  color: #ffc456;
+}
+
+.phone-today__summary {
+  display: grid;
+  grid-template-columns: .72fr .9fr 1.38fr;
+  gap: 6px;
+}
+
+.phone-today__summary > div {
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid var(--phone-border, rgba(255, 255, 255, .1));
+  border-radius: 12px;
+  background: var(--phone-card, rgba(255, 255, 255, .045));
+}
+
+.phone-today__summary span,
+.phone-today__summary strong {
+  display: block;
+}
+
+.phone-today__summary span {
+  color: var(--phone-muted, rgba(255, 255, 255, .58));
+  font-size: 7px;
+  font-weight: 900;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.phone-today__summary strong {
+  overflow: hidden;
+  margin-top: 4px;
+  font-size: 12px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.phone-today__summary .is-warning strong {
+  color: #ffc456;
+}
+
+.phone-today__summary .is-negative strong {
+  color: #ff7b86;
+}
+
+.phone-today .phone-section-card {
+  padding: 12px;
+  border: 1px solid var(--phone-border, rgba(255, 255, 255, .1));
+  border-radius: 15px;
+  background: var(--phone-card, rgba(255, 255, 255, .045));
+}
+
+.phone-today .phone-section-card > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.phone-today .phone-section-card > header span,
+.phone-today .phone-section-card > header strong {
+  display: block;
+}
+
+.phone-today .phone-section-card > header span {
+  color: var(--phone-muted, rgba(255, 255, 255, .58));
+  font-size: 7px;
+  font-weight: 900;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+}
+
+.phone-today .phone-section-card > header strong {
+  margin-top: 2px;
+  font-size: 13px;
+}
+
+.phone-today-item {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr);
+  gap: 9px;
+  padding: 10px 0;
+  border-top: 1px solid var(--phone-border, rgba(255, 255, 255, .08));
+}
+
+.phone-today-item:first-of-type {
+  border-top: 0;
+}
+
+.phone-today-item > time {
+  color: rgba(255, 255, 255, .72);
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.phone-today-item h3,
+.phone-today-item p,
+.phone-today-item small {
+  margin: 0;
+}
+
+.phone-today-item h3 {
+  margin-top: 4px;
+  font-size: 12px;
+  line-height: 1.25;
+}
+
+.phone-today-item p,
+.phone-today-item small {
+  display: block;
+  margin-top: 4px;
+  color: var(--phone-muted, rgba(255, 255, 255, .58));
+  font-size: 8px;
+  line-height: 1.45;
+}
+
+.phone-today-item button {
+  min-height: 29px;
+  margin-top: 7px;
+  padding: 0 9px;
+  border: 1px solid rgba(97, 221, 204, .28);
+  border-radius: 9px;
+  color: #b8fff4;
+  background: rgba(97, 221, 204, .08);
+  font-size: 8px;
+  font-weight: 900;
+}
+
+.phone-today-item__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.phone-today-item__top em,
+.phone-today-item__top b {
+  font-size: 7px;
+  font-style: normal;
+  font-weight: 900;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.phone-today-item__top em {
+  color: #70dbc9;
+}
+
+.phone-today-item__top b {
+  color: #ffc456;
+}
+
+.phone-today-item--completed,
+.phone-today-item--missed {
+  opacity: .62;
+}
+
+.phone-today-item--missed .phone-today-item__top em {
+  color: #ff7b86;
+}
+
+.phone-today-payment,
+.phone-today-log-entry {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 9px 0;
+  border-top: 1px solid var(--phone-border, rgba(255, 255, 255, .08));
+}
+
+.phone-today-payment:first-of-type,
+.phone-today-log-entry:first-of-type {
+  border-top: 0;
+}
+
+.phone-today-payment strong,
+.phone-today-payment small {
+  display: block;
+}
+
+.phone-today-payment strong,
+.phone-today-payment > b {
+  font-size: 10px;
+}
+
+.phone-today-payment small {
+  margin-top: 3px;
+  color: var(--phone-muted, rgba(255, 255, 255, .58));
+  font-size: 8px;
+}
+
+.phone-today__opportunity {
+  border-color: rgba(255, 196, 86, .24) !important;
+  background: linear-gradient(145deg, rgba(255, 196, 86, .09), rgba(255, 255, 255, .035)) !important;
+}
+
+.phone-today__opportunity.is-accepted {
+  border-color: rgba(97, 221, 204, .3) !important;
+}
+
+.phone-today__opportunity.is-declined {
+  opacity: .66;
+}
+
+.phone-today__opportunity > p,
+.phone-today__opportunity > small {
+  margin: 0;
+  color: var(--phone-muted, rgba(255, 255, 255, .62));
+  font-size: 9px;
+  line-height: 1.5;
+}
+
+.phone-today__opportunity-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 10px 0 7px;
+  padding: 8px 9px;
+  border-radius: 10px;
+  background: rgba(0, 0, 0, .16);
+  font-size: 9px;
+}
+
+.phone-today__opportunity-meta strong {
+  color: #ffc456;
+}
+
+.phone-today-log-entry {
+  justify-content: flex-start;
+}
+
+.phone-today-log-entry > time {
+  flex: 0 0 38px;
+  color: #70dbc9;
+  font-size: 8px;
+  font-weight: 900;
+}
+
+.phone-today-log-entry strong {
+  font-size: 10px;
+}
+
+.phone-today-log-entry p {
+  display: -webkit-box;
+  overflow: hidden;
+  margin: 3px 0 0;
+  color: var(--phone-muted, rgba(255, 255, 255, .58));
+  font-size: 8px;
+  line-height: 1.4;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}

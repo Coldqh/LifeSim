@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { getCareerApplicationFailure, getCareerResume } from '../core/career';
+import { selectDailyLifeState } from '../core/daily-life';
 import { getBusinessHireCandidates, getBusinessLaunchFailure, getBusinessStartupCost, isBusinessEmployeeOnShift } from '../core/business';
 import { getHousingAffordability, isHousingViewed, scheduleHousingViewing } from '../core/housing';
 import { canAfford } from '../core/economy';
@@ -29,6 +30,7 @@ import {
 import { calculateVehicleTravelQuote } from '../core/vehicles';
 import { createDistrictTravelOption, createLocationTravelOptions } from '../core/travel';
 import { allLocations } from '../data/locations';
+import { LIFE_ACTION_IDS } from '../data/lifeActions';
 import {
   getAllBoxingGyms,
   getAllBoxingTrainers,
@@ -57,7 +59,7 @@ import { businessSupplies } from '../data/business/supplies';
 import { getBusinessMenuItemById } from '../data/business/menu';
 import { businessUpgrades } from '../data/business/upgrades';
 import { getProductById } from '../data/products/basicProducts';
-import { universityCampusActivities } from '../data/education/universityActivities';
+import { UNIVERSITY_CAMPUS_ACTIVITY_IDS, universityCampusActivities } from '../data/education/universityActivities';
 import { getMedicalConditionDefinition } from '../data/healthcare/conditions';
 import { basicSkills, getSkillById } from '../data/skills/basicSkills';
 import { boxingTrainings } from '../data/sports/boxingTrainings';
@@ -66,6 +68,7 @@ import { boxingTournaments } from '../data/sports/boxingTournaments';
 import { getVehicleModelById, newDealerVehicleModels } from '../data/vehicles/vehicleModels';
 import { temporaryAccommodations } from '../data/intercity/routes';
 import type { UpcomingPayment } from '../types/finance';
+import type { DailyOpportunity } from '../types/dailyLife';
 import type { Npc } from '../types/npc';
 import type { SocialNpcView } from '../types/relationship';
 import type { VehicleWorldState } from '../types/vehicle';
@@ -235,8 +238,21 @@ export function useGameController() {
     performDegreeCampusActivity,
     takeDegreeSemesterExam,
     skipGameTime,
-    resetGame
+    resetGame,
+    resolveDailyOpportunity
   } = useMemo(() => createGameCommands(setGameState), []);
+
+  function executeDailyOpportunity(opportunity: DailyOpportunity): void {
+    if (opportunity.action.kind === 'job_shift') {
+      workShift(opportunity.action.jobId);
+      return;
+    }
+    if (opportunity.action.kind === 'campus_activity') {
+      performDegreeCampusActivity(opportunity.action.activityId);
+      return;
+    }
+    performAction(opportunity.action.actionId);
+  }
 
 
   const locationState = useMemo(() => {
@@ -546,6 +562,32 @@ export function useGameController() {
     };
   }, [gameState.player, gameState.time, gameState.world.population, gameState.world.university]);
 
+  const dailyLifeState = useMemo(() => {
+    const currentLocation = getLocationById(gameState.player.locationId);
+    const currentJob = getJobById(gameState.player.currentJobId);
+    const jobLocation = getLocationById(currentJob?.locationId);
+    const universityLocation = getLocationById(universityState.activeUniversity?.locationId);
+    return selectDailyLifeState({
+      time: gameState.time,
+      money: gameState.player.money,
+      currentLocation,
+      locations: allLocations,
+      calendarEvents: gameState.world.phone.calendarEvents,
+      universityClasses: universityState.classes,
+      universityLocation,
+      attendedUniversitySessionKeys: universityState.enrollment?.attendedSessionKeys ?? [],
+      missedUniversitySessionKeys: universityState.enrollment?.missedSessionKeys ?? [],
+      currentJob,
+      currentJobWage: jobState.currentJobView?.jobLevel.wagePerShift,
+      jobLocation,
+      upcomingPayments: financeState.upcomingPayments,
+      opportunityResolutions: gameState.world.phone.dailyOpportunityResolutions,
+      libraryActivityId: UNIVERSITY_CAMPUS_ACTIVITY_IDS.library,
+      recoveryActionId: LIFE_ACTION_IDS.walkOneHour,
+      lifeLog: gameState.lifeLog
+    });
+  }, [gameState.lifeLog, gameState.player.currentJobId, gameState.player.locationId, gameState.player.money, gameState.time, gameState.world.phone.calendarEvents, gameState.world.phone.dailyOpportunityResolutions, financeState.upcomingPayments, jobState.currentJobView?.jobLevel.wagePerShift, universityState.activeUniversity?.locationId, universityState.classes, universityState.enrollment?.attendedSessionKeys, universityState.enrollment?.missedSessionKeys]);
+
   const scheduledWaitState = useMemo(() => selectScheduledWaitState({
     currentTotalMinutes: getTotalMinutes(gameState.time),
     currentLocationId: gameState.player.locationId,
@@ -696,10 +738,11 @@ export function useGameController() {
       vehicles: vehicleState,
       intercity: intercityState,
       university: universityState,
+      dailyLife: dailyLifeState,
       social: { contacts, meetingOptions: socialMeetingOptions, invitations: socialInvitations, meetings: socialMeetings },
       districtTravelOptions: locationState.districtTravelOptions
     };
-  }, [gameState.player, gameState.time, gameState.world.phone, gameState.world.vehicles, gameState.world.social, gameState.world.population, gameState.world.business, financeState, vehicleState, intercityState, universityState, locationState.districtTravelOptions]);
+  }, [gameState.player, gameState.time, gameState.world.phone, gameState.world.vehicles, gameState.world.social, gameState.world.population, gameState.world.business, financeState, vehicleState, intercityState, universityState, dailyLifeState, locationState.districtTravelOptions]);
 
   const educationState = useMemo(() => {
     const skills = basicSkills.map((skill) => ({
@@ -1173,6 +1216,8 @@ export function useGameController() {
     performDegreeCampusActivity,
     takeDegreeSemesterExam,
     skipGameTime,
+    resolveDailyOpportunity,
+    executeDailyOpportunity,
     resetGame
   };
 }
