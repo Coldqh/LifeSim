@@ -1,0 +1,12 @@
+import { describe, expect, it } from 'vitest';
+import type { CityId, LocationId, NpcId, NpcRoleId, OrganizationId } from '../../types/ids';
+import type { Npc } from '../../types/npc';
+import type { OrganizationDefinition } from '../../types/organization';
+import { createInitialOrganizationState, getOrganizationJobModifier, getOrganizationLocationModifier, processOrganizationTime } from './index';
+const cityId = 'moscow' as CityId; const locationId = 'test_location' as LocationId;
+const definition: OrganizationDefinition = { id: 'organization_test' as OrganizationId, kind: 'commerce', name: 'Тестовое кафе', cityId, locationId, targetStaff: 4, baseWeeklyRevenue: 10_000, baseWeeklyExpenses: 80_000 };
+function npc(index: number): Npc { return { id: `npc_${index}` as NpcId, firstName: 'Иван', lastName: String(index), age: 24, homeDistrictId: 'district' as never, activityProfile: 'worker', activationDay: 1, preferredLocationTypes: ['cafe'], employment: { locationId, roleId: 'worker' as NpcRoleId, workdays: ['monday'], startMinute: 540, endMinute: 1020 }, personality: { sociability: 50, temperament: 50, reliability: 50, ambition: 50, generosity: 50, interests: ['career'] }, life: { energy: 80, health: 90, money: 10000, reliability: 50, studyProgress: 0, missedCommitments: 0, warningCount: 0, jobSearchDays: 0, lastProcessedDay: 1 }, worldState: { kind: 'home', sinceTotalMinutes: 0 } }; }
+describe('organizations', () => {
+  it('moves an underfunded organization into crisis and changes location rules', () => { const initial = createInitialOrganizationState({ seed: 1, day: 1, definitions: [definition] }); const applied = processOrganizationTime({ state: initial, fromDay: 1, toDay: 8, definitions: [definition], npcs: [npc(1)], getNpcCityId: () => cityId }); expect(applied.state.organizations[String(definition.id)].status).toBe('critical'); expect(getOrganizationLocationModifier({ state: applied.state, definition, day: 8 }).priceMultiplier).toBeGreaterThan(1); });
+  it('returns real job modifiers for a strained employer', () => { const employer = { ...definition, kind: 'employer' as const }; const state = createInitialOrganizationState({ seed: 1, day: 1, definitions: [employer] }); state.organizations[String(employer.id)] = { ...state.organizations[String(employer.id)], status: 'strained', staffCount: 1, targetStaff: 4 }; const modifier = getOrganizationJobModifier({ state, definition: employer }); expect(modifier.workloadMultiplier).toBeGreaterThan(1); expect(modifier.openDaysDelta).toBeGreaterThan(0); });
+});

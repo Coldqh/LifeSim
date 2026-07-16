@@ -27,6 +27,7 @@ export type ApplyJobShiftInput = {
   player: Player;
   time: GameTime;
   job: Job;
+  organizationModifier?: { workloadMultiplier?: number; wageMultiplier?: number; label?: string };
 };
 
 export type ApplyJobShiftOutput = {
@@ -239,19 +240,24 @@ export function applyJobShift(input: ApplyJobShiftInput): ApplyJobShiftOutput {
   }
 
   const nextTime = addMinutes(time, job.shiftDurationMinutes);
-  const needsApplied = applyActivityNeedsDelta(player.needs, job.effects.needsDelta, {
+  const workloadMultiplier = Math.max(0.5, input.organizationModifier?.workloadMultiplier ?? 1);
+  const wageMultiplier = Math.max(0.5, input.organizationModifier?.wageMultiplier ?? 1);
+  const adjustedNeedsDelta = Object.fromEntries(Object.entries(job.effects.needsDelta).map(([key, value]) => [key, typeof value === 'number' && value < 0 ? Math.round(value * workloadMultiplier) : value]));
+  const effectiveWage = Math.max(0, Math.round(currentLevel.wagePerShift * wageMultiplier));
+  const needsApplied = applyActivityNeedsDelta(player.needs, adjustedNeedsDelta, {
     scaleEnergyCost: true,
     scaleEnergyRecovery: false
   });
-  const nextMoney = applyMoneyDelta(player.money, currentLevel.wagePerShift);
+  const nextMoney = applyMoneyDelta(player.money, effectiveWage);
   const completedCount = (player.completedShifts[job.id] ?? 0) + 1;
   const currentExperience = player.jobExperience[job.id] ?? 0;
   const nextExperience = currentExperience + job.experiencePerShift;
   const skillApplied = applySkillRewards(player.skills, job.skillRewards);
   const warning = getNeedWarning(needsApplied.needs);
-  const baseMessage = `Смена завершена: ${currentLevel.title}. Получено ${currentLevel.wagePerShift} ₽. Опыт работы +${job.experiencePerShift}.`;
+  const baseMessage = `Смена завершена: ${currentLevel.title}. Получено ${effectiveWage} ₽. Опыт работы +${job.experiencePerShift}.`;
+  const organizationMessage = input.organizationModifier?.label ? `Состояние работодателя: ${input.organizationModifier.label}.` : undefined;
   const skillMessage = job.skillRewards?.length ? 'Получен опыт навыков.' : undefined;
-  const messages = [baseMessage, skillMessage, warning].filter((message): message is string => Boolean(message));
+  const messages = [baseMessage, organizationMessage, skillMessage, warning].filter((message): message is string => Boolean(message));
 
   return {
     player: {
@@ -274,7 +280,7 @@ export function applyJobShift(input: ApplyJobShiftInput): ApplyJobShiftOutput {
       jobId: job.id,
       jobTitle: currentLevel.title,
       timeDeltaMinutes: job.shiftDurationMinutes,
-      moneyDelta: currentLevel.wagePerShift,
+      moneyDelta: effectiveWage,
       experienceDelta: job.experiencePerShift,
       skillProgressUpdates: skillApplied.updates,
       needsDelta: needsApplied.delta,

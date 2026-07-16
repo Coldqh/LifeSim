@@ -1,6 +1,6 @@
 import { getCalendarDateForDay } from '../core/time';
 export const MIN_SUPPORTED_SAVE_VERSION = 7;
-export const CURRENT_SAVE_VERSION = 32;
+export const CURRENT_SAVE_VERSION = 33;
 export const SAVE_ENVELOPE_FORMAT = 'lifesim-save';
 
 export const getGameStateStorageKey = (version: number): string => `lifesim.gameState.v${version}`;
@@ -311,6 +311,18 @@ function migrateV31ToV32(state: unknown): unknown {
   };
 }
 
+
+function migrateV32ToV33(state: unknown): unknown {
+  const root = asRecord(state);
+  const world = asRecord(root?.world);
+  const time = asRecord(root?.time);
+  const atlas = asRecord(world?.atlas);
+  if (!root || !world || asRecord(world.organizations)) return state;
+  const day = typeof time?.day === 'number' ? Math.max(1, Math.floor(time.day)) : 1;
+  const seed = typeof atlas?.seed === 'number' ? Math.max(1, Math.floor(atlas.seed)) : 1;
+  return { ...root, world: { ...world, organizations: { version: 1, seed: seed ^ 0x61c88647, lastProcessedDay: day, organizations: {}, history: [] } } };
+}
+
 const SAVE_MIGRATIONS = new Map<number, SaveMigration>([
   [7, identityMigration],
   [8, identityMigration],
@@ -336,7 +348,8 @@ const SAVE_MIGRATIONS = new Map<number, SaveMigration>([
   [28, migrateV28ToV29],
   [29, migrateV29ToV30],
   [30, migrateV30ToV31],
-  [31, migrateV31ToV32]
+  [31, migrateV31ToV32],
+  [32, migrateV32ToV33]
 ]);
 
 function assertSupportedVersion(version: number): void {

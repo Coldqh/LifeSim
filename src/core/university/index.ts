@@ -360,6 +360,7 @@ export function attendUniversityClass(input: {
   subject: UniversitySubjectDefinition;
   startsAtTotalMinutes: number;
   university: UniversityDefinition;
+  organizationModifier?: { knowledgeMultiplier?: number; studyLoadDelta?: number; label?: string };
 }): { state: UniversityState; player: Player; time: GameTime; result: UniversityOperationResult } {
   const enrollment = input.state.enrollment;
   if (!enrollment) return { state: input.state, player: input.player, time: input.time, result: { ok: false, title: 'Пара', message: 'Нет активного обучения.', timeDeltaMinutes: 0 } };
@@ -372,6 +373,7 @@ export function attendUniversityClass(input: {
   if (needsFailure) return { state: input.state, player: input.player, time: input.time, result: { ok: false, title: 'Пара', message: needsFailure, timeDeltaMinutes: 0 } };
 
   const progress = enrollment.subjectProgress[input.subject.id] ?? createProgress();
+  const knowledgeGain = Math.max(1, Math.round(18 * (input.organizationModifier?.knowledgeMultiplier ?? 1)));
   const assignmentExists = enrollment.assignments.some((entry) => entry.subjectId === input.subject.id && !entry.completed && !entry.missed);
   const nextAssignments = assignmentExists || progress.classesAttended > 0
     ? enrollment.assignments
@@ -394,17 +396,17 @@ export function attendUniversityClass(input: {
       ...input.state,
       enrollment: {
         ...enrollment,
-        studyLoad: Math.min(100, enrollment.studyLoad + 6),
+        studyLoad: Math.min(100, Math.max(0, enrollment.studyLoad + 6 + (input.organizationModifier?.studyLoadDelta ?? 0))),
         attendedSessionKeys: [...enrollment.attendedSessionKeys, key].slice(-200),
         assignments: nextAssignments,
         subjectProgress: {
           ...enrollment.subjectProgress,
-          [input.subject.id]: { ...progress, classesAttended: progress.classesAttended + 1, knowledge: Math.min(100, progress.knowledge + 18) }
+          [input.subject.id]: { ...progress, classesAttended: progress.classesAttended + 1, knowledge: Math.min(100, progress.knowledge + knowledgeGain) }
         }
       },
       history: [{ id: `university_history_class_${currentTotal}`, totalMinutes: currentTotal, title: input.subject.title, text: 'Пара посещена.' }, ...input.state.history].slice(0, 40)
     },
-    result: { ok: true, title: input.subject.title, message: 'Посещаемость и знания выросли.', timeDeltaMinutes: input.subject.durationMinutes }
+    result: { ok: true, title: input.subject.title, message: `Посещаемость выросла. Знания +${knowledgeGain}.${input.organizationModifier?.label ? ` ${input.organizationModifier.label}.` : ''}`, timeDeltaMinutes: input.subject.durationMinutes }
   };
 }
 
@@ -450,6 +452,7 @@ export function takeUniversitySemesterExam(input: {
   time: GameTime;
   program: DegreeProgramDefinition;
   university: UniversityDefinition;
+  organizationModifier?: { knowledgeMultiplier?: number; studyLoadDelta?: number; label?: string };
 }): { state: UniversityState; player: Player; time: GameTime; result: UniversityOperationResult; passed: boolean } {
   const enrollment = input.state.enrollment;
   const examFailure = getUniversitySemesterExamFailure({
@@ -470,7 +473,8 @@ export function takeUniversitySemesterExam(input: {
   const progresses = input.program.subjectIds.map((id) => enrollment.subjectProgress[id] ?? createProgress());
   const averageKnowledge = progresses.reduce((sum, progress) => sum + progress.knowledge, 0) / Math.max(1, progresses.length);
   const attendancePenalty = progresses.reduce((sum, progress) => sum + progress.classesMissed, 0) * 4;
-  const score = Math.round(averageKnowledge + input.player.needs.energy * 0.15 - enrollment.studyLoad * 0.1 - attendancePenalty + 12);
+  const organizationQualityBonus = Math.round(((input.organizationModifier?.knowledgeMultiplier ?? 1) - 1) * 20);
+  const score = Math.round(averageKnowledge + input.player.needs.energy * 0.15 - enrollment.studyLoad * 0.1 - attendancePenalty + 12 + organizationQualityBonus);
   const passed = score >= 60;
   const nextTime = addMinutes(input.time, 120);
   const needsApplied = applyActivityNeedsDelta(input.player.needs, { energy: -14, mood: passed ? 8 : -8 }, { scaleEnergyCost: true });
@@ -521,6 +525,7 @@ export function performUniversityCampusActivity(input: {
   university: UniversityDefinition;
   subjects: UniversitySubjectDefinition[];
   activity: UniversityCampusActivityDefinition;
+  organizationModifier?: { knowledgeMultiplier?: number; studyLoadDelta?: number; label?: string };
 }): { state: UniversityState; player: Player; time: GameTime; result: UniversityOperationResult } {
   const failure = getUniversityCampusActivityFailure({
     state: input.state,
@@ -562,17 +567,18 @@ export function performUniversityCampusActivity(input: {
     scaleEnergyRecovery: true
   });
   const nextTime = addMinutes(input.time, input.activity.durationMinutes);
+  const effectiveKnowledgeReward = input.activity.knowledgeReward ? Math.max(1, Math.round(input.activity.knowledgeReward * (input.organizationModifier?.knowledgeMultiplier ?? 1))) : 0;
   const nextSubjectProgress = focusSubject
     ? {
         ...enrollment.subjectProgress,
         [focusSubject.subject.id]: {
           ...focusSubject.progress,
-          knowledge: Math.min(100, focusSubject.progress.knowledge + (input.activity.knowledgeReward ?? 0))
+          knowledge: Math.min(100, focusSubject.progress.knowledge + effectiveKnowledgeReward)
         }
       }
     : enrollment.subjectProgress;
-  const knowledgeMessage = focusSubject && input.activity.knowledgeReward
-    ? ` ${focusSubject.subject.title}: знания +${input.activity.knowledgeReward}.`
+  const knowledgeMessage = focusSubject && effectiveKnowledgeReward
+    ? ` ${focusSubject.subject.title}: знания +${effectiveKnowledgeReward}.`
     : '';
 
   return {
@@ -586,7 +592,7 @@ export function performUniversityCampusActivity(input: {
       ...input.state,
       enrollment: {
         ...enrollment,
-        studyLoad: Math.max(0, Math.min(100, enrollment.studyLoad + input.activity.studyLoadDelta)),
+        studyLoad: Math.max(0, Math.min(100, enrollment.studyLoad + input.activity.studyLoadDelta + (input.organizationModifier?.studyLoadDelta ?? 0))),
         subjectProgress: nextSubjectProgress
       },
       history: [{
@@ -599,7 +605,7 @@ export function performUniversityCampusActivity(input: {
     result: {
       ok: true,
       title: input.activity.title,
-      message: `${input.activity.resultMessage}${knowledgeMessage}`,
+      message: `${input.activity.resultMessage}${knowledgeMessage}${input.organizationModifier?.label ? ` ${input.organizationModifier.label}.` : ''}`,
       timeDeltaMinutes: input.activity.durationMinutes,
       moneyDelta: input.activity.moneyCost > 0 ? -input.activity.moneyCost : undefined,
       needsDelta: needsApplied.delta

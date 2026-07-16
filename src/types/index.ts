@@ -42,3 +42,4 @@ export * from './socialGroup';
 
 export * from './lifeProgression';
 export * from './opportunity';
+export * from './organization';

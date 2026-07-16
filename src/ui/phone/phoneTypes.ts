@@ -48,6 +48,7 @@ import type { SocialContact, SocialCircleTag, SocialInvitation, SocialMeeting, S
 import type { SocialGroupView } from '../../types/socialGroup';
 import type { WorldDynamicsPanelState } from '../../types/worldDynamics';
 import type { OpportunityJobView, OpportunityPanelState } from '../../types/opportunity';
+import type { OrganizationPanelState } from '../../types/organization';
 
 export type PhoneVacancyView = {
   job: Job;
@@ -206,6 +207,7 @@ export type PhonePanelState = {
   dailyLife: DailyLifePanelState;
   worldDynamics: WorldDynamicsPanelState;
   opportunities: OpportunityPanelState;
+  organizations: OrganizationPanelState;
   social: PhoneSocialState;
 };
 

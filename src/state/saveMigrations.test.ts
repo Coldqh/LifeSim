@@ -173,6 +173,11 @@ describe('save migrations', () => {
     });
   });
 
+  it('adds autonomous organization state when migrating v32 to v33', () => {
+    const migrated = migrateSaveState({ time: { day: 21 }, world: { atlas: { seed: 101 } } }, 32).state as { world: { organizations: { version: number; seed: number; lastProcessedDay: number; organizations: Record<string, unknown>; history: unknown[] } } };
+    expect(migrated.world.organizations).toEqual({ version: 1, seed: 101 ^ 0x61c88647, lastProcessedDay: 21, organizations: {}, history: [] });
+  });
+
   it('decodes both legacy raw states and the current versioned envelope', () => {
     const legacy = decodeSavePayload(JSON.stringify({ player: { inventory: [] } }), 23);
     const encoded = encodeSavePayload({ marker: 'current' });

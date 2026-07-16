@@ -1,0 +1,13 @@
+import type { CareerCompanyId, CityId, JobId, LocationId, OrganizationId, UniversityId } from './ids';
+export type OrganizationKind = 'employer' | 'university' | 'commerce';
+export type OrganizationStatus = 'growing' | 'stable' | 'strained' | 'critical';
+export type OrganizationHistoryKind = 'status_changed' | 'temporary_closure' | 'reopened' | 'layoff' | 'staffing_change';
+export type OrganizationDefinition = { id: OrganizationId; kind: OrganizationKind; name: string; cityId: CityId; locationId: LocationId; targetStaff: number; baseWeeklyRevenue: number; baseWeeklyExpenses: number; companyId?: CareerCompanyId; universityId?: UniversityId; jobIds?: JobId[]; };
+export type OrganizationRuntimeState = { id: OrganizationId; budget: number; reputation: number; demandIndex: number; staffCount: number; targetStaff: number; status: OrganizationStatus; lastProcessedDay: number; closedUntilDay?: number; };
+export type OrganizationHistoryEntry = { id: string; day: number; kind: OrganizationHistoryKind; organizationId: OrganizationId; cityId: CityId; title: string; text: string; };
+export type OrganizationWorldState = { version: 1; seed: number; lastProcessedDay: number; organizations: Record<string, OrganizationRuntimeState>; history: OrganizationHistoryEntry[]; };
+export type OrganizationJobModifier = { workloadMultiplier: number; wageMultiplier: number; hiringPressure: number; openDaysDelta: number; closedDaysDelta: number; npcFillChanceDelta: number; label?: string; };
+export type OrganizationUniversityModifier = { knowledgeMultiplier: number; studyLoadDelta: number; label?: string; };
+export type OrganizationLocationModifier = { closed: boolean; failure?: string; priceMultiplier: number; demandMultiplier: number; label?: string; };
+export type OrganizationView = { definition: OrganizationDefinition; state: OrganizationRuntimeState; statusLabel: string; statusDescription: string; };
+export type OrganizationPanelState = { organizations: OrganizationView[]; recentChanges: OrganizationHistoryEntry[]; };

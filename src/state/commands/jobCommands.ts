@@ -4,9 +4,11 @@ import { applyForJob as applyJob, applyJobPromotion, applyJobShift } from '../..
 import { applyWorkWhileSick, getMedicalActivityFailure } from '../../core/healthcare';
 import { getJobOpportunityFailure } from '../../core/opportunity-lifecycle';
 import { getCareerProgressionFailure } from '../../core/life-progression';
+import { getOrganizationJobModifier } from '../../core/organizations';
 import { getTotalMinutes } from '../../core/time';
 import { getJobById } from '../../data/cities/contentSelectors';
 import { getSkillById } from '../../data/skills/basicSkills';
+import { getOrganizationForJob } from '../../data/organizations';
 import type { JobId } from '../../types/ids';
 import { createLifeLogEntry } from '../gameState';
 import { mergeNeedsDelta } from '../worldTimePipeline';
@@ -102,11 +104,8 @@ export function createJobCommands(setGameState: GameStateSetter) {
           lifeLog: mergeLifeLog([logEntry], currentState.lifeLog)
         };
       }
-      const applied = applyJobShift({
-        player: currentState.player,
-        time: currentState.time,
-        job
-      });
+      const organizationModifier = getOrganizationJobModifier({ state: currentState.world.organizations, definition: getOrganizationForJob(job.id) });
+      const applied = applyJobShift({ player: currentState.player, time: currentState.time, job, organizationModifier });
       const earnedSalary = applied.result.ok ? Math.max(0, applied.result.moneyDelta ?? 0) : 0;
       const deferredPlayer = earnedSalary > 0
         ? { ...applied.player, money: Math.max(0, applied.player.money - earnedSalary) }

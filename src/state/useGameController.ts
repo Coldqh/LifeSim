@@ -10,6 +10,7 @@ import { getJobApplicationFailure, getJobProgress, getJobPromotionFailure, getJo
 import { getMedicalActivityFailure, getMedicalAppointmentFailure } from '../core/healthcare';
 import { bookTemporaryAccommodation, getTemporaryStayFailure } from '../core/intercity';
 import { getMissingSkillRequirements, getSkillProgress } from '../core/progression';
+import { createOrganizationPanelState, getOrganizationLocationModifier } from '../core/organizations';
 import {
   createLifeProgressionPanelState,
   getBusinessProgressionFailure,
@@ -76,6 +77,7 @@ import { getBusinessMenuItemById } from '../data/business/menu';
 import { businessUpgrades } from '../data/business/upgrades';
 import { getProductById } from '../data/products/basicProducts';
 import { UNIVERSITY_CAMPUS_ACTIVITY_IDS, universityCampusActivities } from '../data/education/universityActivities';
+import { getCommerceOrganizationForLocation, organizationDefinitions } from '../data/organizations';
 import { getMedicalConditionDefinition } from '../data/healthcare/conditions';
 import { basicSkills, getSkillById } from '../data/skills/basicSkills';
 import { boxingTrainings } from '../data/sports/boxingTrainings';
@@ -301,7 +303,9 @@ export function useGameController() {
     ));
     const actions = getActionsForLocation(location?.id);
     const shop = getShopForLocation(location);
-    const shopProducts = getShopProducts(shop?.id);
+    const commerceOrganization = getCommerceOrganizationForLocation(location?.id);
+    const commerceModifier = getOrganizationLocationModifier({ state: gameState.world.organizations, definition: commerceOrganization, day: gameState.time.day });
+    const shopProducts = getShopProducts(shop?.id).map((product) => ({ ...product, price: Math.max(1, Math.round(product.price * commerceModifier.priceMultiplier)) }));
     const locationScheduleStatus = getScheduleStatus(location?.openingHours, gameState.time);
     const locationScheduleStatuses = Object.fromEntries(
       locations.map((candidateLocation) => [candidateLocation.id, getScheduleStatus(candidateLocation.openingHours, gameState.time)])
@@ -310,14 +314,14 @@ export function useGameController() {
     const lodgingFailure = accommodation
       ? getTemporaryStayFailure({ state: gameState.world.intercity, locationId: location?.id, day: gameState.time.day })
       : undefined;
-    const actionScheduleFailure = getScheduleActivityFailure(location?.openingHours, gameState.time, 0, 'Действие') ?? lodgingFailure;
+    const actionScheduleFailure = commerceModifier.failure ?? getScheduleActivityFailure(location?.openingHours, gameState.time, 0, 'Действие') ?? lodgingFailure;
     const actionFailures = Object.fromEntries(actions.map((action) => [
       String(action.id),
-      getScheduleActivityFailure(location?.openingHours, gameState.time, action.durationMinutes, 'Действие')
+      commerceModifier.failure ?? getScheduleActivityFailure(location?.openingHours, gameState.time, action.durationMinutes, 'Действие')
         ?? ((action.category === 'sleep' || action.category === 'rest') ? lodgingFailure : undefined)
     ]));
     const shopScheduleFailure = shop
-      ? getScheduleActivityFailure(location?.openingHours, gameState.time, 0, 'Магазин')
+      ? commerceModifier.failure ?? getScheduleActivityFailure(location?.openingHours, gameState.time, 0, 'Магазин')
       : undefined;
     const travelContext = {
       playerMoney: gameState.player.money,
@@ -359,7 +363,7 @@ export function useGameController() {
       locationTravelOptions,
       districtTravelOptions
     };
-  }, [gameState.player.cityId, gameState.player.districtId, gameState.player.locationId, gameState.player.money, gameState.player.needs, gameState.time, gameState.world.vehicles, gameState.world.intercity, worldDynamicsState]);
+  }, [gameState.player.cityId, gameState.player.districtId, gameState.player.locationId, gameState.player.money, gameState.player.needs, gameState.time, gameState.world.vehicles, gameState.world.intercity, gameState.world.organizations, worldDynamicsState]);
 
   const jobState = useMemo(() => {
     const currentJob = getJobById(gameState.player.currentJobId);
@@ -909,11 +913,12 @@ export function useGameController() {
       dailyLife: dailyLifeState,
       worldDynamics: worldDynamicsState,
       opportunities: createOpportunityPanelState({ state: gameState.world.opportunities, cityId: gameState.player.cityId }),
+      organizations: createOrganizationPanelState({ state: gameState.world.organizations, definitions: organizationDefinitions, cityId: gameState.player.cityId }),
       lifeProgression: lifeProgressionState,
       social: { groups: socialGroups, contacts, meetingOptions: socialMeetingOptions, invitations: socialInvitations, meetings: socialMeetings },
       districtTravelOptions: locationState.districtTravelOptions
     };
-  }, [gameState.player, gameState.progression, gameState.time, gameState.world.phone, gameState.world.vehicles, gameState.world.social, gameState.world.population, gameState.world.business, gameState.world.opportunities, financeState, vehicleState, intercityState, universityState, lifeGoalsState, lifeProgressionState, dailyLifeState, worldDynamicsState, locationState.districtTravelOptions]);
+  }, [gameState.player, gameState.progression, gameState.time, gameState.world.phone, gameState.world.vehicles, gameState.world.social, gameState.world.population, gameState.world.business, gameState.world.opportunities, gameState.world.organizations, financeState, vehicleState, intercityState, universityState, lifeGoalsState, lifeProgressionState, dailyLifeState, worldDynamicsState, locationState.districtTravelOptions]);
 
   const educationState = useMemo(() => {
     const skills = basicSkills.map((skill) => ({

@@ -1,11 +1,13 @@
 import { issueDegreeQualification } from '../../core/career';
 import { getLocationById } from '../../core/location';
 import { getUniversityProgressionFailure } from '../../core/life-progression';
+import { getOrganizationUniversityModifier } from '../../core/organizations';
 import { getScheduleActivityFailure } from '../../core/schedule';
 import { getTotalMinutes } from '../../core/time';
 import { attendEntranceExam, attendUniversityClass, completeUniversityAssignment, enrollUniversityProgram, getUniversityCampusActivityFailure, performUniversityCampusActivity, submitUniversityApplication, takeUniversitySemesterExam } from '../../core/university';
 import { getDegreeProgramById, getUniversityById, getUniversitySubjectById } from '../../data/cities/contentSelectors';
 import { getUniversityCampusActivityById } from '../../data/education/universityActivities';
+import { getOrganizationForUniversity } from '../../data/organizations';
 import type { DegreeProgramId, UniversityCampusActivityId, UniversitySubjectId, PhoneNotificationId, PhoneCalendarEventId } from '../../types/ids';
 import { createLifeLogEntry } from '../gameState';
 import type { GameStateSetter } from './commandSupport';
@@ -127,7 +129,8 @@ export function createUniversityCommands(setGameState: GameStateSetter) {
       const program = getDegreeProgramById(currentState.world.university.enrollment?.programId);
       const university = getUniversityById(program?.universityId);
       if (!program || !university) return currentState;
-      const applied = attendUniversityClass({ state: currentState.world.university, player: currentState.player, time: currentState.time, subject, startsAtTotalMinutes, university });
+      const organizationModifier = getOrganizationUniversityModifier({ state: currentState.world.organizations, definition: getOrganizationForUniversity(university.id) });
+      const applied = attendUniversityClass({ state: currentState.world.university, player: currentState.player, time: currentState.time, subject, startsAtTotalMinutes, university, organizationModifier });
       if (!applied.result.ok) return { ...currentState, lastResult: { ok: false, actionName: applied.result.title, timeDeltaMinutes: 0, messages: [applied.result.message] } };
       const elapsedApplied = applyElapsedTimeConsequences(currentState, applied.player, applied.time, 'active', { university: applied.state, actionTitle: applied.result.title });
       return {
@@ -200,7 +203,8 @@ export function createUniversityCommands(setGameState: GameStateSetter) {
         program,
         university,
         subjects,
-        activity
+        activity,
+        organizationModifier: getOrganizationUniversityModifier({ state: currentState.world.organizations, definition: getOrganizationForUniversity(university.id) })
       });
       if (!applied.result.ok) {
         return {
@@ -242,7 +246,7 @@ export function createUniversityCommands(setGameState: GameStateSetter) {
       const university = getUniversityById(program?.universityId);
       if (!program || !university) return currentState;
       const wasCompleted = Boolean(currentState.world.university.enrollment?.completed);
-      const applied = takeUniversitySemesterExam({ state: currentState.world.university, player: currentState.player, time: currentState.time, program, university });
+      const applied = takeUniversitySemesterExam({ state: currentState.world.university, player: currentState.player, time: currentState.time, program, university, organizationModifier: getOrganizationUniversityModifier({ state: currentState.world.organizations, definition: getOrganizationForUniversity(university.id) }) });
       if (!applied.result.ok) return { ...currentState, lastResult: { ok: false, actionName: applied.result.title, timeDeltaMinutes: 0, messages: [applied.result.message] } };
 
       const completedNow = !wasCompleted && Boolean(applied.state.enrollment?.completed);

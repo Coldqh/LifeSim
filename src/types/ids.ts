@@ -18,6 +18,7 @@ export type ProductId = Brand<string, 'ProductId'>;
 export type JobId = Brand<string, 'JobId'>;
 export type JobApplicationId = Brand<string, 'JobApplicationId'>;
 export type CareerCompanyId = Brand<string, 'CareerCompanyId'>;
+export type OrganizationId = Brand<string, 'OrganizationId'>;
 export type CareerEmploymentId = Brand<string, 'CareerEmploymentId'>;
 export type QualificationId = Brand<string, 'QualificationId'>;
 export type PhoneNotificationId = Brand<string, 'PhoneNotificationId'>;

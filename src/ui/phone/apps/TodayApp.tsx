@@ -109,6 +109,25 @@ export default function TodayApp(props: {
       </section>
 
       <section className="phone-section-card phone-today__world">
+        <header><div><span>Организации города</span><strong>{props.state.organizations.organizations.filter((entry) => entry.state.status !== 'stable').length ? 'Есть изменения' : 'Работают стабильно'}</strong></div><Icon name="building" size={20}/></header>
+        {props.state.organizations.organizations.filter((entry) => entry.state.status !== 'stable').slice(0, 5).map((entry) => (
+          <article className={`phone-today-world-condition phone-today-world-condition--${entry.state.status === 'critical' ? 'slowdown' : entry.state.status === 'strained' ? 'transport_delay' : 'demand_surge'}`} key={entry.definition.id}>
+            <div><strong>{entry.definition.name}</strong><small>{entry.statusLabel} · штат {entry.state.staffCount}/{entry.state.targetStaff}</small></div>
+            <p>{entry.statusDescription}{entry.state.closedUntilDay ? ` Закрыто до дня ${entry.state.closedUntilDay}.` : ''}</p>
+          </article>
+        ))}
+        {!props.state.organizations.organizations.some((entry) => entry.state.status !== 'stable') ? <p>Работодатели, университеты и заведения города работают без серьёзных сбоев.</p> : null}
+        {props.state.organizations.recentChanges.length ? (
+          <details className="phone-today-world-news">
+            <summary>Изменения организаций</summary>
+            {props.state.organizations.recentChanges.slice(0, 5).map((entry) => (
+              <div key={entry.id}><span>День {entry.day}</span><strong>{entry.title}</strong><p>{entry.text}</p></div>
+            ))}
+          </details>
+        ) : null}
+      </section>
+
+      <section className="phone-section-card phone-today__world">
         <header><div><span>Рынок возможностей</span><strong>{props.state.opportunities.openVacancyCount} открытых вакансий</strong></div><Icon name="briefcase" size={20}/></header>
         <p>{props.state.opportunities.closedVacancyCount > 0
           ? `${props.state.opportunities.closedVacancyCount} вакансий сейчас закрыты или уже заняты. Мир не ждёт решения игрока.`

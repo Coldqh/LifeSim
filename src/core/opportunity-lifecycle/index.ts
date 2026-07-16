@@ -42,12 +42,13 @@ function createOpenListing(input: {
   day: number;
   seed: number;
   rules: OpportunityLifecycleRules;
+  openDaysDelta?: number;
 }): JobOpportunityListing {
-  const openDays = rangeFromHash(
+  const openDays = Math.max(1, rangeFromHash(
     `${input.seed}:${String(input.job.id)}:${input.day}:open`,
     input.rules.minOpenDays,
     input.rules.maxOpenDays
-  );
+  ) + (input.openDaysDelta ?? 0));
   return {
     jobId: input.job.id,
     cityId: input.cityId,
@@ -217,6 +218,7 @@ export function processOpportunityLifecycle(input: {
   getJobCityId: (job: Job) => CityId | undefined;
   getNpcCityId: (npc: Npc) => CityId | undefined;
   getNpcRoleId: (job: Job) => NpcRoleId;
+  getJobLifecycleModifier?: (job: Job) => { openDaysDelta?: number; closedDaysDelta?: number; npcFillChanceDelta?: number };
   rules: OpportunityLifecycleRules;
 }): { state: OpportunityWorldState; npcs: Npc[]; events: OpportunityHistoryEntry[] } {
   if (input.toDay <= input.state.lastProcessedDay) {
@@ -236,13 +238,8 @@ export function processOpportunityLifecycle(input: {
       if (!job) continue;
 
       if (listing.status !== 'open' && listing.reopenDay !== undefined && day >= listing.reopenDay) {
-        const reopened = createOpenListing({
-          job,
-          cityId: listing.cityId,
-          day,
-          seed: input.state.seed,
-          rules: input.rules
-        });
+        const lifecycleModifier = input.getJobLifecycleModifier?.(job);
+        const reopened = createOpenListing({ job, cityId: listing.cityId, day, seed: input.state.seed, rules: input.rules, openDaysDelta: lifecycleModifier?.openDaysDelta });
         listings[key] = reopened;
         events.push(historyEntry({
           day,
@@ -261,8 +258,10 @@ export function processOpportunityLifecycle(input: {
         continue;
       }
 
+      const lifecycleModifier = input.getJobLifecycleModifier?.(job);
+      const fillChance = Math.max(0, Math.min(100, input.rules.npcFillChancePercent + (lifecycleModifier?.npcFillChanceDelta ?? 0)));
       const fillRoll = hashString(`${input.state.seed}:${key}:${day}:fill`) % 100;
-      const candidate = fillRoll < input.rules.npcFillChancePercent
+      const candidate = fillRoll < fillChance
         ? selectNpcCandidate({
             npcs,
             cityId: listing.cityId,
@@ -276,7 +275,7 @@ export function processOpportunityLifecycle(input: {
         `${input.state.seed}:${key}:${day}:closed`,
         input.rules.minClosedDays,
         input.rules.maxClosedDays
-      );
+      ) + (lifecycleModifier?.closedDaysDelta ?? 0);
 
       if (candidate) {
         const nextNpc = employNpc({ npc: candidate, job, roleId: input.getNpcRoleId(job), day });
@@ -285,7 +284,7 @@ export function processOpportunityLifecycle(input: {
           ...listing,
           status: 'filled',
           resolvedDay: day,
-          reopenDay: day + closedDays,
+          reopenDay: day + Math.max(1, closedDays),
           filledByNpcId: candidate.id
         };
         events.push(historyEntry({
@@ -302,7 +301,7 @@ export function processOpportunityLifecycle(input: {
           ...listing,
           status: 'closed',
           resolvedDay: day,
-          reopenDay: day + closedDays,
+          reopenDay: day + Math.max(1, closedDays),
           filledByNpcId: undefined
         };
         events.push(historyEntry({

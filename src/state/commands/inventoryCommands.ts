@@ -2,11 +2,13 @@ import { applyMoneyDelta, canAfford } from '../../core/economy';
 import { addInventoryItem, hasInventoryItem, removeInventoryItem } from '../../core/inventory';
 import { applyMedicalProduct, applyProductMedicalRisk } from '../../core/healthcare';
 import { getLocationById } from '../../core/location';
+import { getOrganizationLocationModifier } from '../../core/organizations';
 import { applyNeedsDelta, getNeedWarning } from '../../core/needs';
 import { getShopForLocation, isProductSoldByShop } from '../../core/shop';
 import { getScheduleActivityFailure } from '../../core/schedule';
 import { addMinutes, getTotalMinutes } from '../../core/time';
 import { getProductById } from '../../data/products/basicProducts';
+import { getCommerceOrganizationForLocation } from '../../data/organizations';
 import type { ProductId } from '../../types/ids';
 import { createLifeLogEntry } from '../gameState';
 import { mergeNeedsDelta } from '../worldTimePipeline';
@@ -36,7 +38,8 @@ export function createInventoryCommands(setGameState: GameStateSetter) {
         };
       }
 
-      const scheduleFailure = getScheduleActivityFailure(location?.openingHours, currentState.time, 0, 'Магазин');
+      const organizationModifier = getOrganizationLocationModifier({ state: currentState.world.organizations, definition: getCommerceOrganizationForLocation(location?.id), day: currentState.time.day });
+      const scheduleFailure = organizationModifier.failure ?? getScheduleActivityFailure(location?.openingHours, currentState.time, 0, 'Магазин');
       if (scheduleFailure) {
         const logEntry = createLifeLogEntry(currentState, 'Покупка не прошла', scheduleFailure);
         return {
@@ -51,7 +54,8 @@ export function createInventoryCommands(setGameState: GameStateSetter) {
         };
       }
 
-      if (!canAfford(currentState.player.money, product.price)) {
+      const effectivePrice = Math.max(1, Math.round(product.price * organizationModifier.priceMultiplier));
+      if (!canAfford(currentState.player.money, effectivePrice)) {
         const message = 'Не хватает денег.';
         const logEntry = createLifeLogEntry(currentState, 'Покупка не прошла', message);
 
@@ -69,10 +73,11 @@ export function createInventoryCommands(setGameState: GameStateSetter) {
 
       const nextPlayer = {
         ...currentState.player,
-        money: applyMoneyDelta(currentState.player.money, -product.price),
+        money: applyMoneyDelta(currentState.player.money, -effectivePrice),
         inventory: addInventoryItem(currentState.player.inventory, product.id)
       };
-      const message = `Куплено: ${product.name}. Товар добавлен в инвентарь.`;
+      const priceNote = effectivePrice !== product.price ? ` Цена организации: ${effectivePrice} ₽.` : '';
+      const message = `Куплено: ${product.name}. Товар добавлен в инвентарь.${priceNote}`;
       const logEntry = createLifeLogEntry(currentState, 'Покупка', message);
 
       return {
@@ -82,7 +87,7 @@ export function createInventoryCommands(setGameState: GameStateSetter) {
           ok: true,
           actionName: product.category === 'medicine' ? `Аптека: ${product.name}` : `Покупка: ${product.name}`,
           timeDeltaMinutes: 0,
-          moneyDelta: -product.price,
+          moneyDelta: -effectivePrice,
           messages: [message]
         },
         lifeLog: [logEntry, ...currentState.lifeLog].slice(0, 12)

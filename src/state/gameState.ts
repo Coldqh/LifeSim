@@ -14,6 +14,7 @@ import type { UniversityState } from '../types/university';
 import type { WorldAtlasState } from '../types/worldAtlas';
 import type { WorldDynamicsState } from '../types/worldDynamics';
 import type { OpportunityWorldState } from '../types/opportunity';
+import type { OrganizationWorldState } from '../types/organization';
 import type { LifeGoalsState } from '../types/lifeGoal';
 import type { LifeProgressionState } from '../types/lifeProgression';
 import { calculateAge, createInitialTime, formatGameTime, getTotalMinutes, normalizeGameTime } from '../core/time';
@@ -37,6 +38,7 @@ import { createInitialUniversityState } from '../core/university';
 import { createInitialWorldAtlasState, getRegionalCityIds, normalizeWorldAtlasState } from '../core/world-atlas';
 import { createInitialWorldDynamicsState, normalizeWorldDynamicsState } from '../core/world-dynamics';
 import { createInitialOpportunityState, normalizeOpportunityState } from '../core/opportunity-lifecycle';
+import { createInitialOrganizationState, normalizeOrganizationState } from '../core/organizations';
 import { createInitialLifeGoalsState, normalizeLifeGoalsState } from '../core/life-goals';
 import { createInitialLifeProgressionState, normalizeLifeProgressionState } from '../core/life-progression';
 import { usedVehicleListingTemplates } from '../data/vehicles/usedListingTemplates';
@@ -44,6 +46,7 @@ import { cityRegistry } from '../data/cities';
 import { getAllBusinessPremises, getAllHousing, getAllJobs, getDegreeProgramById, getUniversityById } from '../data/cities/contentSelectors';
 import { intercityNetwork } from '../data/intercity/routes';
 import { opportunityLifecycleRules } from '../data/opportunityLifecycle';
+import { organizationDefinitions } from '../data/organizations';
 import {
   CURRENT_SAVE_VERSION,
   GAME_STATE_BACKUP_STORAGE_KEY,
@@ -83,6 +86,7 @@ export type WorldState = {
   atlas: WorldAtlasState;
   dynamics: WorldDynamicsState;
   opportunities: OpportunityWorldState;
+  organizations: OrganizationWorldState;
 };
 
 export type GameState = {
@@ -285,6 +289,7 @@ export function createInitialGameState(): GameState {
       university: createInitialUniversityState(getTotalMinutes(time)),
       atlas,
       dynamics: createInitialWorldDynamicsState(atlas.seed, time.day),
+      organizations: createInitialOrganizationState({ seed: atlas.seed ^ 0x61c88647, day: time.day, definitions: organizationDefinitions }),
       opportunities: createInitialOpportunityState({
         seed: atlas.seed ^ 0x5f3759df,
         day: time.day,
@@ -781,6 +786,7 @@ function normalizeLoadedGameState(value: unknown): GameState | undefined {
       university,
       atlas,
       dynamics: normalizeWorldDynamicsState(parsed.world?.dynamics, atlas.seed, time.day),
+      organizations: normalizeOrganizationState({ value: parsed.world?.organizations, seed: atlas.seed ^ 0x61c88647, day: time.day, definitions: organizationDefinitions }),
       opportunities: normalizeOpportunityState({
         value: parsed.world?.opportunities,
         seed: atlas.seed ^ 0x5f3759df,
