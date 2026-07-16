@@ -195,14 +195,16 @@ export function LocationPanel({
           <div className="city-command-header__identity">
             <div className="city-command-header__icon"><Icon name="pin" size={22} /></div>
             <div className="city-command-header__copy">
-              <span className="section-kicker">Текущий район</span>
+              <span className="section-kicker">Текущее место</span>
               <div className="city-command-header__headline">
-                <h2>{district?.name ?? 'Район не найден'}</h2>
-                <span className={`schedule-badge ${currentScheduleStatus.isOpen ? 'schedule-badge--open' : 'schedule-badge--closed'}`}>
-                  {currentScheduleStatus.label}
-                </span>
+                <h2>{location?.name ?? 'Место не найдено'}</h2>
+                {location ? (
+                  <span className={`schedule-badge ${currentScheduleStatus.isOpen ? 'schedule-badge--open' : 'schedule-badge--closed'}`}>
+                    {currentScheduleStatus.label}
+                  </span>
+                ) : null}
               </div>
-              <p>{location?.address ?? `${city?.name ?? 'Город'} · ${location ? LOCATION_TYPE_LABELS[location.type] : '—'}`}</p>
+              <p>{location ? `${location.address} · ${district?.name ?? 'Район'} · ${city?.name ?? 'Город'}` : `${district?.name ?? 'Район'} · ${city?.name ?? 'Город'}`}</p>
             </div>
           </div>
           <div className="city-command-header__actions">

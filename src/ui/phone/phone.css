@@ -1138,3 +1138,212 @@
   .moscow-map,
   .yaroslavl-map { min-height: clamp(140px, 25dvh, 210px); }
 }
+
+/* Intercity trip planner. */
+.phone-trip-planner {
+  display: grid;
+  gap: 10px;
+}
+
+.phone-trip-stepper {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.phone-trip-stepper > span {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 5px;
+  padding: 7px 6px;
+  border: 1px solid var(--phone-border, rgba(255, 255, 255, .11));
+  border-radius: 10px;
+  color: var(--phone-muted, rgba(255, 255, 255, .58));
+  background: var(--phone-card, rgba(255, 255, 255, .045));
+  font-size: 9px;
+  font-weight: 800;
+}
+
+.phone-trip-stepper i {
+  display: grid;
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, .08);
+  font-size: 9px;
+  font-style: normal;
+}
+
+.phone-trip-stepper > span.is-active,
+.phone-trip-stepper > span.is-complete {
+  border-color: rgba(105, 238, 211, .35);
+  color: var(--phone-text, #eef5f7);
+}
+
+.phone-trip-stepper > span.is-active i,
+.phone-trip-stepper > span.is-complete i {
+  color: #071311;
+  background: var(--phone-accent, #69eed3);
+}
+
+.phone-trip-choice-list {
+  display: grid;
+  gap: 7px;
+}
+
+.phone-trip-choice-list > button {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  min-height: 58px;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 10px;
+  border: 1px solid var(--phone-border, rgba(255, 255, 255, .11));
+  border-radius: 13px;
+  color: var(--phone-text, #eef5f7);
+  background: var(--phone-card, rgba(255, 255, 255, .045));
+  text-align: left;
+}
+
+.phone-trip-choice-list__icon {
+  display: grid;
+  width: 36px;
+  height: 36px;
+  place-items: center;
+  border-radius: 11px;
+  color: var(--phone-accent, #69eed3);
+  background: rgba(105, 238, 211, .1);
+}
+
+.phone-trip-choice-list strong,
+.phone-trip-choice-list small {
+  display: block;
+}
+
+.phone-trip-choice-list small {
+  margin-top: 3px;
+  color: var(--phone-muted, rgba(255, 255, 255, .58));
+  font-size: 9px;
+}
+
+.phone-trip-selection {
+  display: flex;
+  min-height: 46px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 10px;
+  border: 1px solid rgba(105, 238, 211, .28);
+  border-radius: 12px;
+  background: rgba(105, 238, 211, .07);
+}
+
+.phone-trip-selection span,
+.phone-trip-selection strong {
+  display: block;
+}
+
+.phone-trip-selection span {
+  color: var(--phone-muted, rgba(255, 255, 255, .58));
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.phone-trip-selection strong {
+  margin-top: 2px;
+  font-size: 12px;
+}
+
+.phone-trip-selection button {
+  min-height: 30px;
+  padding: 0 9px;
+  border: 1px solid var(--phone-border, rgba(255, 255, 255, .11));
+  border-radius: 9px;
+  color: var(--phone-text, #eef5f7);
+  background: var(--phone-card, rgba(255, 255, 255, .045));
+  font-size: 9px;
+  font-weight: 800;
+}
+
+.phone-trip-mode-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(92px, 1fr));
+  gap: 7px;
+}
+
+.phone-trip-mode-grid > button {
+  display: grid;
+  min-height: 92px;
+  place-content: center;
+  justify-items: center;
+  gap: 6px;
+  padding: 8px;
+  border: 1px solid var(--phone-border, rgba(255, 255, 255, .11));
+  border-radius: 13px;
+  color: var(--phone-text, #eef5f7);
+  background: var(--phone-card, rgba(255, 255, 255, .045));
+}
+
+.phone-trip-mode-grid strong {
+  font-size: 11px;
+}
+
+.phone-trip-mode-grid small {
+  color: var(--phone-muted, rgba(255, 255, 255, .58));
+  font-size: 8px;
+  text-align: center;
+}
+
+.phone-trip-route--selected {
+  border-color: rgba(105, 238, 211, .28);
+}
+
+.phone-trip-terminal-flow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  padding: 9px;
+  border-radius: 11px;
+  background: rgba(255, 255, 255, .035);
+}
+
+.phone-trip-terminal-flow > div {
+  min-width: 0;
+}
+
+.phone-trip-terminal-flow span,
+.phone-trip-terminal-flow strong,
+.phone-trip-terminal-flow small {
+  display: block;
+}
+
+.phone-trip-terminal-flow span {
+  color: var(--phone-muted, rgba(255, 255, 255, .58));
+  font-size: 7px;
+  font-weight: 800;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.phone-trip-terminal-flow strong {
+  overflow: hidden;
+  margin-top: 3px;
+  font-size: 10px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.phone-trip-terminal-flow small {
+  overflow: hidden;
+  margin-top: 2px;
+  color: var(--phone-muted, rgba(255, 255, 255, .58));
+  font-size: 8px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}

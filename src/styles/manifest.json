@@ -150,6 +150,14 @@
       "originalStartLine": 8253,
       "originalEndLine": 8404,
       "lines": 152
+    },
+    {
+      "order": 18,
+      "file": "parts/18-mobile-navigation-recovery.css",
+      "heading": "Mobile navigation recovery",
+      "originalStartLine": 8404,
+      "originalEndLine": 8404,
+      "lines": 37
     }
   ]
 }

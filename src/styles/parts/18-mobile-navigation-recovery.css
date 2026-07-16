@@ -1,0 +1,37 @@
+/* Final mobile dock ownership. Loaded after legacy responsive patches. */
+@media (max-width: 900px) {
+  .phone-launcher {
+    right: max(12px, env(safe-area-inset-right)) !important;
+    bottom: calc(var(--mobile-dock-height, 52px) + env(safe-area-inset-bottom) + 12px) !important;
+    z-index: 940;
+    display: flex !important;
+    width: 52px !important;
+    min-width: 52px !important;
+    height: 52px;
+    padding: 0 !important;
+    justify-content: center;
+    border-radius: 17px;
+  }
+
+  .phone-launcher > span,
+  .phone-launcher kbd {
+    display: none;
+  }
+
+  .phone-launcher .phone-app-badge {
+    position: absolute;
+    top: -7px;
+    right: -7px;
+  }
+
+  .mobile-navigation {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    min-height: calc(var(--mobile-dock-height) + env(safe-area-inset-bottom)) !important;
+    padding: 0 4px !important;
+  }
+
+  .mobile-navigation__item {
+    min-height: calc(var(--mobile-dock-height) + env(safe-area-inset-bottom)) !important;
+    padding: 4px 1px max(3px, env(safe-area-inset-bottom)) !important;
+  }
+}

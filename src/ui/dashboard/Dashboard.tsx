@@ -202,6 +202,9 @@ const NAVIGATION: NavigationItem[] = [
   { id: 'log', label: 'Журнал', icon: 'log' }
 ];
 
+const MOBILE_PRIMARY_NAVIGATION = NAVIGATION.filter((item) => item.id === 'character' || item.id === 'city');
+const MOBILE_MORE_NAVIGATION = NAVIGATION.filter((item) => !MOBILE_PRIMARY_NAVIGATION.includes(item));
+
 const PAGE_TITLES: Record<DashboardTab, { title: string; eyebrow: string }> = {
   character: { title: 'Состояние', eyebrow: 'Личная панель' },
   city: { title: 'Город', eyebrow: 'Москва' },
@@ -270,6 +273,7 @@ export function Dashboard({
   const { player, time, lastResult } = gameState;
   const housing = getHousingById(player.housingId);
   const [activeTab, setActiveTab] = useState<DashboardTab>('character');
+  const [mobileMoreOpen, setMobileMoreOpen] = useState(false);
   const { theme, toggleTheme } = useUiTheme();
   const activeHourDecayItems = createNeedsEffectItems(getNeedsDecayDelta(60, 'active'));
   const page = activeTab === 'city'
@@ -281,7 +285,7 @@ export function Dashboard({
   }
 
   return (
-    <main className="app-frame">
+    <main className={`app-frame ${mobileMoreOpen ? 'mobile-more-open' : ''}`}>
       <div className="ambient-canvas" aria-hidden="true"><i/><i/><i/><span/></div>
 
       <aside className="desktop-navigation" aria-label="Навигация LifeSim">
@@ -493,18 +497,52 @@ export function Dashboard({
       <SocialEventModal event={socialState.activeEvent} npc={socialState.activeEventNpc} onChoose={onChooseSocialEvent} />
 
       <nav className="mobile-navigation" aria-label="Мобильная навигация">
-        {NAVIGATION.map((item) => (
+        {MOBILE_PRIMARY_NAVIGATION.map((item) => (
           <button
             aria-current={activeTab === item.id ? 'page' : undefined}
             className={activeTab === item.id ? 'mobile-navigation__item mobile-navigation__item--active' : 'mobile-navigation__item'}
             key={item.id}
             type="button"
-            onClick={() => setActiveTab(item.id)}
+            onClick={() => { setActiveTab(item.id); setMobileMoreOpen(false); }}
           >
             <Icon name={item.icon} size={21} /><span>{item.label}</span>
           </button>
         ))}
+        <button
+          aria-expanded={mobileMoreOpen}
+          className={`mobile-navigation__item mobile-navigation__more ${MOBILE_MORE_NAVIGATION.some((item) => item.id === activeTab) ? 'mobile-navigation__item--active' : ''}`}
+          type="button"
+          onClick={() => setMobileMoreOpen((open) => !open)}
+        >
+          <span className="mobile-navigation__dots" aria-hidden="true"><i/><i/><i/></span><span>Больше</span>
+        </button>
       </nav>
+
+      <div className={`mobile-more-layer ${mobileMoreOpen ? 'is-open' : ''}`} aria-hidden={!mobileMoreOpen}>
+        <button className="mobile-more-backdrop" type="button" aria-label="Закрыть меню" onClick={() => setMobileMoreOpen(false)} />
+        <section className="mobile-more-sheet" aria-label="Остальные разделы">
+          <header>
+            <div><span>LifeSim</span><strong>Больше</strong></div>
+            <small>{MOBILE_MORE_NAVIGATION.length} разделов</small>
+          </header>
+          <div className="mobile-more-grid">
+            {MOBILE_MORE_NAVIGATION.map((item) => (
+              <button
+                className={activeTab === item.id ? 'is-active' : ''}
+                key={item.id}
+                type="button"
+                onClick={() => { setActiveTab(item.id); setMobileMoreOpen(false); }}
+              >
+                <Icon name={item.icon} size={22}/><span>{item.label}</span>
+              </button>
+            ))}
+          </div>
+          <footer>
+            <button type="button" onClick={toggleTheme}><Icon name={theme === 'dark' ? 'sun' : 'moon'} size={18}/><span>{theme === 'dark' ? 'Светлая тема' : 'Тёмная тема'}</span></button>
+            <button className="danger" type="button" onClick={handleResetClick}><Icon name="reset" size={18}/><span>Сбросить игру</span></button>
+          </footer>
+        </section>
+      </div>
     </main>
   );
 }
