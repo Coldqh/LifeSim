@@ -45,3 +45,5 @@ export * from './opportunity';
 export * from './organization';
 
 export * from './household';
+
+export * from './lifePhase';

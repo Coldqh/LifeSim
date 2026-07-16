@@ -2,6 +2,7 @@ import type { CareerCompany, CareerResume } from '../../types/career';
 import type { DailyLifePanelState, DailyOpportunity, DailyOpportunityDecision } from '../../types/dailyLife';
 import type { LifeGoalId, LifeGoalsPanelState } from '../../types/lifeGoal';
 import type { LifeProgressionPanelState } from '../../types/lifeProgression';
+import type { LifePhasesPanelState } from '../../types/lifePhase';
 import type { Job } from '../../types/job';
 import type { City, District, Location } from '../../types/location';
 import type {
@@ -212,6 +213,7 @@ export type PhonePanelState = {
   opportunities: OpportunityPanelState;
   organizations: OrganizationPanelState;
   household: HouseholdPanelState;
+  lifePhases: LifePhasesPanelState;
   social: PhoneSocialState;
 };
 
@@ -269,4 +271,5 @@ export type PhoneShellProps = {
   onSelectLifeGoal: (goalId: LifeGoalId) => void;
   onChooseSocialEvent: (choiceId: SocialEventChoiceId) => void;
   onExecuteDailyOpportunity: (opportunity: DailyOpportunity) => void;
+  onResolveLongTermLifeDecision: (eventId: string, choiceId: string) => void;
 };

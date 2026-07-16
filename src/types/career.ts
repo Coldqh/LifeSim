@@ -13,7 +13,7 @@ import type { CalendarDate } from './time';
 export type CareerEmploymentType = 'casual' | 'internship' | 'professional';
 export type CareerApplicationChannel = 'direct' | 'phone' | 'interview';
 export type CareerEmploymentStatus = 'probation' | 'active' | 'ended';
-export type CareerEmploymentEndReason = 'resigned' | 'changed_job';
+export type CareerEmploymentEndReason = 'resigned' | 'changed_job' | 'dismissed';
 
 export type CareerCompany = {
   id: CareerCompanyId;

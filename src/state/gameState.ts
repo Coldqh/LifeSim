@@ -18,6 +18,7 @@ import type { OrganizationWorldState } from '../types/organization';
 import type { HouseholdState } from '../types/household';
 import type { LifeGoalsState } from '../types/lifeGoal';
 import type { LifeProgressionState } from '../types/lifeProgression';
+import type { LifePhasesState } from '../types/lifePhase';
 import { calculateAge, createInitialTime, formatGameTime, getTotalMinutes, normalizeGameTime } from '../core/time';
 import { createInitialBoxingProfile } from '../core/sport';
 import { createInitialCareerState, issueDegreeQualification, normalizePlayerCareerState, normalizePlayerQualifications } from '../core/career';
@@ -43,6 +44,7 @@ import { createInitialOrganizationState, normalizeOrganizationState } from '../c
 import { createInitialHouseholdState, normalizeHouseholdState } from '../core/household';
 import { createInitialLifeGoalsState, normalizeLifeGoalsState } from '../core/life-goals';
 import { createInitialLifeProgressionState, normalizeLifeProgressionState } from '../core/life-progression';
+import { createInitialLifePhasesState, createLifePhaseSnapshot, normalizeLifePhasesState } from '../core/life-phases';
 import { usedVehicleListingTemplates } from '../data/vehicles/usedListingTemplates';
 import { cityRegistry } from '../data/cities';
 import { getAllBusinessPremises, getAllHousing, getAllJobs, getDegreeProgramById, getHousingById, getUniversityById } from '../data/cities/contentSelectors';
@@ -90,6 +92,7 @@ export type WorldState = {
   opportunities: OpportunityWorldState;
   organizations: OrganizationWorldState;
   household: HouseholdState;
+  lifePhases: LifePhasesState;
 };
 
 export type GameState = {
@@ -270,26 +273,40 @@ export function createInitialGameState(): GameState {
     regionalCityIds,
     time
   });
+  const social = createInitialSocialState(getTotalMinutes(time));
+  const business = createInitialBusinessWorldState(population.seed, businessPremisesCatalogue.map((premises) => premises.id));
+  const medical = createInitialMedicalState(getTotalMinutes(time));
+  const university = createInitialUniversityState(getTotalMinutes(time));
+  const lifeGoals = createInitialLifeGoalsState();
+  const lifePhases = createInitialLifePhasesState(createLifePhaseSnapshot({
+    day: time.day,
+    player,
+    university,
+    business,
+    medical,
+    social,
+    lifeGoals
+  }));
 
   return {
     player,
     time,
     world: {
       population,
-      social: createInitialSocialState(getTotalMinutes(time)),
+      social,
       housingMarket: createHousingMarket({
         seed: population.seed ^ 0x48a3f2,
         day: time.day,
         currentHousingId: housingId('housing_room_danilovsky'),
         catalogue: housingCatalogue
       }),
-      business: createInitialBusinessWorldState(population.seed, businessPremisesCatalogue.map((premises) => premises.id)),
+      business,
       phone: createInitialPhoneState(getTotalMinutes(time)),
       finance: createInitialFinanceState(11000, time.day),
       vehicles: createInitialVehicleWorld(population.seed, time.day, usedVehicleListingTemplates),
-      medical: createInitialMedicalState(getTotalMinutes(time)),
+      medical,
       intercity: createInitialIntercityState(getTotalMinutes(time)),
-      university: createInitialUniversityState(getTotalMinutes(time)),
+      university,
       atlas,
       dynamics: createInitialWorldDynamicsState(atlas.seed, time.day),
       organizations: createInitialOrganizationState({ seed: atlas.seed ^ 0x61c88647, day: time.day, definitions: organizationDefinitions }),
@@ -304,9 +321,10 @@ export function createInitialGameState(): GameState {
         housingId: player.housingId,
         day: time.day,
         housing: getHousingById(player.housingId)
-      })
+      }),
+      lifePhases
     },
-    lifeGoals: createInitialLifeGoalsState(),
+    lifeGoals,
     progression: createInitialLifeProgressionState(time.day),
     lifeLog: [
       {
@@ -776,20 +794,30 @@ function normalizeLoadedGameState(value: unknown): GameState | undefined {
     }
   }
 
+  const lifeGoals = normalizeLifeGoalsState(parsed.lifeGoals);
+  const progression = normalizeLifeProgressionState(parsed.progression, time.day);
+  const social = normalizeSocialState(parsed.world?.social, time);
+  const business = normalizeBusinessWorld(parsed.world?.business, time, population.seed);
+  const medical = normalizeMedicalState(parsed.world?.medical, time);
+  const lifePhases = normalizeLifePhasesState(
+    parsed.world?.lifePhases,
+    createLifePhaseSnapshot({ day: time.day, player: normalizedPlayer, university, business, medical, social, lifeGoals })
+  );
+
   return {
     ...parsed,
     time,
-    lifeGoals: normalizeLifeGoalsState(parsed.lifeGoals),
-    progression: normalizeLifeProgressionState(parsed.progression, time.day),
+    lifeGoals,
+    progression,
     world: {
       population,
-      social: normalizeSocialState(parsed.world?.social, time),
+      social,
       housingMarket: normalizeHousingMarket(parsed.world?.housingMarket, time, population.seed, playerHousingId),
-      business: normalizeBusinessWorld(parsed.world?.business, time, population.seed),
+      business,
       phone: normalizePhoneState(parsed.world?.phone, time),
       finance: normalizeFinanceState(parsed.world?.finance, parsed.player.money ?? 0, time),
       vehicles: normalizeVehicleWorld(parsed.world?.vehicles, population.seed, time),
-      medical: normalizeMedicalState(parsed.world?.medical, time),
+      medical,
       intercity: normalizeIntercityState(parsed.world?.intercity, time),
       university,
       atlas,
@@ -808,7 +836,8 @@ function normalizeLoadedGameState(value: unknown): GameState | undefined {
         housingId: playerHousingId,
         day: time.day,
         housing: getHousingById(playerHousingId)
-      })
+      }),
+      lifePhases
     },
     player: normalizedPlayer
   };

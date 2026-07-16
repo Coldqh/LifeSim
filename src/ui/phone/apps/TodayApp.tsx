@@ -32,6 +32,7 @@ export default function TodayApp(props: {
   onExecute: () => void;
   onOpenApp: (app: 'jobs' | 'education' | 'goals') => void;
   onChooseStory: (choiceId: SocialEventChoiceId) => void;
+  onResolveLifeEvent: (eventId: string, choiceId: string) => void;
   onClose: () => void;
 }) {
   const daily = props.state.dailyLife;
@@ -77,6 +78,26 @@ export default function TodayApp(props: {
           </>
         )}
       </section>
+
+      {props.state.lifePhases.activeEvents.length ? (
+        <section className="phone-section-card phone-today__story">
+          <header><div><span>Жизненные решения</span><strong>{props.state.lifePhases.activeEvents.length} требуют ответа</strong></div><Icon name="bell" size={20}/></header>
+          {props.state.lifePhases.activeEvents.map((event) => (
+            <article className={`phone-today-world-condition phone-today-world-condition--${event.tone === 'critical' ? 'slowdown' : event.tone === 'warning' ? 'transport_delay' : 'demand_surge'}`} key={event.id}>
+              <div><strong>{event.title}</strong><small>Ответить до дня {event.dueDay} · осталось {Math.max(0, event.dueDay - props.time.day)} дн.</small></div>
+              <p>{event.description}</p>
+              <div className="phone-today__story-choices">
+                {event.choices.map((choice) => (
+                  <button type="button" key={choice.id} onClick={() => props.onResolveLifeEvent(event.id, choice.id)}>
+                    <strong>{choice.label}</strong>
+                    <span>{choice.description}</span>
+                  </button>
+                ))}
+              </div>
+            </article>
+          ))}
+        </section>
+      ) : null}
 
       {props.state.lifeProgression.consequences.length ? (
         <section className="phone-section-card phone-today__world">
@@ -251,6 +272,24 @@ export default function TodayApp(props: {
           </div>
         ) : <small>Возможность закрыта до следующего дня.</small>}
       </section>
+
+      {(props.state.lifePhases.latestWeeklySummary || props.state.lifePhases.latestMonthlySummary) ? (
+        <section className="phone-section-card phone-today__world">
+          <header><div><span>Этап жизни</span><strong>Недели и месяцы имеют итог</strong></div><Icon name="calendar" size={20}/></header>
+          {props.state.lifePhases.latestMonthlySummary ? (
+            <article className="phone-today-world-condition phone-today-world-condition--demand_surge">
+              <div><strong>{props.state.lifePhases.latestMonthlySummary.title}</strong><small>Дни {props.state.lifePhases.latestMonthlySummary.fromDay}–{props.state.lifePhases.latestMonthlySummary.toDay}</small></div>
+              {props.state.lifePhases.latestMonthlySummary.lines.map((line) => <p key={line}>{line}</p>)}
+            </article>
+          ) : null}
+          {props.state.lifePhases.latestWeeklySummary ? (
+            <details className="phone-today-world-news">
+              <summary>{props.state.lifePhases.latestWeeklySummary.title}</summary>
+              {props.state.lifePhases.latestWeeklySummary.lines.map((line) => <div key={line}><p>{line}</p></div>)}
+            </details>
+          ) : null}
+        </section>
+      ) : null}
 
       <section className="phone-section-card phone-today__log">
         <header><div><span>Итог дня</span><strong>Что уже произошло</strong></div><Icon name="log" size={20}/></header>

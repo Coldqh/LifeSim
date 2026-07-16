@@ -31,3 +31,5 @@ export * as npcDaily from './npc-daily';
 export * from './organizations';
 
 export * as household from './household';
+
+export * from './life-phases';

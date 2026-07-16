@@ -195,6 +195,22 @@ describe('save migrations', () => {
     expect(migrated.world.household.bills[0].dueDay).toBe(31);
   });
 
+  it('adds long-term life phases when migrating v34 to v35', () => {
+    const migrated = migrateSaveState({
+      player: { money: 12000, housingId: 'housing_room_danilovsky', rentDebt: 0 },
+      time: { day: 25 },
+      lifeGoals: { completedMilestoneIds: ['milestone_1'] },
+      world: { social: { contacts: { npc_1: {} } }, medical: { conditions: [] }, university: {}, business: {} }
+    }, 34).state as { world: { lifePhases: { version: number; lastProcessedDay: number; rentMultiplier: number; activeEvents: unknown[]; lastWeeklySnapshot: { money: number; completedGoalMilestones: number; knownContacts: number }; lastMonthlySnapshot: { money: number; completedGoalMilestones: number; knownContacts: number } } } };
+
+    expect(migrated.world.lifePhases.version).toBe(1);
+    expect(migrated.world.lifePhases.lastProcessedDay).toBe(25);
+    expect(migrated.world.lifePhases.rentMultiplier).toBe(1);
+    expect(migrated.world.lifePhases.activeEvents).toEqual([]);
+    expect(migrated.world.lifePhases.lastWeeklySnapshot).toMatchObject({ money: 12000, completedGoalMilestones: 1, knownContacts: 1 });
+    expect(migrated.world.lifePhases.lastMonthlySnapshot).toMatchObject({ money: 12000, completedGoalMilestones: 1, knownContacts: 1 });
+  });
+
   it('decodes both legacy raw states and the current versioned envelope', () => {
     const legacy = decodeSavePayload(JSON.stringify({ player: { inventory: [] } }), 23);
     const encoded = encodeSavePayload({ marker: 'current' });

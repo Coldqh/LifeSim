@@ -3,6 +3,7 @@ import { processCareerTime } from '../core/career';
 import { processFinanceDay, reconcileExternalBankBalance } from '../core/finance';
 import { applyHousingDayChanges, applyHousingSleepRecovery, refreshHousingMarket } from '../core/housing';
 import { getHouseholdSleepPenalty, processHouseholdDays } from '../core/household';
+import { processLifePhasesTime } from '../core/life-phases';
 import { processMedicalTime } from '../core/healthcare';
 import { processIntercityTime } from '../core/intercity';
 import { getLocationById } from '../core/location';
@@ -95,6 +96,7 @@ export type AdvanceWorldTimeResult = {
   opportunities: WorldState['opportunities'];
   organizations: WorldState['organizations'];
   household: WorldState['household'];
+  lifePhases: WorldState['lifePhases'];
   lifeLogEntries: LifeLogEntry[];
   needsDelta?: Partial<NeedsState>;
   messages: string[];
@@ -296,7 +298,13 @@ export function advanceWorldTime(input: AdvanceWorldTimeInput): AdvanceWorldTime
   if (elapsedDays > 0) {
     const housing = getHousingById(nextPlayer.housingId);
     if (housing) {
-      const applied = applyHousingDayChanges({ player: nextPlayer, housing, elapsedDays });
+      const currentRentContractKey = nextPlayer.rentalContract
+        ? `${String(nextPlayer.housingId)}:${nextPlayer.rentalContract.startedDay}`
+        : undefined;
+      const rentMultiplier = sourceWorld.lifePhases.rentContractKey === currentRentContractKey
+        ? sourceWorld.lifePhases.rentMultiplier
+        : 1;
+      const applied = applyHousingDayChanges({ player: nextPlayer, housing, elapsedDays, rentMultiplier });
       nextPlayer = applied.player;
       lifeLogEntries.push(...applied.events.map((event) => (
         createLifeLogEntry({ time: nextTime }, event.title, event.text)
@@ -629,13 +637,47 @@ export function advanceWorldTime(input: AdvanceWorldTimeInput): AdvanceWorldTime
     createLifeLogEntry({ time: nextTime }, 'Учёба', message)
   )));
 
+  const lifePhasesApplied = processLifePhasesTime({
+    state: sourceWorld.lifePhases,
+    fromDay: state.time.day,
+    toDay: nextTime.day,
+    player: nextPlayer,
+    university: universityApplied.state,
+    business: businessApplied.world,
+    medical: medicalApplied.state,
+    population,
+    social,
+    progression: state.progression,
+    lifeGoals: state.lifeGoals,
+    cityDistrictIds: cityRegistry.getDistrictsForCity(activeCityId).map((district) => district.id)
+  });
+  nextPlayer = lifePhasesApplied.player;
+  population = lifePhasesApplied.population;
+  social = lifePhasesApplied.social;
+  for (const activeEvent of lifePhasesApplied.startedEvents) {
+    const text = `${activeEvent.description} Решение нужно принять до дня ${activeEvent.dueDay}.`;
+    messages.push(text);
+    lifeLogEntries.push(createLifeLogEntry({ time: nextTime }, activeEvent.title, text));
+    phone = pushPhoneNotification(phone, { appId: 'today', title: activeEvent.title, body: text, createdAtTotalMinutes: currentTotalMinutes, npcId: activeEvent.npcId });
+  }
+  for (const entry of lifePhasesApplied.resolvedEntries) {
+    messages.push(entry.text);
+    lifeLogEntries.push(createLifeLogEntry({ time: nextTime }, entry.title, entry.text));
+    phone = pushPhoneNotification(phone, { appId: 'today', title: entry.expired ? 'Срок решения истёк' : entry.title, body: entry.text, createdAtTotalMinutes: currentTotalMinutes });
+  }
+  for (const summary of lifePhasesApplied.summaries) {
+    const text = summary.lines.join(' ');
+    lifeLogEntries.push(createLifeLogEntry({ time: nextTime }, summary.title, text));
+    phone = pushPhoneNotification(phone, { appId: 'today', title: summary.title, body: text, createdAtTotalMinutes: currentTotalMinutes });
+  }
+
   const intercityApplied = processIntercityAndPhone({
     intercity: sourceWorld.intercity,
     phone,
     currentTotalMinutes
   });
   phone = processMedicalCalendar({
-    medical: medicalApplied.state,
+    medical: lifePhasesApplied.medical,
     phone: intercityApplied.phone,
     currentTotalMinutes
   });
@@ -672,18 +714,19 @@ export function advanceWorldTime(input: AdvanceWorldTimeInput): AdvanceWorldTime
     population,
     social,
     housingMarket,
-    business: businessApplied.world,
+    business: lifePhasesApplied.business,
     phone,
     finance: financeApplied.state,
     vehicles,
-    medical: medicalApplied.state,
+    medical: lifePhasesApplied.medical,
     intercity: intercityApplied.intercity,
-    university: universityApplied.state,
+    university: lifePhasesApplied.university,
     atlas: atlasApplied.atlas,
     dynamics: dynamicsApplied.state,
     opportunities: opportunityApplied.state,
     organizations: organizationApplied.state,
-    household
+    household,
+    lifePhases: lifePhasesApplied.state
   };
 
   return {
@@ -704,6 +747,7 @@ export function advanceWorldTime(input: AdvanceWorldTimeInput): AdvanceWorldTime
     opportunities: world.opportunities,
     organizations: world.organizations,
     household: world.household,
+    lifePhases: world.lifePhases,
     lifeLogEntries,
     needsDelta: mergeNeedsDelta(decayApplied.delta, comfortNeedsDelta),
     messages

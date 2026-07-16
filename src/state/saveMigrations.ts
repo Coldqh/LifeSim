@@ -1,6 +1,6 @@
 import { getCalendarDateForDay } from '../core/time';
 export const MIN_SUPPORTED_SAVE_VERSION = 7;
-export const CURRENT_SAVE_VERSION = 34;
+export const CURRENT_SAVE_VERSION = 35;
 export const SAVE_ENVELOPE_FORMAT = 'lifesim-save';
 
 export const getGameStateStorageKey = (version: number): string => `lifesim.gameState.v${version}`;
@@ -352,6 +352,59 @@ function migrateV33ToV34(state: unknown): unknown {
   };
 }
 
+
+
+function migrateV34ToV35(state: unknown): unknown {
+  const root = asRecord(state);
+  const world = asRecord(root?.world);
+  const player = asRecord(root?.player);
+  const time = asRecord(root?.time);
+  const lifeGoals = asRecord(root?.lifeGoals);
+  if (!root || !world || asRecord(world.lifePhases)) return state;
+  const day = typeof time?.day === 'number' ? Math.max(1, Math.floor(time.day)) : 1;
+  const social = asRecord(world.social);
+  const businessWorld = asRecord(world.business);
+  const ownedBusiness = asRecord(businessWorld?.ownedBusiness);
+  const university = asRecord(world.university);
+  const enrollment = asRecord(university?.enrollment);
+  const subjectProgress = asRecord(enrollment?.subjectProgress);
+  const knowledgeValues = Object.values(subjectProgress ?? {}).map(asRecord).map((entry) => typeof entry?.knowledge === 'number' ? entry.knowledge : 0);
+  const assignments = Array.isArray(enrollment?.assignments) ? enrollment.assignments.map(asRecord).filter(Boolean) : [];
+  const snapshot = {
+    day,
+    money: typeof player?.money === 'number' ? player.money : 0,
+    currentJobId: typeof player?.currentJobId === 'string' ? player.currentJobId : undefined,
+    housingId: typeof player?.housingId === 'string' ? player.housingId : 'housing_room_danilovsky',
+    rentDebt: typeof player?.rentDebt === 'number' ? player.rentDebt : 0,
+    activeMedicalConditions: Array.isArray(asRecord(world.medical)?.conditions) ? (asRecord(world.medical)?.conditions as unknown[]).length : 0,
+    completedGoalMilestones: Array.isArray(lifeGoals?.completedMilestoneIds) ? lifeGoals.completedMilestoneIds.length : 0,
+    knownContacts: Object.keys(asRecord(social?.contacts) ?? {}).length,
+    businessBalance: typeof ownedBusiness?.balance === 'number' ? ownedBusiness.balance : undefined,
+    businessDebt: typeof ownedBusiness?.debt === 'number' ? ownedBusiness.debt : undefined,
+    universityKnowledge: knowledgeValues.length ? Math.round(knowledgeValues.reduce((sum, value) => sum + value, 0) / knowledgeValues.length) : 0,
+    universityDebtCount: assignments.filter((entry) => !entry?.completed && (entry?.missed || (typeof entry?.dueDay === 'number' && entry.dueDay < day))).length
+  };
+  return {
+    ...root,
+    world: {
+      ...world,
+      lifePhases: {
+        version: 1,
+        lastProcessedDay: day,
+        rentMultiplier: 1,
+        rentContractKey: undefined,
+        activeEvents: [],
+        history: [],
+        weeklySummaries: [],
+        monthlySummaries: [],
+        handledTriggerKeys: [],
+        lastWeeklySnapshot: snapshot,
+        lastMonthlySnapshot: snapshot
+      }
+    }
+  };
+}
+
 const SAVE_MIGRATIONS = new Map<number, SaveMigration>([
   [7, identityMigration],
   [8, identityMigration],
@@ -379,7 +432,8 @@ const SAVE_MIGRATIONS = new Map<number, SaveMigration>([
   [30, migrateV30ToV31],
   [31, migrateV31ToV32],
   [32, migrateV32ToV33],
-  [33, migrateV33ToV34]
+  [33, migrateV33ToV34],
+  [34, migrateV34ToV35]
 ]);
 
 function assertSupportedVersion(version: number): void {

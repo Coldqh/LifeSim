@@ -72,6 +72,7 @@ describe('game command registry', () => {
       'resetGame',
       'resignCurrentJob',
       'resolveDailyOpportunity',
+      'resolveLongTermLifeDecision',
       'respondNpcMeetingInvitation',
       'scheduleHousingViewingAction',
       'scheduleMedicalVisit',
@@ -171,6 +172,38 @@ describe('game command registry', () => {
       decision: 'accepted'
     });
     expect(harness.getState().lastResult?.actionName).toBe('План на день');
+  });
+
+  it('resolves a long-term life decision through the command registry', () => {
+    const initial = createInitialGameState();
+    initial.world.lifePhases.activeEvents = [{
+      id: 'rent_review_test',
+      kind: 'rent_review',
+      tone: 'warning',
+      title: 'Пересмотр аренды',
+      description: 'Тестовое повышение аренды.',
+      startedDay: initial.time.day,
+      sourceKey: 'housing_room_danilovsky:1',
+      dueDay: initial.time.day + 10,
+      defaultChoiceId: 'accept_rent',
+      choices: [
+        { id: 'accept_rent', label: 'Принять', description: 'Принять новые условия.' },
+        { id: 'negotiate_rent', label: 'Торговаться', description: 'Попытаться договориться.' }
+      ]
+    }];
+    const harness = createStateHarness(initial);
+
+    harness.commands.resolveLongTermLifeDecision('rent_review_test', 'accept_rent');
+
+    expect(harness.getState().lastResult?.ok).toBe(true);
+    expect(harness.getState().world.lifePhases.rentMultiplier).toBe(1.1);
+    expect(harness.getState().world.lifePhases.rentContractKey).toBe('housing_room_danilovsky:1');
+    expect(harness.getState().world.lifePhases.activeEvents).toHaveLength(0);
+    expect(harness.getState().world.lifePhases.history[0]).toMatchObject({
+      eventId: 'rent_review_test',
+      choiceId: 'accept_rent',
+      expired: false
+    });
   });
 
 });

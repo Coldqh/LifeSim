@@ -96,7 +96,7 @@ function normalizeEmploymentRecord(value: unknown, fallbackDay: number): CareerE
     endedDay: typeof candidate.endedDay === 'number'
       ? normalizeDay(candidate.endedDay, fallbackDay)
       : undefined,
-    endReason: candidate.endReason === 'resigned' || candidate.endReason === 'changed_job'
+    endReason: candidate.endReason === 'resigned' || candidate.endReason === 'changed_job' || candidate.endReason === 'dismissed'
       ? candidate.endReason
       : undefined
   };

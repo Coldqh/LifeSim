@@ -21,6 +21,7 @@ export type ApplyHousingDayChangesInput = {
   player: Player;
   housing: Housing;
   elapsedDays: number;
+  rentMultiplier?: number;
 };
 
 export type ApplyHousingDayChangesOutput = {
@@ -83,10 +84,10 @@ export function applyHousingDayChanges(input: ApplyHousingDayChangesInput): Appl
       const rent = applyHousingCharge({
         money,
         debt: rentDebt,
-        amount: input.housing.rentPerWeek,
+        amount: input.housing.rentPerWeek * Math.max(0.5, input.rentMultiplier ?? 1),
         paidTitle: 'Аренда',
-        paidText: `Оплачена аренда: ${input.housing.rentPerWeek} ₽.`,
-        debtText: `Аренда ${input.housing.rentPerWeek} ₽ ушла в долг.`
+        paidText: `Оплачена аренда: ${Math.round(input.housing.rentPerWeek * Math.max(0.5, input.rentMultiplier ?? 1))} ₽.`,
+        debtText: `Аренда ${Math.round(input.housing.rentPerWeek * Math.max(0.5, input.rentMultiplier ?? 1))} ₽ ушла в долг.`
       });
 
       money = rent.money;

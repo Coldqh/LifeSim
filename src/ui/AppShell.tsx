@@ -92,6 +92,7 @@ export function AppShell() {
     resolveDailyOpportunity,
     selectLifeGoal,
     payHouseholdBills,
+    resolveLongTermLifeDecision,
     executeDailyOpportunity,
     resetGame
   } = useGameController();
@@ -213,6 +214,7 @@ export function AppShell() {
         onSelectLifeGoal={selectLifeGoal}
         onChooseSocialEvent={chooseSocialEvent}
         onExecuteDailyOpportunity={executeDailyOpportunity}
+        onResolveLongTermLifeDecision={resolveLongTermLifeDecision}
       />
     </>
   );
