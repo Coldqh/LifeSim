@@ -58,41 +58,98 @@ export default function EducationApp(props: {
   const enrollment = university.enrollment;
 
   if (enrollment && university.activeProgram && university.activeUniversity) {
-    const subjectRows = university.activeProgram.subjectIds.map((subjectId) => {
-      const progress = enrollment.subjectProgress[subjectId];
-      const subject = university.classes.find((entry) => entry.subject.id === subjectId)?.subject;
-      return { subjectId, title: subject?.title ?? String(subjectId), progress };
-    });
+    const semesterSummary = university.semesterSummary;
+    const visibleAssignments = university.assignments.filter((assignment) => !assignment.completed);
+    const examRequirementsMet = Boolean(semesterSummary?.examRequirementsMet);
+    const examStatus = examRequirementsMet
+      ? university.semesterExamFailure === 'Нужно приехать в университет.'
+        ? 'Допуск получен'
+        : 'Можно сдавать'
+      : 'Нет допуска';
+
     return (
-      <div className="phone-app-page phone-screen-enter">
+      <div className="phone-app-page phone-screen-enter phone-education-dashboard">
         <div className="phone-app-banner phone-app-banner--education">
           <Icon name="book" size={26}/>
           <div><strong>{university.activeUniversity.shortName}</strong><small>{university.activeProgram.title}</small></div>
         </div>
-        <section className="phone-study-overview">
+
+        <section className="phone-study-overview phone-study-overview--semester">
           <div><span>Семестр</span><strong>{enrollment.semester}/{university.activeProgram.durationSemesters}</strong></div>
+          <div><span>Посещаемость</span><strong>{semesterSummary?.attendanceRate ?? 100}%</strong></div>
+          <div className={(semesterSummary?.academicDebtCount ?? 0) > 0 ? 'is-warning' : ''}><span>Долги</span><strong>{semesterSummary?.academicDebtCount ?? 0}</strong></div>
           <div><span>Нагрузка</span><strong>{Math.round(enrollment.studyLoad)}%</strong></div>
-          <div><span>Экзамены</span><strong>{enrollment.examsPassed}</strong></div>
-          <div><span>Кампус</span><strong>{university.campusPeople.length} человек</strong></div>
         </section>
+
+        <section className={`phone-semester-status ${examRequirementsMet ? 'is-ready' : 'is-warning'}`}>
+          <div>
+            <span>Статус семестра</span>
+            <strong>{examStatus}</strong>
+            <small>
+              Средние знания {semesterSummary?.averageKnowledge ?? 0}%
+              {semesterSummary?.examPenaltyPoints ? ` · штраф за пропуски −${semesterSummary.examPenaltyPoints}` : ' · без штрафа за пропуски'}
+            </small>
+          </div>
+          <em>{semesterSummary?.subjectsAtRisk ?? 0} в риске</em>
+        </section>
+
         <section className="phone-subsection">
-          <div className="phone-section-title"><span>Ближайшие пары</span><em>{university.classes.length}</em></div>
-          <div className="phone-study-list">
+          <div className="phone-section-title"><span>Расписание</span><em>{university.classes.length} пар</em></div>
+          <div className="phone-study-list phone-study-list--schedule">
             {university.classes.length ? university.classes.map((entry) => (
-              <article className="phone-study-row" key={entry.sessionKey}>
-                <div><strong>{entry.subject.title}</strong><small>{formatTotalMinutes(entry.startsAtTotalMinutes)}</small></div>
-                <button type="button" disabled={!entry.canAttend} onClick={() => props.onAttendClass(entry.subject.id, entry.startsAtTotalMinutes)}>Посетить</button>
-                {entry.failure ? <small className="phone-inline-error">{entry.failure}</small> : null}
+              <article className={`phone-study-row phone-study-row--class ${entry.canAttend ? 'is-live' : ''}`} key={entry.sessionKey}>
+                <div>
+                  <span className="phone-study-row__status">{entry.canAttend ? 'Можно войти' : entry.isToday ? 'Сегодня' : 'Предстоящая'}</span>
+                  <strong>{entry.subject.title}</strong>
+                  <small>{formatTotalMinutes(entry.startsAtTotalMinutes)} · {entry.subject.durationMinutes} мин</small>
+                </div>
+                {entry.canAttend ? <button type="button" onClick={() => props.onAttendClass(entry.subject.id, entry.startsAtTotalMinutes)}>Посетить</button> : null}
+                {entry.isToday && entry.failure ? <small className="phone-inline-error">{entry.failure}</small> : null}
               </article>
             )) : <div className="phone-empty-state">Ближайших пар нет</div>}
           </div>
-          <button className="phone-secondary-action" type="button" onClick={() => props.onRoute(university.activeUniversity!.locationId)}><Icon name="pin" size={17}/>Маршрут в кампус</button>
+          <button className="phone-secondary-action phone-campus-route" type="button" onClick={() => props.onRoute(university.activeUniversity!.locationId)}><Icon name="pin" size={17}/>Маршрут в кампус</button>
         </section>
+
+        <section className="phone-subsection">
+          <div className="phone-section-title"><span>Предметы</span><em>{semesterSummary?.subjects.length ?? 0}</em></div>
+          <div className="phone-subject-progress-list">
+            {semesterSummary?.subjects.map((subject) => (
+              <article className={subject.readyForExam ? 'is-ready' : 'is-pending'} key={String(subject.subjectId)}>
+                <div>
+                  <strong>{subject.title}</strong>
+                  <small>Знания {subject.knowledge}% · пропуски {subject.classesMissed}</small>
+                </div>
+                <div className="phone-subject-progress-list__requirements">
+                  <span className={subject.classesAttended >= 2 ? 'is-complete' : ''}>Пары {subject.classesAttended}/2</span>
+                  <span className={subject.assignmentsCompleted >= 1 ? 'is-complete' : ''}>Задания {subject.assignmentsCompleted}/1</span>
+                </div>
+              </article>
+            ))}
+          </div>
+        </section>
+
+        <section className="phone-subsection">
+          <div className="phone-section-title"><span>Задания</span><em>{semesterSummary?.activeAssignments ?? 0} активных</em></div>
+          <div className="phone-study-list">
+            {visibleAssignments.length ? visibleAssignments.map((assignment) => (
+              <article className={`phone-study-row ${assignment.missed ? 'is-overdue' : ''}`} key={assignment.id}>
+                <div>
+                  <strong>{assignment.title}</strong>
+                  <small>{assignment.missed ? 'Просрочено' : `Срок: день ${assignment.dueDay} · ${assignment.durationMinutes} мин`}</small>
+                </div>
+                {!assignment.missed ? <button type="button" onClick={() => props.onCompleteAssignment(assignment.id)}>Выполнить</button> : null}
+              </article>
+            )) : <div className="phone-empty-state">Активных заданий нет</div>}
+          </div>
+          {(semesterSummary?.completedAssignments ?? 0) > 0 ? <small className="phone-study-footnote">Сдано заданий: {semesterSummary?.completedAssignments}</small> : null}
+        </section>
+
         <section className="phone-subsection">
           <div className="phone-section-title"><span>Жизнь в кампусе</span><em>{university.campusActivities.length}</em></div>
           <div className="phone-study-list">
             {university.campusActivities.map(({ activity, failure }) => (
-              <article className="phone-study-row" key={activity.id}>
+              <article className="phone-study-row phone-study-row--campus" key={activity.id}>
                 <div>
                   <strong>{activity.title}</strong>
                   <small>{activity.description}</small>
@@ -104,25 +161,12 @@ export default function EducationApp(props: {
             ))}
           </div>
         </section>
-        <section className="phone-subsection">
-          <div className="phone-section-title"><span>Задания</span><em>{university.assignments.filter((entry) => !entry.completed && !entry.missed).length}</em></div>
-          <div className="phone-study-list">
-            {university.assignments.length ? university.assignments.map((assignment) => (
-              <article className="phone-study-row" key={assignment.id}>
-                <div><strong>{assignment.title}</strong><small>Срок: день {assignment.dueDay} · {assignment.completed ? 'сдано' : assignment.missed ? 'просрочено' : `${assignment.durationMinutes} мин`}</small></div>
-                {!assignment.completed && !assignment.missed ? <button type="button" onClick={() => props.onCompleteAssignment(assignment.id)}>Выполнить</button> : null}
-              </article>
-            )) : <div className="phone-empty-state">Заданий пока нет</div>}
-          </div>
-        </section>
-        <section className="phone-subsection">
-          <div className="phone-section-title"><span>Успеваемость</span><em>{subjectRows.length} предмета</em></div>
-          <div className="phone-requirements-list">
-            {subjectRows.map((row) => (
-              <div key={String(row.subjectId)}><span>{row.title}</span><strong>{row.progress?.knowledge ?? 0}% · {row.progress?.classesAttended ?? 0} пар</strong></div>
-            ))}
-          </div>
-          <button className="phone-primary-action" type="button" onClick={props.onTakeExam}>Сдать семестровый экзамен</button>
+
+        <section className="phone-subsection phone-exam-panel">
+          <div className="phone-section-title"><span>Семестровый экзамен</span><em>{examStatus}</em></div>
+          <p>Для допуска по каждому предмету нужны две посещённые пары и одно сданное задание.</p>
+          <button className="phone-primary-action" type="button" disabled={Boolean(university.semesterExamFailure)} onClick={props.onTakeExam}>Сдать экзамен</button>
+          {university.semesterExamFailure ? <small className="phone-inline-error">{university.semesterExamFailure}</small> : null}
         </section>
       </div>
     );

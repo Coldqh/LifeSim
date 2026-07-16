@@ -2,7 +2,7 @@
 @media (max-width: 900px) {
   .phone-launcher {
     right: max(12px, env(safe-area-inset-right)) !important;
-    bottom: calc(var(--mobile-dock-height, 52px) + env(safe-area-inset-bottom) + 12px) !important;
+    bottom: calc(46px + env(safe-area-inset-bottom) + 10px) !important;
     z-index: 940;
     display: flex !important;
     width: 52px !important;
@@ -26,12 +26,35 @@
 
   .mobile-navigation {
     grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
-    min-height: calc(var(--mobile-dock-height) + env(safe-area-inset-bottom)) !important;
-    padding: 0 4px !important;
+    min-height: calc(46px + env(safe-area-inset-bottom)) !important;
+    align-items: start;
+    gap: 6px;
+    padding: 4px 8px max(4px, env(safe-area-inset-bottom)) !important;
+    background: color-mix(in srgb, var(--navigation) 99%, transparent) !important;
   }
 
   .mobile-navigation__item {
-    min-height: calc(var(--mobile-dock-height) + env(safe-area-inset-bottom)) !important;
-    padding: 4px 1px max(3px, env(safe-area-inset-bottom)) !important;
+    width: 100%;
+    max-width: 108px;
+    min-height: 38px !important;
+    height: 38px;
+    justify-self: center;
+    gap: 1px !important;
+    padding: 2px 6px !important;
+    border-radius: 9px !important;
+  }
+
+  .mobile-navigation__item--active {
+    background: color-mix(in srgb, var(--accent-soft) 72%, transparent) !important;
+  }
+
+  .mobile-navigation__item svg,
+  .mobile-navigation__dots {
+    width: 16px !important;
+    height: 16px !important;
+  }
+
+  .mobile-navigation__item > span:last-child {
+    font-size: 7px !important;
   }
 }

@@ -588,6 +588,37 @@
 .phone-study-row div { display: grid; gap: 3px; }
 .phone-study-row small { color: var(--phone-muted); }
 .phone-study-row button { justify-self: start; }
+.phone-study-overview--semester .is-warning strong { color: #ffb15d; }
+.phone-semester-status { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; padding: 13px 14px; border: 1px solid rgba(255,255,255,.1); background: rgba(7,14,24,.72); }
+.phone-semester-status > div { display: grid; gap: 3px; }
+.phone-semester-status span { color: var(--phone-muted); font-size: 10px; text-transform: uppercase; letter-spacing: .08em; }
+.phone-semester-status strong { font-size: 16px; }
+.phone-semester-status small { color: var(--phone-muted); font-size: 10px; }
+.phone-semester-status em { flex: 0 0 auto; padding: 5px 7px; border: 1px solid rgba(255,255,255,.1); color: var(--phone-muted); font-size: 9px; font-style: normal; font-weight: 800; text-transform: uppercase; }
+.phone-semester-status.is-ready { border-color: rgba(83,210,183,.34); box-shadow: inset 3px 0 #53d2b7; }
+.phone-semester-status.is-ready strong { color: #7cf0d6; }
+.phone-semester-status.is-warning { border-color: rgba(255,177,93,.28); box-shadow: inset 3px 0 #ffb15d; }
+.phone-semester-status.is-warning strong { color: #ffbd78; }
+.phone-study-list--schedule { margin-top: 9px; }
+.phone-study-row--class { grid-template-columns: minmax(0, 1fr) auto; align-items: center; }
+.phone-study-row--class.is-live { border-color: rgba(83,210,183,.42); box-shadow: inset 3px 0 #53d2b7; }
+.phone-study-row__status { color: #a99bff; font-size: 9px; font-weight: 850; text-transform: uppercase; letter-spacing: .06em; }
+.phone-study-row--class.is-live .phone-study-row__status { color: #7cf0d6; }
+.phone-study-row button { min-height: 32px; padding: 0 10px; border: 1px solid rgba(255,255,255,.1); color: #edf7f8; background: rgba(255,255,255,.06); font-size: 10px; font-weight: 800; cursor: pointer; }
+.phone-study-row button:disabled { opacity: .34; cursor: not-allowed; }
+.phone-campus-route { width: 100%; min-height: 36px; margin-top: 9px; }
+.phone-subject-progress-list { display: grid; gap: 7px; margin-top: 9px; }
+.phone-subject-progress-list > article { display: grid; gap: 8px; padding: 10px; border: 1px solid rgba(255,255,255,.09); background: rgba(7,14,24,.62); }
+.phone-subject-progress-list > article.is-ready { border-color: rgba(83,210,183,.28); }
+.phone-subject-progress-list > article > div:first-child { display: grid; gap: 3px; }
+.phone-subject-progress-list small { color: var(--phone-muted); font-size: 10px; }
+.phone-subject-progress-list__requirements { display: flex; flex-wrap: wrap; gap: 5px; }
+.phone-subject-progress-list__requirements span { padding: 4px 6px; border: 1px solid rgba(255,255,255,.1); color: #ffbd78; background: rgba(255,177,93,.08); font-size: 9px; font-weight: 800; }
+.phone-subject-progress-list__requirements span.is-complete { border-color: rgba(83,210,183,.24); color: #7cf0d6; background: rgba(83,210,183,.08); }
+.phone-study-row.is-overdue { border-color: rgba(255,102,119,.28); box-shadow: inset 3px 0 #ff6677; }
+.phone-study-footnote { display: block; margin-top: 8px; color: var(--phone-muted); font-size: 10px; }
+.phone-exam-panel p { margin: 9px 0; color: var(--phone-muted); font-size: 11px; line-height: 1.45; }
+.phone-exam-panel > .phone-primary-action { width: 100%; min-height: 38px; }
 .phone-time-card { display: grid; gap: 16px; }
 .phone-time-card > span { color: var(--phone-muted); font-size: 12px; text-transform: uppercase; letter-spacing: .08em; }
 .phone-time-inputs { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }

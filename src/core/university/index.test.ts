@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { performUniversityCampusActivity } from './index';
+import {
+  getUniversityClasses,
+  getUniversitySemesterExamFailure,
+  getUniversitySemesterSummary,
+  performUniversityCampusActivity
+} from './index';
 import { UNIVERSITY_CAMPUS_ACTIVITY_IDS, getUniversityCampusActivityById } from '../../data/education/universityActivities';
 import type { DegreeProgramDefinition, UniversityDefinition, UniversityState, UniversitySubjectDefinition } from '../../types/university';
 import type { Player } from '../../types/player';
@@ -149,5 +154,78 @@ describe('university campus activities', () => {
     expect(result.player.needs.hunger).toBeGreaterThan(25);
     expect(result.player.needs.thirst).toBeGreaterThan(30);
     expect(result.state.enrollment?.studyLoad).toBe(17);
+  });
+});
+
+describe('university semester summary', () => {
+  it('reports attendance, academic debt and the exam penalty from existing enrollment data', () => {
+    const state = createState();
+    state.enrollment!.subjectProgress[subjectId] = {
+      classesAttended: 2,
+      classesMissed: 1,
+      assignmentsCompleted: 1,
+      knowledge: 64
+    };
+    state.enrollment!.assignments = [{
+      id: 'assignment_overdue',
+      subjectId,
+      title: 'Просроченное задание',
+      dueDay: 1,
+      durationMinutes: 120,
+      completed: false,
+      missed: true
+    }];
+
+    const summary = getUniversitySemesterSummary({ state, program, subjects });
+
+    expect(summary).toMatchObject({
+      attendedClasses: 2,
+      missedClasses: 1,
+      attendanceRate: 67,
+      overdueAssignments: 1,
+      academicDebtCount: 2,
+      examPenaltyPoints: 4,
+      examRequirementsMet: true,
+      averageKnowledge: 64
+    });
+  });
+
+  it('returns the exact remaining requirements before the semester exam', () => {
+    const state = createState();
+
+    expect(getUniversitySemesterExamFailure({
+      state,
+      program,
+      university,
+      currentLocationId: campusId
+    })).toBe('До допуска нужно посетить ещё 2 пары и сдать ещё 1 задание.');
+
+    state.enrollment!.subjectProgress[subjectId] = {
+      classesAttended: 2,
+      classesMissed: 0,
+      assignmentsCompleted: 1,
+      knowledge: 60
+    };
+
+    expect(getUniversitySemesterExamFailure({
+      state,
+      program,
+      university,
+      currentLocationId: asId<LocationId>('outside_campus')
+    })).toBe('Нужно приехать в университет.');
+  });
+
+  it('shows the time blocker before the location blocker for a future class', () => {
+    const state = createState();
+    const classes = getUniversityClasses({
+      state,
+      time,
+      program,
+      subjects,
+      university,
+      currentLocationId: asId<LocationId>('outside_campus')
+    });
+
+    expect(classes[0]?.failure).toBe('Пара ещё не началась.');
   });
 });

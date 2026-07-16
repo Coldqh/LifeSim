@@ -18,7 +18,14 @@ import { getInteractionFailure, getNpcRelationship, getRelationshipStatus } from
 import { getContactExchangeFailure, getNpcSocialCircles, getSocialMeetingFailure, getSocialQuickMessageFailure } from '../core/social-life';
 import { getBoxingFatigueLabel, getBoxingLevelProgress, getBoxingMembershipFailure, getBoxingSparringFailure, getBoxingTournamentFailure, getBoxingTrainerSelectionFailure, getBoxingTrainingFailure, hasActiveBoxingMembership } from '../core/sport';
 import { getTotalMinutes } from '../core/time';
-import { getEntranceExamFailure, getUniversityApplicationForProgram, getUniversityCampusActivityFailure, getUniversityClasses } from '../core/university';
+import {
+  getEntranceExamFailure,
+  getUniversityApplicationForProgram,
+  getUniversityCampusActivityFailure,
+  getUniversityClasses,
+  getUniversitySemesterExamFailure,
+  getUniversitySemesterSummary
+} from '../core/university';
 import { calculateVehicleTravelQuote } from '../core/vehicles';
 import { createDistrictTravelOption, createLocationTravelOptions } from '../core/travel';
 import { allLocations } from '../data/locations';
@@ -511,6 +518,19 @@ export function useGameController() {
     const campusPresence = activeUniversity
       ? getLocationPopulationPresence(gameState.world.population, activeUniversity.locationId)
       : undefined;
+    const semesterSummary = getUniversitySemesterSummary({
+      state,
+      program: activeProgram,
+      subjects: universitySubjectCatalogue
+    });
+    const semesterExamFailure = activeProgram && activeUniversity
+      ? getUniversitySemesterExamFailure({
+          state,
+          program: activeProgram,
+          university: activeUniversity,
+          currentLocationId: gameState.player.locationId
+        })
+      : 'Нет активного обучения.';
     return {
       state,
       programs: programViews,
@@ -520,6 +540,8 @@ export function useGameController() {
       classes,
       assignments: enrollment?.assignments ?? [],
       campusActivities,
+      semesterSummary,
+      semesterExamFailure,
       campusPeople: [...(campusPresence?.staff ?? []), ...(campusPresence?.visitors ?? [])].slice(0, 12)
     };
   }, [gameState.player, gameState.time, gameState.world.population, gameState.world.university]);

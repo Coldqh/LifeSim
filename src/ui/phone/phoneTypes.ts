@@ -37,7 +37,7 @@ import type { ActiveMedicalCondition, MedicalAppointment, MedicalConditionDefini
 import type { Product } from '../../types/product';
 import type { IntercityCarQuote, IntercityDeparture, IntercityRoadConnection, IntercityRoute, IntercityTicket, IntercityTravelState, TemporaryAccommodation, TemporaryStay } from '../../types/intercity';
 import type { ScheduleStatus } from '../../types/schedule';
-import type { DegreeProgramDefinition, UniversityApplication, UniversityAssignment, UniversityCampusActivityDefinition, UniversityClassView, UniversityDefinition, UniversityEnrollment, UniversityState } from '../../types/university';
+import type { DegreeProgramDefinition, UniversityApplication, UniversityAssignment, UniversityCampusActivityDefinition, UniversityClassView, UniversityDefinition, UniversityEnrollment, UniversitySemesterSummary, UniversityState } from '../../types/university';
 import type { Npc, NpcRoleDefinition } from '../../types/npc';
 import type { NpcRelationship, RelationshipStatus } from '../../types/relationship';
 import type { SocialContact, SocialCircleTag, SocialInvitation, SocialMeeting, SocialMeetingDefinition, SocialMeetingSlot, SocialMessageActionId, SocialQuickMessageDefinition } from '../../types/socialLife';
@@ -143,6 +143,8 @@ export type UniversityPanelState = {
   classes: UniversityClassView[];
   assignments: UniversityAssignment[];
   campusActivities: Array<{ activity: UniversityCampusActivityDefinition; failure?: string }>;
+  semesterSummary?: UniversitySemesterSummary;
+  semesterExamFailure?: string;
   campusPeople: Npc[];
 };
 

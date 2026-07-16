@@ -12,6 +12,7 @@ import type {
   UniversityDefinition,
   UniversityEnrollment,
   UniversityOperationResult,
+  UniversitySemesterSummary,
   UniversityState,
   UniversitySubjectDefinition,
   UniversitySubjectProgress,
@@ -53,6 +54,19 @@ function getNextEntranceExamAt(currentTotalMinutes: number): number {
 
 function createProgress(): UniversitySubjectProgress {
   return { classesAttended: 0, classesMissed: 0, assignmentsCompleted: 0, knowledge: 0 };
+}
+
+function formatRussianCount(value: number, forms: [string, string, string]): string {
+  const normalized = Math.abs(value) % 100;
+  const lastDigit = normalized % 10;
+  const form = normalized > 10 && normalized < 20
+    ? forms[2]
+    : lastDigit === 1
+      ? forms[0]
+      : lastDigit >= 2 && lastDigit <= 4
+        ? forms[1]
+        : forms[2];
+  return `${value} ${form}`;
 }
 
 function createEnrollment(program: DegreeProgramDefinition, day: number): UniversityEnrollment {
@@ -234,17 +248,109 @@ export function getUniversityClasses(input: {
       const already = input.state.enrollment?.attendedSessionKeys.includes(key) || input.state.enrollment?.missedSessionKeys.includes(key);
       const locationFailure = input.currentLocationId !== input.university?.locationId ? 'Нужно быть в университете.' : undefined;
       const timeFailure = currentTotal < startsAt - 45 ? 'Пара ещё не началась.' : currentTotal > startsAt + 30 ? 'Ты опоздал на пару.' : undefined;
+      const failure = already
+        ? 'Эта пара уже завершена.'
+        : timeFailure ?? locationFailure;
       result.push({
         subject,
         startsAtTotalMinutes: startsAt,
         sessionKey: key,
         isToday: day === input.time.day,
         canAttend: !already && !locationFailure && !timeFailure,
-        failure: already ? 'Эта пара уже завершена.' : locationFailure ?? timeFailure
+        failure
       });
     });
   }
   return result.sort((a, b) => a.startsAtTotalMinutes - b.startsAtTotalMinutes).slice(0, 8);
+}
+
+export function getUniversitySemesterSummary(input: {
+  state: UniversityState;
+  program?: DegreeProgramDefinition;
+  subjects: UniversitySubjectDefinition[];
+}): UniversitySemesterSummary | undefined {
+  const enrollment = input.state.enrollment;
+  if (!enrollment || !input.program) return undefined;
+
+  const subjectSummaries = input.program.subjectIds.map((subjectId) => {
+    const subject = input.subjects.find((entry) => entry.id === subjectId);
+    const progress = enrollment.subjectProgress[subjectId] ?? createProgress();
+    const overdueAssignments = enrollment.assignments.filter((assignment) => (
+      assignment.subjectId === subjectId && assignment.missed
+    )).length;
+
+    return {
+      subjectId,
+      title: subject?.title ?? String(subjectId),
+      classesAttended: progress.classesAttended,
+      classesMissed: progress.classesMissed,
+      assignmentsCompleted: progress.assignmentsCompleted,
+      knowledge: progress.knowledge,
+      overdueAssignments,
+      readyForExam: progress.classesAttended >= 2 && progress.assignmentsCompleted >= 1
+    };
+  });
+
+  const attendedClasses = subjectSummaries.reduce((sum, subject) => sum + subject.classesAttended, 0);
+  const missedClasses = subjectSummaries.reduce((sum, subject) => sum + subject.classesMissed, 0);
+  const completedAssignments = subjectSummaries.reduce((sum, subject) => sum + subject.assignmentsCompleted, 0);
+  const activeAssignments = enrollment.assignments.filter((assignment) => !assignment.completed && !assignment.missed).length;
+  const overdueAssignments = enrollment.assignments.filter((assignment) => assignment.missed).length;
+  const totalRecordedClasses = attendedClasses + missedClasses;
+  const averageKnowledge = Math.round(
+    subjectSummaries.reduce((sum, subject) => sum + subject.knowledge, 0) / Math.max(1, subjectSummaries.length)
+  );
+
+  return {
+    attendedClasses,
+    missedClasses,
+    attendanceRate: totalRecordedClasses > 0 ? Math.round((attendedClasses / totalRecordedClasses) * 100) : 100,
+    completedAssignments,
+    activeAssignments,
+    overdueAssignments,
+    averageKnowledge,
+    academicDebtCount: missedClasses + overdueAssignments,
+    examPenaltyPoints: missedClasses * 4,
+    examRequirementsMet: subjectSummaries.every((subject) => subject.readyForExam),
+    subjectsAtRisk: subjectSummaries.filter((subject) => {
+      const hasAcademicRecord = subject.classesAttended + subject.classesMissed + subject.assignmentsCompleted > 0;
+      return subject.classesMissed > 0
+        || subject.overdueAssignments > 0
+        || (hasAcademicRecord && subject.knowledge < 50);
+    }).length,
+    subjects: subjectSummaries
+  };
+}
+
+export function getUniversitySemesterExamFailure(input: {
+  state: UniversityState;
+  program: DegreeProgramDefinition;
+  university: UniversityDefinition;
+  currentLocationId?: LocationId;
+}): string | undefined {
+  const enrollment = input.state.enrollment;
+  if (!enrollment || enrollment.completed) return 'Нет активного обучения.';
+
+  const missingClasses = input.program.subjectIds.reduce((sum, subjectId) => {
+    const progress = enrollment.subjectProgress[subjectId] ?? createProgress();
+    return sum + Math.max(0, 2 - progress.classesAttended);
+  }, 0);
+  const missingAssignments = input.program.subjectIds.reduce((sum, subjectId) => {
+    const progress = enrollment.subjectProgress[subjectId] ?? createProgress();
+    return sum + Math.max(0, 1 - progress.assignmentsCompleted);
+  }, 0);
+
+  if (missingClasses > 0 || missingAssignments > 0) {
+    const requirements = [
+      missingClasses > 0 ? `посетить ещё ${formatRussianCount(missingClasses, ['пару', 'пары', 'пар'])}` : undefined,
+      missingAssignments > 0 ? `сдать ещё ${formatRussianCount(missingAssignments, ['задание', 'задания', 'заданий'])}` : undefined
+    ].filter((entry): entry is string => Boolean(entry));
+    return `До допуска нужно ${requirements.join(' и ')}.`;
+  }
+
+  if (input.currentLocationId !== input.university.locationId) return 'Нужно приехать в университет.';
+
+  return undefined;
 }
 
 export function attendUniversityClass(input: {
@@ -346,10 +452,22 @@ export function takeUniversitySemesterExam(input: {
   university: UniversityDefinition;
 }): { state: UniversityState; player: Player; time: GameTime; result: UniversityOperationResult; passed: boolean } {
   const enrollment = input.state.enrollment;
-  if (!enrollment) return { state: input.state, player: input.player, time: input.time, passed: false, result: { ok: false, title: 'Экзамен', message: 'Нет активного обучения.', timeDeltaMinutes: 0 } };
-  if (input.player.locationId !== input.university.locationId) return { state: input.state, player: input.player, time: input.time, passed: false, result: { ok: false, title: 'Экзамен', message: 'Нужно приехать в университет.', timeDeltaMinutes: 0 } };
+  const examFailure = getUniversitySemesterExamFailure({
+    state: input.state,
+    program: input.program,
+    university: input.university,
+    currentLocationId: input.player.locationId
+  });
+  if (!enrollment || examFailure) {
+    return {
+      state: input.state,
+      player: input.player,
+      time: input.time,
+      passed: false,
+      result: { ok: false, title: 'Экзамен', message: examFailure ?? 'Нет активного обучения.', timeDeltaMinutes: 0 }
+    };
+  }
   const progresses = input.program.subjectIds.map((id) => enrollment.subjectProgress[id] ?? createProgress());
-  if (progresses.some((progress) => progress.classesAttended < 2 || progress.assignmentsCompleted < 1)) return { state: input.state, player: input.player, time: input.time, passed: false, result: { ok: false, title: 'Экзамен', message: 'Нужно посетить минимум две пары и сдать одно задание по каждому предмету.', timeDeltaMinutes: 0 } };
   const averageKnowledge = progresses.reduce((sum, progress) => sum + progress.knowledge, 0) / Math.max(1, progresses.length);
   const attendancePenalty = progresses.reduce((sum, progress) => sum + progress.classesMissed, 0) * 4;
   const score = Math.round(averageKnowledge + input.player.needs.energy * 0.15 - enrollment.studyLoad * 0.1 - attendancePenalty + 12);

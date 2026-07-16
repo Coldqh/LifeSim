@@ -94,6 +94,32 @@ export type UniversitySubjectProgress = {
   knowledge: number;
 };
 
+export type UniversitySubjectSemesterSummary = {
+  subjectId: UniversitySubjectId;
+  title: string;
+  classesAttended: number;
+  classesMissed: number;
+  assignmentsCompleted: number;
+  knowledge: number;
+  overdueAssignments: number;
+  readyForExam: boolean;
+};
+
+export type UniversitySemesterSummary = {
+  attendedClasses: number;
+  missedClasses: number;
+  attendanceRate: number;
+  completedAssignments: number;
+  activeAssignments: number;
+  overdueAssignments: number;
+  averageKnowledge: number;
+  academicDebtCount: number;
+  examPenaltyPoints: number;
+  examRequirementsMet: boolean;
+  subjectsAtRisk: number;
+  subjects: UniversitySubjectSemesterSummary[];
+};
+
 export type UniversityEnrollment = {
   programId: DegreeProgramId;
   startedDay: number;
