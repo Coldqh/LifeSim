@@ -1,5 +1,6 @@
 import type { ActionId, JobId, LocationId, NpcId, PhoneCalendarEventId, UniversityCampusActivityId, UniversitySubjectId } from './ids';
 import type { NpcStoryChainId, SocialEventChoiceDefinition } from './socialEvent';
+import type { SocialGroupId } from './socialGroup';
 
 export type DailyAgendaItemKind = 'calendar' | 'university_class' | 'work_shift';
 export type DailyAgendaItemStatus = 'upcoming' | 'active' | 'completed' | 'missed' | 'flexible';
@@ -73,6 +74,19 @@ export type DailyNpcStoryEvent = {
   choices: SocialEventChoiceDefinition[];
 };
 
+
+export type DailySocialGroupEvent = {
+  instanceId: string;
+  groupId: SocialGroupId;
+  groupTitle: string;
+  representativeName: string;
+  memberCount: number;
+  title: string;
+  text: string;
+  expiresAtTotalMinutes: number;
+  choices: SocialEventChoiceDefinition[];
+};
+
 export type DailyLifePanelState = {
   agenda: DailyAgendaItem[];
   payments: DailyPaymentItem[];
@@ -81,5 +95,6 @@ export type DailyLifePanelState = {
   remainingAfterPayments: number;
   opportunity: DailyOpportunity;
   storyEvent?: DailyNpcStoryEvent;
+  groupEvent?: DailySocialGroupEvent;
   recentActivity: Array<{ id: string; timeLabel: string; title: string; text: string }>;
 };

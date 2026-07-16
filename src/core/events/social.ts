@@ -35,7 +35,8 @@ function createActiveEvent(
   template: SocialEventTemplate,
   npc: Npc,
   currentTotalMinutes: number,
-  source: ActiveSocialEvent['source']
+  source: ActiveSocialEvent['source'],
+  groupMemberIds?: Npc['id'][]
 ): ActiveSocialEvent {
   const day = fromTotalMinutes(currentTotalMinutes).day;
   return {
@@ -48,10 +49,14 @@ function createActiveEvent(
     source,
     expiresAtTotalMinutes: template.story
       ? currentTotalMinutes + Math.max(60, template.story.responseWindowMinutes)
-      : undefined,
+      : template.group
+        ? currentTotalMinutes + Math.max(60, template.group.responseWindowMinutes)
+        : undefined,
     storyChainId: template.story?.chainId,
     storyStep: template.story?.step,
-    expiryChoiceId: template.story?.expiryChoiceId
+    expiryChoiceId: template.story?.expiryChoiceId ?? template.group?.expiryChoiceId,
+    groupId: template.group?.groupId,
+    groupMemberIds: template.group ? groupMemberIds : undefined
   };
 }
 
@@ -61,6 +66,7 @@ export function activateSocialEvent(input: {
   template: SocialEventTemplate;
   currentTotalMinutes: number;
   source?: ActiveSocialEvent['source'];
+  groupMemberIds?: Npc['id'][];
 }): SocialState {
   if (input.social.activeEvent) return input.social;
   const day = fromTotalMinutes(input.currentTotalMinutes).day;
@@ -70,7 +76,8 @@ export function activateSocialEvent(input: {
       input.template,
       input.npc,
       input.currentTotalMinutes,
-      input.source ?? (input.template.story ? 'story' : 'scheduled')
+      input.source ?? (input.template.story ? 'story' : input.template.group ? 'group' : 'scheduled'),
+      input.groupMemberIds
     ),
     eventCooldowns: {
       ...input.social.eventCooldowns,
@@ -165,6 +172,40 @@ export function processScheduledSocialEvents(input: {
   });
 }
 
+
+function applyGroupChoiceEffect(input: {
+  social: SocialState;
+  event: ActiveSocialEvent;
+  choice: SocialEventChoiceDefinition;
+  day: number;
+  totalMinutes: number;
+}): SocialState {
+  const effect = input.choice.groupEffect;
+  const memberIds = input.event.groupMemberIds ?? [];
+  if (!effect || memberIds.length === 0) return input.social;
+
+  const relationships = { ...input.social.relationships };
+  for (const memberId of memberIds) {
+    const current = getNpcRelationship({ ...input.social, relationships }, memberId);
+    let next = applyRelationshipDelta(current, effect.relationshipDelta);
+    next = {
+      ...next,
+      interactionCount: current.interactionCount + (memberId === input.event.npcId ? 0 : 1),
+      firstMetDay: current.firstMetDay ?? input.day,
+      lastInteractionDay: input.day,
+      lastInteractionTotalMinutes: input.totalMinutes
+    };
+    next = addNpcMemory(next, {
+      key: effect.memoryKey,
+      day: input.day,
+      text: effect.memoryText,
+      tone: effect.memoryTone
+    });
+    relationships[String(memberId)] = next;
+  }
+  return { ...input.social, relationships };
+}
+
 export function expireActiveSocialEvent(input: {
   social: SocialState;
   currentTotalMinutes: number;
@@ -198,14 +239,24 @@ export function expireActiveSocialEvent(input: {
     });
   }
 
-  return {
+  const groupApplied = applyGroupChoiceEffect({
     social: {
       ...input.social,
-      activeEvent: undefined,
       relationships: {
         ...input.social.relationships,
         [String(npc.id)]: nextRelationship
-      },
+      }
+    },
+    event,
+    choice: expiryChoice,
+    day,
+    totalMinutes: input.currentTotalMinutes
+  });
+
+  return {
+    social: {
+      ...groupApplied,
+      activeEvent: undefined,
       history: [{
         id: `social_history_expired_${event.instanceId}`,
         day,
@@ -322,13 +373,22 @@ export function applySocialEventChoice(input: {
     title: event.title,
     text: choice.resultText
   };
-  const nextSocial: SocialState = {
-    ...social,
-    activeEvent: undefined,
-    relationships: {
-      ...social.relationships,
-      [String(npc.id)]: nextRelationship
+  const groupApplied = applyGroupChoiceEffect({
+    social: {
+      ...social,
+      relationships: {
+        ...social.relationships,
+        [String(npc.id)]: nextRelationship
+      }
     },
+    event,
+    choice,
+    day: time.day,
+    totalMinutes: getTotalMinutes(nextTime)
+  });
+  const nextSocial: SocialState = {
+    ...groupApplied,
+    activeEvent: undefined,
     scheduledEvents: [...social.scheduledEvents, ...followUp],
     history: [historyEntry, ...social.history].slice(0, 40)
   };

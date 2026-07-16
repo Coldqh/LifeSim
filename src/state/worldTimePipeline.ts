@@ -15,6 +15,7 @@ import { processPhoneTime } from '../core/phone';
 import { processSocialLifeTime } from '../core/social-life';
 import { expireActiveSocialEvent, maybeActivateSocialEvent, processScheduledSocialEvents } from '../core/events';
 import { maybeActivateNpcStory } from '../core/npc-stories';
+import { createSocialGroupMemberMap, maybeActivateSocialGroupEvent } from '../core/social-groups';
 import { applyBoxingRecovery } from '../core/sport';
 import { calculateAge, formatGameDate, fromTotalMinutes, getElapsedMinutes, getTotalMinutes } from '../core/time';
 import { processUniversityTime } from '../core/university';
@@ -43,6 +44,7 @@ import { cityRegistry } from '../data/cities';
 import { populationDataSource } from '../data/population/config';
 import { socialMeetingTypes } from '../data/social/meetingTypes';
 import { npcStoryChains } from '../data/social/npcStoryChains';
+import { socialGroupDefinitions, socialGroupEventTemplates } from '../data/social/socialGroups';
 import { socialEventTemplates } from '../data/social/socialEventTemplates';
 import { getBoxingGymById } from '../data/sports';
 import { usedVehicleListingTemplates } from '../data/vehicles/usedListingTemplates';
@@ -385,11 +387,8 @@ export function advanceWorldTime(input: AdvanceWorldTimeInput): AdvanceWorldTime
   const enrolledUniversity = getUniversityById(enrolledProgram?.universityId);
   const universityCityId = getLocationById(enrolledUniversity?.locationId)?.cityId;
   const boxingGym = getBoxingGymById(nextPlayer.boxing.membership?.gymId);
-  social = maybeActivateNpcStory({
-    social,
-    currentTotalMinutes,
-    templates: socialEventTemplates,
-    chains: npcStoryChains,
+  const socialGroupMembers = createSocialGroupMemberMap({
+    day: nextTime.day,
     universityCandidates: enrolledUniversity
       ? population.npcs.filter((npc) => (
           npc.activityProfile === 'student'
@@ -402,6 +401,22 @@ export function advanceWorldTime(input: AdvanceWorldTimeInput): AdvanceWorldTime
     boxingCandidates: boxingGym
       ? population.npcs.filter((npc) => npc.employment?.locationId === boxingGym.locationId)
       : []
+  });
+  social = maybeActivateNpcStory({
+    social,
+    currentTotalMinutes,
+    templates: socialEventTemplates,
+    chains: npcStoryChains,
+    universityCandidates: socialGroupMembers.university_group,
+    workCandidates: socialGroupMembers.work_team,
+    boxingCandidates: socialGroupMembers.boxing_gym
+  });
+  social = maybeActivateSocialGroupEvent({
+    social,
+    currentTotalMinutes,
+    definitions: socialGroupDefinitions,
+    templates: socialGroupEventTemplates,
+    membersByGroup: socialGroupMembers
   });
 
   const currentLocation = getLocationById(state.player.locationId);

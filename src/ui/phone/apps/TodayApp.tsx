@@ -119,6 +119,30 @@ export default function TodayApp(props: {
         </section>
       ) : null}
 
+      {daily.groupEvent ? (
+        <section className="phone-section-card phone-today__story phone-today__group-event">
+          <header>
+            <div><span>{daily.groupEvent.groupTitle} · {daily.groupEvent.memberCount} участников</span><strong>{daily.groupEvent.title}</strong></div>
+            <Icon name="users" size={20}/>
+          </header>
+          <div className="phone-today__story-person"><strong>{daily.groupEvent.representativeName}</strong><small>Ответить до {formatTotalMinutes(daily.groupEvent.expiresAtTotalMinutes)}</small></div>
+          <p>{daily.groupEvent.text}</p>
+          <div className="phone-today__story-choices">
+            {daily.groupEvent.choices.map((choice) => (
+              <button type="button" key={choice.id} onClick={() => props.onChooseStory(choice.id)}>
+                <strong>{choice.label}</strong>
+                <span>{choice.resultText}</span>
+                <small>{[
+                  choice.durationMinutes ? `${choice.durationMinutes} мин` : undefined,
+                  choice.moneyDelta ? `${choice.moneyDelta > 0 ? '+' : ''}${formatRubles(choice.moneyDelta)}` : undefined
+                ].filter(Boolean).join(' · ') || 'Решение без затрат времени'}</small>
+              </button>
+            ))}
+          </div>
+          <small className="phone-today__story-deadline">Осталось {Math.max(0, Math.ceil((daily.groupEvent.expiresAtTotalMinutes - getTotalMinutes(props.time)) / 60))} ч.</small>
+        </section>
+      ) : null}
+
       {daily.payments.length ? (
         <section className="phone-section-card phone-today__payments">
           <header><div><span>Деньги</span><strong>Ближайшие платежи</strong></div><Icon name="wallet" size={20}/></header>

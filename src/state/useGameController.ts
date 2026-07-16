@@ -17,6 +17,7 @@ import { getScheduleActivityFailure, getScheduleStatus } from '../core/schedule'
 import { getInterviewFailure, getJobApplicationForJob, getPhoneUnreadCount } from '../core/phone';
 import { getLocationPopulationPresence, getPopulationSummary } from '../core/population';
 import { getInteractionFailure, getNpcRelationship, getRelationshipStatus } from '../core/relationships';
+import { createSocialGroupMemberMap, createSocialGroupView } from '../core/social-groups';
 import { getContactExchangeFailure, getNpcSocialCircles, getSocialMeetingFailure, getSocialQuickMessageFailure } from '../core/social-life';
 import { getBoxingFatigueLabel, getBoxingLevelProgress, getBoxingMembershipFailure, getBoxingSparringFailure, getBoxingTournamentFailure, getBoxingTrainerSelectionFailure, getBoxingTrainingFailure, hasActiveBoxingMembership } from '../core/sport';
 import { getTotalMinutes } from '../core/time';
@@ -54,6 +55,7 @@ import {
 } from '../data/cities/contentSelectors';
 import { getNpcRoleById } from '../data/population/npcRoles';
 import { npcInteractionTemplates } from '../data/social/interactionTemplates';
+import { getSocialGroupDefinition, socialGroupDefinitions } from '../data/social/socialGroups';
 import { getSocialMeetingType, socialMeetingTypes, socialQuickMessages } from '../data/social/meetingTypes';
 import { businessTypes, getBusinessTypeById } from '../data/business/businessTypes';
 import { businessEquipment } from '../data/business/equipment';
@@ -632,6 +634,15 @@ export function useGameController() {
     const storyNpc = activeStory
       ? gameState.world.population.npcs.find((npc) => npc.id === activeStory.npcId)
       : undefined;
+    const activeGroupEvent = gameState.world.social.activeEvent?.source === 'group'
+      ? gameState.world.social.activeEvent
+      : undefined;
+    const groupRepresentative = activeGroupEvent
+      ? gameState.world.population.npcs.find((npc) => npc.id === activeGroupEvent.npcId)
+      : undefined;
+    const activeGroupDefinition = activeGroupEvent?.groupId
+      ? getSocialGroupDefinition(activeGroupEvent.groupId)
+      : undefined;
     return {
       ...base,
       storyEvent: activeStory?.storyChainId && activeStory.storyStep && activeStory.expiresAtTotalMinutes !== undefined && storyNpc
@@ -645,6 +656,19 @@ export function useGameController() {
             text: activeStory.text,
             expiresAtTotalMinutes: activeStory.expiresAtTotalMinutes,
             choices: activeStory.choices.filter((choice) => !choice.expiryOnly)
+          }
+        : undefined,
+      groupEvent: activeGroupEvent?.groupId && activeGroupEvent.expiresAtTotalMinutes !== undefined && groupRepresentative && activeGroupDefinition
+        ? {
+            instanceId: activeGroupEvent.instanceId,
+            groupId: activeGroupEvent.groupId,
+            groupTitle: activeGroupDefinition.title,
+            representativeName: `${groupRepresentative.firstName} ${groupRepresentative.lastName}`,
+            memberCount: activeGroupEvent.groupMemberIds?.length ?? 0,
+            title: activeGroupEvent.title,
+            text: activeGroupEvent.text,
+            expiresAtTotalMinutes: activeGroupEvent.expiresAtTotalMinutes,
+            choices: activeGroupEvent.choices.filter((choice) => !choice.expiryOnly)
           }
         : undefined
     };
@@ -712,6 +736,27 @@ export function useGameController() {
     const boxingLocationId = getBoxingGymById(gameState.player.boxing.membership?.gymId)?.locationId
       ?? boxingGymsCatalogue.find((gym) => getLocationById(gym.locationId)?.cityId === gameState.player.cityId)?.locationId;
     const ownedBusinessLocationId = getBusinessPremisesById(gameState.world.business.ownedBusiness?.premisesId)?.locationId;
+    const universityCityId = getLocationById(enrolledUniversity?.locationId)?.cityId;
+    const socialGroupMembers = createSocialGroupMemberMap({
+      day: gameState.time.day,
+      universityCandidates: enrolledUniversity
+        ? gameState.world.population.npcs.filter((npc) => (
+            npc.activityProfile === 'student'
+            && getDistrictById(npc.homeDistrictId)?.cityId === universityCityId
+          ))
+        : [],
+      workCandidates: currentJob
+        ? gameState.world.population.npcs.filter((npc) => npc.employment?.locationId === currentJob.locationId)
+        : [],
+      boxingCandidates: boxingLocationId
+        ? gameState.world.population.npcs.filter((npc) => npc.employment?.locationId === boxingLocationId)
+        : []
+    });
+    const socialGroups = socialGroupDefinitions.map((definition) => createSocialGroupView({
+      definition,
+      social: gameState.world.social,
+      members: socialGroupMembers[definition.id]
+    }));
     const contacts = Object.values(gameState.world.social.contacts)
       .map((contact) => {
         const npc = gameState.world.population.npcs.find((entry) => entry.id === contact.npcId);
@@ -802,7 +847,7 @@ export function useGameController() {
       university: universityState,
       lifeGoals: lifeGoalsState,
       dailyLife: dailyLifeState,
-      social: { contacts, meetingOptions: socialMeetingOptions, invitations: socialInvitations, meetings: socialMeetings },
+      social: { groups: socialGroups, contacts, meetingOptions: socialMeetingOptions, invitations: socialInvitations, meetings: socialMeetings },
       districtTravelOptions: locationState.districtTravelOptions
     };
   }, [gameState.player, gameState.time, gameState.world.phone, gameState.world.vehicles, gameState.world.social, gameState.world.population, gameState.world.business, financeState, vehicleState, intercityState, universityState, lifeGoalsState, dailyLifeState, locationState.districtTravelOptions]);

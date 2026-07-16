@@ -1985,3 +1985,80 @@
   grid-column: auto;
   margin-top: 10px;
 }
+
+/* Social Groups MVP */
+.phone-social-groups {
+  display: grid;
+  gap: 8px;
+}
+
+.phone-social-group-grid {
+  display: grid;
+  gap: 8px;
+}
+
+.phone-social-group-grid article {
+  display: grid;
+  gap: 7px;
+  padding: 11px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.phone-social-group-card__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.phone-social-group-card__top span {
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.phone-social-group-card__top strong {
+  font-size: 15px;
+}
+
+.phone-social-group-card__track {
+  height: 5px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.phone-social-group-card__track i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: currentColor;
+}
+
+.phone-social-group-grid article p,
+.phone-social-group-grid article small {
+  margin: 0;
+}
+
+.phone-social-group-grid article p {
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.phone-social-group-grid article small {
+  color: var(--phone-muted, #98a0ae);
+  font-size: 10px;
+  line-height: 1.35;
+}
+
+.phone-today__group-event {
+  border-color: rgba(126, 172, 255, 0.25);
+}
+
+@media (max-width: 480px) {
+  .phone-social-group-grid article {
+    padding: 8px;
+    gap: 5px;
+  }
+}

@@ -44,6 +44,7 @@ import type { DegreeProgramDefinition, UniversityApplication, UniversityAssignme
 import type { Npc, NpcRoleDefinition } from '../../types/npc';
 import type { NpcRelationship, RelationshipStatus } from '../../types/relationship';
 import type { SocialContact, SocialCircleTag, SocialInvitation, SocialMeeting, SocialMeetingDefinition, SocialMeetingSlot, SocialMessageActionId, SocialQuickMessageDefinition } from '../../types/socialLife';
+import type { SocialGroupView } from '../../types/socialGroup';
 
 export type PhoneVacancyView = {
   job: Job;
@@ -165,6 +166,7 @@ export type PhoneSocialContactView = {
 };
 
 export type PhoneSocialState = {
+  groups: SocialGroupView[];
   contacts: PhoneSocialContactView[];
   meetingOptions: Array<{ definition: SocialMeetingDefinition; locations: Location[] }>;
   invitations: Array<{ invitation: SocialInvitation; npc?: Npc; definition?: SocialMeetingDefinition; location?: Location }>;

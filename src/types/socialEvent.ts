@@ -3,6 +3,7 @@ import type { NpcId, SocialEventChoiceId, SocialEventId } from './ids';
 import type { NeedsState } from './needs';
 import type { RelationshipDelta, SocialContext } from './relationship';
 import type { SocialContact, SocialInvitation, SocialMeeting } from './socialLife';
+import type { SocialGroupEffect, SocialGroupEventMeta, SocialGroupId } from './socialGroup';
 
 export type NpcStoryChainId = 'university_peer' | 'work_colleague' | 'boxing_partner';
 
@@ -36,6 +37,7 @@ export type SocialEventChoiceDefinition = {
   memoryTone?: 'positive' | 'neutral' | 'negative';
   followUp?: SocialFollowUp;
   storyEffect?: NpcStoryEffect;
+  groupEffect?: SocialGroupEffect;
   expiryOnly?: boolean;
 };
 
@@ -57,6 +59,7 @@ export type SocialEventTemplate = {
   cooldownDays?: number;
   choices: SocialEventChoiceDefinition[];
   story?: SocialStoryMeta;
+  group?: SocialGroupEventMeta;
 };
 
 export type ActiveSocialEvent = {
@@ -66,11 +69,13 @@ export type ActiveSocialEvent = {
   title: string;
   text: string;
   choices: SocialEventChoiceDefinition[];
-  source: 'interaction' | 'scheduled' | 'story';
+  source: 'interaction' | 'scheduled' | 'story' | 'group';
   expiresAtTotalMinutes?: number;
   storyChainId?: NpcStoryChainId;
   storyStep?: number;
   expiryChoiceId?: SocialEventChoiceId;
+  groupId?: SocialGroupId;
+  groupMemberIds?: NpcId[];
 };
 
 export type ScheduledSocialEvent = {

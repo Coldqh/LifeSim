@@ -35,6 +35,7 @@ import type { DegreeProgramDefinition, UniversityApplication, UniversityAssignme
 import type { Npc, NpcRoleDefinition } from '../../../types/npc';
 import type { NpcRelationship, RelationshipStatus } from '../../../types/relationship';
 import type { SocialContact, SocialCircleTag, SocialInvitation, SocialMeeting, SocialMeetingDefinition, SocialMeetingSlot, SocialMessageActionId, SocialQuickMessageDefinition } from '../../../types/socialLife';
+import type { SocialGroupAcceptance } from '../../../types/socialGroup';
 import { VEHICLE_DEFECT_LABELS } from '../../../core/vehicles';
 import { formatGameTime } from '../../../core/time';
 import { getRelationshipStatusLabel } from '../../../core/relationships';
@@ -49,6 +50,15 @@ const SOCIAL_CIRCLE_LABELS: Record<SocialCircleTag, string> = {
   neighborhood: 'Район',
   business: 'Бизнес',
   friends: 'Друзья'
+};
+
+
+const SOCIAL_GROUP_ACCEPTANCE_LABELS: Record<SocialGroupAcceptance, string> = {
+  outsider: 'Чужой',
+  tolerated: 'Терпят',
+  accepted: 'Приняли',
+  trusted: 'Доверяют',
+  core: 'Свой человек'
 };
 
 const ROMANCE_LABELS: Record<NpcRelationship['romanceStatus'], string> = {
@@ -167,6 +177,24 @@ export default function ContactsApp(props: {
   return (
     <div className="phone-app-page phone-screen-enter phone-contacts-app">
       <div className="phone-app-banner phone-app-banner--contacts"><Icon name="users" size={25}/><div><strong>Контакты</strong><small>{props.state.social.contacts.length} человек</small></div></div>
+
+      <section className="phone-subsection phone-social-groups">
+        <div className="phone-section-title"><span>Мои круги</span><em>{props.state.social.groups.filter((group) => group.active).length}</em></div>
+        <div className="phone-social-group-grid">
+          {props.state.social.groups.filter((group) => group.active).map((group) => (
+            <article key={group.definition.id}>
+              <div className="phone-social-group-card__top">
+                <span>{group.definition.shortTitle}</span>
+                <strong>{group.reputation}</strong>
+              </div>
+              <div className="phone-social-group-card__track"><i style={{ width: `${group.reputation}%` }}/></div>
+              <p>{SOCIAL_GROUP_ACCEPTANCE_LABELS[group.acceptance]} · знакомы {group.knownMemberCount}/{group.members.length}</p>
+              <small>{group.definition.description}</small>
+            </article>
+          ))}
+          {!props.state.social.groups.some((group) => group.active) ? <div className="phone-empty-state">Поступи, устройся на работу или запишись в зал, чтобы войти в социальный круг.</div> : null}
+        </div>
+      </section>
 
       {props.state.social.invitations.length ? (
         <section className="phone-subsection phone-social-invitations">
